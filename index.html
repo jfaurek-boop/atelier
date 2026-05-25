@@ -443,7 +443,8 @@
 
     .map-view.has-project .map-column,
     .map-view.has-task .map-column {
-      align-self: start;
+      align-self: stretch;
+      grid-template-rows: minmax(220px, 32vh) minmax(0, 1fr);
     }
 
     .map-view.has-project .map-shell,
@@ -494,6 +495,14 @@
       box-shadow: var(--shadow);
     }
 
+    .map-view.has-project .map-context-card,
+    .map-view.has-task .map-context-card {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
     .map-context-head {
       display: flex;
       align-items: flex-start;
@@ -539,6 +548,14 @@
       margin-top: 10px;
       overflow: auto;
       padding-right: 2px;
+    }
+
+    .map-view.has-project .map-project-list,
+    .map-view.has-task .map-project-list {
+      flex: 1;
+      max-height: none;
+      min-height: 0;
+      align-content: start;
     }
 
     .map-project-list button {
@@ -898,6 +915,40 @@
       background: rgba(212, 165, 116, 0.055);
     }
 
+    .panel-goals .goal-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      min-height: 58px;
+      padding: 7px;
+    }
+
+    .goal-select-main {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+    }
+
+    .goal-select-main strong,
+    .goal-select-main small {
+      display: block;
+    }
+
+    .goal-edit-btn {
+      width: auto;
+      min-width: 52px;
+      padding: 0 9px;
+      align-self: center;
+      font-size: 0.76rem;
+    }
+
     .panel-goals .project-chip.is-active,
     .panel-goals .project-chip:hover {
       border-color: rgba(212, 165, 116, 0.48);
@@ -1164,7 +1215,7 @@
     }
 
     .panel-tasks .quick-add {
-      grid-template-columns: 74px minmax(0, 1fr) 72px;
+      grid-template-columns: 74px minmax(120px, 1fr) 72px 118px;
       margin-top: 12px;
       margin-bottom: 12px;
       border-color: rgba(141, 162, 181, 0.26);
@@ -1178,6 +1229,15 @@
     .panel-tasks .quick-add .primary-btn {
       min-width: 72px;
       padding: 0 8px;
+    }
+
+    .panel-tasks .quick-add .quick-add-card-btn {
+      min-width: 118px;
+      padding: 0 10px;
+      border-color: rgba(141, 162, 181, 0.46);
+      background: rgba(193, 202, 214, 0.08);
+      color: var(--text);
+      white-space: nowrap;
     }
 
     .quick-add input[type="date"] {
@@ -1683,6 +1743,37 @@
     .task-row.is-complete .task-name {
       color: var(--muted);
       text-decoration: line-through;
+    }
+
+    .goal-tasks-panel .task-row {
+      grid-template-columns: 30px minmax(190px, 1fr) 52px 82px 76px;
+      align-items: start;
+      min-height: 62px;
+      gap: 9px;
+      padding: 8px 10px;
+    }
+
+    .goal-tasks-panel .task-main {
+      padding-top: 3px;
+    }
+
+    .goal-tasks-panel .task-name {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      line-height: 1.18;
+      font-size: 0.86rem;
+    }
+
+    .goal-tasks-panel .priority,
+    .goal-tasks-panel .due,
+    .goal-tasks-panel .row-actions {
+      margin-top: 2px;
+    }
+
+    .goal-tasks-panel .row-actions .icon-btn {
+      width: 30px;
+      min-height: 30px;
     }
 
     .task-main {
@@ -3363,6 +3454,7 @@
         selectedProjectId: null,
         selectedGoalId: null,
         selectedTaskId: null,
+        mapTaskPopupId: null,
         projects: [],
         sections: [],
         tasks: [],
@@ -3402,6 +3494,7 @@
           : projects[0]?.id || null,
         selectedTaskId: data.selectedTaskId && tasks.some((t) => t.id === data.selectedTaskId) ? data.selectedTaskId : null,
         selectedGoalId: data.selectedGoalId || null,
+        mapTaskPopupId: data.mapTaskPopupId && tasks.some((t) => t.id === data.mapTaskPopupId) ? data.mapTaskPopupId : null,
         continentPopupId: data.continentPopupId || null,
         mapZoomMode: "free",
         mapViewBox: data.mapFitVersion === 1 && !repositionGoals && isValidMapBox(data.mapViewBox) ? clampMapBox(data.mapViewBox) : defaultBox,
@@ -5027,6 +5120,7 @@
           </select>
           <input type="date" name="fechaVencimiento" aria-label="Fecha limite" title="Fecha limite">
           <button class="primary-btn" type="submit">Crear</button>
+          <button class="ghost-btn quick-add-card-btn" type="button" data-action="quick-add-card">Crear tarjeta</button>
         </form>
       `;
     }
@@ -5414,7 +5508,20 @@
         }, false);
       }
       if (action === "close-continent-popup") setState({ continentPopupId: null }, false);
-      if (action === "close-goal-popup") setState({ selectedGoalId: null }, false);
+      if (action === "close-goal-popup") setState({ selectedGoalId: null, mapTaskPopupId: null }, false);
+      if (action === "close-task-popup") setState({ mapTaskPopupId: null }, false);
+      if (action === "show-task-popup") {
+        const task = state.tasks.find((item) => item.id === taskId);
+        if (task) {
+          setState({
+            selectedProjectId: task.projectId,
+            selectedGoalId: goalKey(task.projectId, task.sectionId),
+            selectedTaskId: null,
+            mapTaskPopupId: task.id,
+            continentPopupId: null
+          }, false);
+        }
+      }
       if (action === "move-project") moveProject(projectId, actionTarget.dataset.direction);
       if (action === "open-project-pending") {
         setState({
@@ -5461,6 +5568,10 @@
       if (action === "toggle-combo") toggleTaskCombo(actionTarget);
       if (action === "choose-combo") chooseTaskCombo(actionTarget);
       if (action === "open-date-picker") openTaskDatePicker(actionTarget);
+      if (action === "quick-add-card") {
+        const form = actionTarget.closest("form");
+        if (form) saveQuickTaskCard(form);
+      }
       if (action === "set-priority") setPriorityInForm(actionTarget);
       if (action === "set-task-status") setTaskStatusInForm(actionTarget);
       if (action === "add-comment") addTaskComment(taskId);
@@ -5672,6 +5783,37 @@
         const sameForm = document.querySelector(`form[data-action="quick-add"][data-project-id="${projectId}"][data-section-id="${sectionId || ""}"]`);
         if (sameForm) sameForm.elements.nombre.focus();
       }
+    }
+
+    function saveQuickTaskCard(form) {
+      const projectId = form.dataset.projectId;
+      const sectionId = form.dataset.sectionId || null;
+      if (!projectId) return;
+      const name = form.elements.nombre.value.trim() || "Nueva tarea";
+      let taskId = null;
+      mutate(() => {
+        const task = {
+          id: uid("task"),
+          projectId,
+          sectionId,
+          nombre: name,
+          descripcion: "",
+          prioridad: form.elements.prioridad.value || "p4",
+          completada: false,
+          fechaVencimiento: form.elements.fechaVencimiento?.value || null,
+          orden: state.tasks.filter((item) => item.projectId === projectId && item.sectionId === sectionId).length,
+          createdAt: nowISO(),
+          comentarios: [],
+          completedAt: null
+        };
+        taskId = task.id;
+        state.tasks.push(task);
+        state.selectedProjectId = projectId;
+        state.selectedGoalId = goalKey(projectId, sectionId);
+        state.selectedTaskId = taskId;
+        state.modal = { type: "task", id: taskId };
+      }, { persist: true });
+      showToast("Tarjeta creada");
     }
 
     function saveQuickGoal(form, event) {
@@ -5973,16 +6115,21 @@
     function handleCastlePointerDown(event) {
       const group = event.currentTarget;
       const projectId = group.dataset.projectId;
+      const sectionId = group.dataset.sectionId || null;
       const project = state.projects.find((p) => p.id === projectId);
       if (!project) return;
       event.preventDefault();
       const svg = group.closest("svg");
       const point = svgPoint(svg, event.clientX, event.clientY);
+      const goal = state.sections.find((section) => section.id === sectionId);
+      const goalIndex = Math.max(0, goalsForProject(projectId).findIndex((section) => section.id === sectionId));
+      const basePosition = goal ? goalPosition(goal, project, goalIndex) : project.posicion;
       dragCastle = {
         projectId,
+        sectionId,
         svg,
-        offsetX: point.x - project.posicion.x,
-        offsetY: point.y - project.posicion.y,
+        offsetX: point.x - basePosition.x,
+        offsetY: point.y - basePosition.y,
         moved: false
       };
       state.selectedProjectId = projectId;
@@ -5994,27 +6141,38 @@
       const project = state.projects.find((p) => p.id === dragCastle.projectId);
       if (!project) return;
       const point = svgPoint(dragCastle.svg, event.clientX, event.clientY);
-      project.posicion = {
+      const nextPosition = {
         x: Math.max(110, Math.min(790, point.x - dragCastle.offsetX)),
         y: Math.max(320, Math.min(650, point.y - dragCastle.offsetY))
       };
+      const goal = state.sections.find((section) => section.id === dragCastle.sectionId);
+      if (goal) goal.posicion = nextPosition;
+      else project.posicion = nextPosition;
       dragCastle.moved = true;
       saveState();
-      const node = document.querySelector(`.castle-node[data-project-id="${dragCastle.projectId}"]`);
-      const label = document.querySelector(`.castle-label[data-project-id="${dragCastle.projectId}"]`);
+      const node = document.querySelector(`.castle-node[data-project-id="${dragCastle.projectId}"][data-section-id="${dragCastle.sectionId || ""}"]`);
+      const label = document.querySelector(`.castle-label[data-project-id="${dragCastle.projectId}"][data-section-id="${dragCastle.sectionId || ""}"]`);
       if (node) {
-        const stats = projectStats(project.id);
-        node.setAttribute("transform", `translate(${project.posicion.x} ${project.posicion.y}) scale(${0.4 + stats.progress * 0.8})`);
+        const stats = goal ? statsForGoal(project.id, goal.id) : projectStats(project.id);
+        const nextScale = goal ? cityScaleForGoal(stats) : 0.4 + stats.progress * 0.8;
+        node.setAttribute("transform", `translate(${nextPosition.x} ${nextPosition.y}) scale(${nextScale})`);
       }
-      if (label) label.setAttribute("transform", `translate(${project.posicion.x - 80} ${project.posicion.y + 85})`);
+      if (label) label.setAttribute("transform", `translate(${nextPosition.x - 80} ${nextPosition.y + 85})`);
     }
 
     function handleCastlePointerUp() {
       if (!dragCastle) return;
       const moved = dragCastle.moved;
       const projectId = dragCastle.projectId;
+      const sectionId = dragCastle.sectionId;
       dragCastle = null;
-      if (!moved) setState({ selectedProjectId: projectId, selectedTaskId: null });
+      if (!moved) setState({
+        selectedProjectId: projectId,
+        selectedGoalId: goalKey(projectId, sectionId),
+        selectedTaskId: null,
+        mapTaskPopupId: null,
+        continentPopupId: null
+      }, false);
       else render();
     }
 
@@ -6406,6 +6564,14 @@
       return null;
     }
 
+    function goalNodeFromMapTarget(target) {
+      return target?.closest?.(".castle-node, .castle-label") || null;
+    }
+
+    function taskNodeFromMapTarget(target) {
+      return target?.closest?.(".task-construction") || null;
+    }
+
     function mapViewBox(projects) {
       if (projects.length === 0) return "0 0 900 800";
       return mapBoxString(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
@@ -6524,8 +6690,39 @@
     }
 
     function handleMapDoubleClick(event) {
-      if (event.target.closest(".castle-node, .castle-label, .task-construction, .map-toolbar, .continent-title-popup, .map-popup-close")) return;
+      if (event.target.closest(".map-toolbar, .continent-title-popup, .map-popup-close")) return;
       event.preventDefault();
+      const taskNode = taskNodeFromMapTarget(event.target);
+      if (taskNode?.dataset.taskId) {
+        const task = state.tasks.find((item) => item.id === taskNode.dataset.taskId);
+        if (task) {
+          setState({
+            view: "list",
+            selectedProjectId: task.projectId,
+            selectedGoalId: goalKey(task.projectId, task.sectionId),
+            selectedTaskId: task.id,
+            mapTaskPopupId: null,
+            continentPopupId: null,
+            listProjectOpen: true,
+            mapViewBox: mapBoxForContinent(task.projectId)
+          });
+          return;
+        }
+      }
+      const goalNode = goalNodeFromMapTarget(event.target);
+      if (goalNode?.dataset.projectId) {
+        setState({
+          view: "list",
+          selectedProjectId: goalNode.dataset.projectId,
+          selectedGoalId: goalKey(goalNode.dataset.projectId, goalNode.dataset.sectionId || null),
+          selectedTaskId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null,
+          listProjectOpen: true,
+          mapViewBox: mapBoxForContinent(goalNode.dataset.projectId)
+        });
+        return;
+      }
       const projectId = projectIdFromMapTarget(event.target);
       if (projectId) {
         focusContinent(projectId);
@@ -6546,6 +6743,7 @@
       const goalRoutes = renderGoalSequencePaths(projects);
       const workers = goals.map(({ project, goal, index }) => renderProjectWorkers(project, goal, index)).join("");
       const labels = goals.map(({ project, goal, index }) => renderCastleLabel(project, goal, index)).join("");
+      const taskPopup = renderTaskMapPopup(projects);
       const continentLabels = renderContinentLabels(projects);
       const celebration = state.celebratingGoalId
         ? renderFullCelebration(goals.find(({ project, goal }) => goalKey(project.id, goal.id) === state.celebratingGoalId))
@@ -6607,6 +6805,7 @@
           ${workers}
           ${continentLabels}
           ${labels}
+          ${taskPopup}
           ${celebration}
           <g transform="translate(84 710)" opacity="0.78">
             <circle r="40" fill="rgba(7,12,16,0.44)" stroke="#8da2b5" stroke-width="1.6"/>
@@ -6646,7 +6845,7 @@
         const selected = project.id === state.selectedProjectId;
         const clipId = `landClip-${index}`;
         return `
-          <g class="continent" data-action="select-map-project" data-project-id="${project.id}">
+          <g class="continent" data-project-id="${project.id}">
             <clipPath id="${clipId}">
               <path data-coast-project-id="${project.id}" d="${coast}"/>
             </clipPath>
@@ -6677,7 +6876,7 @@
         const popupY = Math.max(8, Math.min(800 - popupHeight - 8, y - popupHeight - 16));
         const isOpen = state.continentPopupId === project.id;
         return `
-          <g class="continent-title-group ${isOpen ? "is-open" : ""}" data-action="toggle-continent-popup" data-project-id="${project.id}">
+          <g class="continent-title-group ${isOpen ? "is-open" : ""}" data-project-id="${project.id}">
             <rect x="${roundViewBox(x - 86)}" y="${roundViewBox(y - 18)}" width="172" height="24" rx="12" fill="transparent"/>
             <text class="continent-title-text" x="${roundViewBox(x)}" y="${roundViewBox(y)}" text-anchor="middle">${escapeHtml(project.nombre)}</text>
             <g class="continent-title-popup" transform="translate(${roundViewBox(popupX)} ${roundViewBox(popupY)})">
@@ -7031,7 +7230,7 @@
       const pop = task.id === state.recentlyCompletedTaskId ? "worker-pop" : "";
       const complete = task.completada;
       return `
-        <g class="task-construction ${pop}" data-action="open-task" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${point.scale})">
+        <g class="task-construction ${pop}" data-action="show-task-popup" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${point.scale})">
           ${renderTaskHouse(task, index)}
           ${renderPriorityCrew(task, complete, index)}
         </g>
@@ -7134,10 +7333,10 @@
       const pending = pendingTasksForPopup(project.id, goal.id);
       const shownTasks = pending.slice(0, 5);
       const taskLines = shownTasks.length
-        ? shownTasks.map((task) => `${task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir"} - ${priorityLabels[task.prioridad]} - ${task.nombre.slice(0, 28)}`)
+        ? shownTasks.map((task) => `${task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir"} - ${priorityLabels[task.prioridad]} - ${task.nombre}`)
         : ["Sin tareas pendientes"];
       if (pending.length > shownTasks.length) taskLines.push(`+ ${pending.length - shownTasks.length} mas`);
-      const width = 310;
+      const width = 390;
       const lineHeight = 16;
       const height = 76 + taskLines.length * lineHeight;
       const labelX = Math.max(8, Math.min(900 - width - 8, pos.x + 42));
@@ -7153,6 +7352,48 @@
           <text x="14" y="45" fill="#cbd5e1" font-size="10.8">${stats.completed}/${stats.total} metas logradas</text>
           <text x="14" y="64" fill="#f2dfb9" font-size="10.8" font-weight="800">Tareas pendientes</text>
           ${taskLines.map((line, lineIndex) => `<text x="14" y="${82 + lineIndex * lineHeight}" fill="#e5e7eb" font-size="10.4">${escapeHtml(line)}</text>`).join("")}
+        </g>
+      `;
+    }
+
+    function wrapSvgLines(text, maxChars = 34) {
+      const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+      const lines = [];
+      words.forEach((word) => {
+        const last = lines[lines.length - 1] || "";
+        if (!last || `${last} ${word}`.length > maxChars) lines.push(word);
+        else lines[lines.length - 1] = `${last} ${word}`;
+      });
+      return lines.length ? lines : ["Sin nombre"];
+    }
+
+    function renderTaskMapPopup(projects) {
+      const task = state.tasks.find((item) => item.id === state.mapTaskPopupId);
+      if (!task) return "";
+      const project = projects.find((item) => item.id === task.projectId);
+      const goal = state.sections.find((item) => item.id === task.sectionId);
+      if (!project || !goal) return "";
+      const goalIndex = Math.max(0, goalsForProject(project.id).findIndex((item) => item.id === goal.id));
+      const taskIndex = Math.max(0, sortedTasks(project.id, goal.id).findIndex((item) => item.id === task.id));
+      const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
+      const point = taskPlotPoint(goalPosition(goal, project, goalIndex), taskIndex, cityScale);
+      const nameLines = wrapSvgLines(task.nombre, 36);
+      const width = 340;
+      const height = 78 + nameLines.length * 15;
+      const labelX = Math.max(8, Math.min(900 - width - 8, point.x + 24));
+      const labelY = Math.max(8, Math.min(800 - height - 8, point.y - height - 28));
+      const due = task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir";
+      return `
+        <g class="task-map-popup is-open" data-task-id="${task.id}" transform="translate(${roundViewBox(labelX)} ${roundViewBox(labelY)})">
+          <rect width="${width}" height="${height}" rx="9" fill="rgba(7,12,16,0.96)" stroke="${priorityAccent[task.prioridad]}" stroke-width="1.45"/>
+          <g class="map-popup-close" data-action="close-task-popup" data-task-id="${task.id}" transform="translate(${width - 31} 9)">
+            <rect width="21" height="21" rx="5"/>
+            <text x="10.5" y="10.5" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-size="11" font-weight="800">x</text>
+          </g>
+          <text x="14" y="24" fill="#f2dfb9" font-size="11.5" font-weight="800">Tarea</text>
+          ${nameLines.map((line, lineIndex) => `<text x="14" y="${45 + lineIndex * 15}" fill="#f8fafc" font-size="12.6" font-weight="760">${escapeHtml(line)}</text>`).join("")}
+          <text x="14" y="${60 + nameLines.length * 15}" fill="#cbd5e1" font-size="11.2">${escapeHtml(due)} - ${priorityLabels[task.prioridad]}</text>
+          <text x="14" y="${76 + nameLines.length * 15}" fill="#9fb0bf" font-size="10.8">${escapeHtml(goal.nombre)}</text>
         </g>
       `;
     }
@@ -7207,7 +7448,6 @@
                 <strong>Metas</strong>
                 <small>Castillos del proyecto</small>
               </div>
-              ${goal ? `<button type="button" class="small-btn" data-action="open-section" data-section-id="${goal.id}">Editar meta</button>` : ""}
             </div>
             ${renderQuickAddGoal(project.id)}
             <div class="project-list">
@@ -7215,7 +7455,16 @@
                 const itemStats = statsForGoal(project.id, item.id);
                 const isActive = goal && goalKey(project.id, item.id) === goalKey(project.id, goal.id);
                 const due = item.fechaVencimiento ? ` - ${formatDate(item.fechaVencimiento)}` : "";
-                return `<button type="button" class="project-chip ${isActive ? "is-active" : ""}" data-action="select-goal" data-project-id="${project.id}" data-section-id="${item.id || ""}"><span class="project-dot" title="Prioridad ${priorityLabels[goalPriority(item)]}" style="background:${goalPriorityColor(item)}"></span><span><strong>${escapeHtml(item.nombre)}</strong><small>${priorityLabels[goalPriority(item)]}${due} - ${itemStats.completed}/${itemStats.total} tareas logradas</small></span><span>${Math.round(itemStats.progress * 100)}%</span></button>`;
+                return `
+                  <div class="project-chip goal-item ${isActive ? "is-active" : ""}">
+                    <button type="button" class="goal-select-main" data-action="select-goal" data-project-id="${project.id}" data-section-id="${item.id || ""}">
+                      <span class="project-dot" title="Prioridad ${priorityLabels[goalPriority(item)]}" style="background:${goalPriorityColor(item)}"></span>
+                      <span><strong>${escapeHtml(item.nombre)}</strong><small>${priorityLabels[goalPriority(item)]}${due} - ${itemStats.completed}/${itemStats.total} tareas logradas</small></span>
+                      <span>${Math.round(itemStats.progress * 100)}%</span>
+                    </button>
+                    <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-section-id="${item.id}" title="Editar meta">Editar</button>
+                  </div>
+                `;
               }).join("")}
             </div>
           </div>

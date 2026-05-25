@@ -3350,7 +3350,24 @@
       } catch (error) {
         console.warn("No se pudo cargar el reino guardado", error);
       }
-      return normalizeState(demoStateV2());
+      return normalizeState(emptyState());
+    }
+
+    function emptyState() {
+      return {
+        kingdomName: "Atelier",
+        userName: "Usuario",
+        userPhoto: "",
+        view: "list",
+        calendarMode: "agenda",
+        selectedProjectId: null,
+        selectedGoalId: null,
+        selectedTaskId: null,
+        projects: [],
+        sections: [],
+        tasks: [],
+        tags: []
+      };
     }
 
     function normalizeState(input) {
@@ -3791,168 +3808,6 @@
       supabaseSession = null;
       setSupabaseStatus({ connected: false, state: "idle", message: "Sesion cerrada. La app sigue en modo local." });
       showToast("Sesion de Supabase cerrada");
-    }
-
-    function demoState() {
-      const createdAt = nowISO();
-      const project = {
-        id: "demo-investigacion",
-        nombre: "Mi Investigación",
-        color: "#4A90E2",
-        colorAccent: "#1e3a8a",
-        posicion: { x: 455, y: 520 },
-        orden: 0,
-        createdAt
-      };
-      const second = {
-        id: "demo-docencia",
-        nombre: "Plan de Docencia",
-        color: "#10b981",
-        colorAccent: "#065f46",
-        posicion: { x: 180, y: 410 },
-        orden: 1,
-        createdAt
-      };
-      const third = {
-        id: "demo-gestion",
-        nombre: "Gestión Académica",
-        color: "#d4a574",
-        colorAccent: "#8a5b2f",
-        posicion: { x: 735, y: 420 },
-        orden: 2,
-        createdAt
-      };
-      const sections = [
-        { id: "sec-lectura", projectId: project.id, nombre: "FASE 1: Lectura y fichaje", orden: 0, createdAt },
-        { id: "sec-redaccion", projectId: project.id, nombre: "FASE 2: Redacción inicial", orden: 1, createdAt },
-        { id: "sec-revision", projectId: project.id, nombre: "FASE 3: Revisión interna", orden: 2, createdAt },
-        { id: "sec-envio", projectId: project.id, nombre: "FASE 4: Envío y seguimiento", orden: 3, createdAt },
-        { id: "sec-clases", projectId: second.id, nombre: "Preparación de clases", orden: 0, createdAt },
-        { id: "sec-comites", projectId: third.id, nombre: "Comités y coordinación", orden: 0, createdAt }
-      ];
-      const taskData = [
-        [project.id, "sec-lectura", "Revisar bibliografía crítica principal", "Separar textos base y anexos para fichaje.", "p1", true],
-        [project.id, "sec-lectura", "Completar fichas de lectura pendientes", "", "p2", false],
-        [project.id, "sec-lectura", "Ordenar citas por eje conceptual", "", "p3", true],
-        [project.id, "sec-redaccion", "Escribir introducción del capítulo", "Mantener versión breve para revisión.", "p1", false],
-        [project.id, "sec-redaccion", "Desarrollar marco metodológico", "", "p2", false],
-        [project.id, "sec-redaccion", "Pulir transición entre apartados", "", "p4", true],
-        [project.id, "sec-revision", "Enviar borrador a colega lector", "", "p2", false],
-        [project.id, "sec-revision", "Incorporar comentarios de revisión", "", "p1", false],
-        [project.id, "sec-revision", "Normalizar referencias", "", "p3", true],
-        [project.id, "sec-envio", "Preparar resumen para envío", "", "p2", false],
-        [project.id, "sec-envio", "Verificar normas editoriales", "", "p3", false],
-        [project.id, null, "Respaldar carpeta de trabajo", "", "p4", true],
-        [project.id, null, "Actualizar cronograma semanal", "", "p4", false],
-        [project.id, null, "Limpiar notas duplicadas", "", "p4", false],
-        [second.id, "sec-clases", "Diseñar pauta de seminario", "", "p2", true],
-        [second.id, "sec-clases", "Subir lecturas al campus", "", "p3", false],
-        [third.id, "sec-comites", "Preparar minuta de reunión", "", "p2", false],
-        [third.id, "sec-comites", "Cerrar acuerdos pendientes", "", "p1", false]
-      ];
-      return {
-        kingdomName: "Atelier",
-        view: "map",
-        selectedProjectId: project.id,
-        selectedTaskId: null,
-        projects: [project, second, third],
-        sections,
-        tasks: taskData.map(([projectId, sectionId, nombre, descripcion, prioridad, completada], index) => ({
-          id: `task-demo-${index + 1}`,
-          projectId,
-          sectionId,
-          nombre,
-          descripcion,
-          prioridad,
-          completada,
-          fechaVencimiento: index % 4 === 0 ? new Date(Date.now() + (index + 3) * 86400000).toISOString().slice(0, 10) : null,
-          orden: index,
-          createdAt,
-          completedAt: completada ? createdAt : null
-        }))
-      };
-    }
-
-    function demoStateV2() {
-      const createdAt = nowISO();
-      const projectNames = [
-        "Investigacion",
-        "Docencia",
-        "Gestion academica",
-        "Publicaciones",
-        "Vinculacion",
-        "Formacion",
-        "Archivo personal"
-      ];
-      const projects = projectNames.map((nombre, index) => ({
-        id: `continent-${index + 1}`,
-        nombre,
-        color: palette[index % palette.length],
-        colorAccent: accentMap[palette[index % palette.length]],
-        posicion: autoPosition(index),
-        orden: index,
-        createdAt
-      }));
-      const goalNames = [
-        ["Marco conceptual", "Borrador de capitulo", "Revision editorial"],
-        ["Programa semestral", "Material de clases"],
-        ["Comite curricular", "Planificacion anual"],
-        ["Articulo indexado", "Ensayo breve"],
-        ["Convenio institucional", "Seminario abierto"],
-        ["Taller de metodologia", "Tutorias"],
-        ["Biblioteca anotada", "Respaldos"]
-      ];
-      const sections = projects.flatMap((project, projectIndex) =>
-        goalNames[projectIndex].map((nombre, goalIndex) => ({
-          id: `goal-${projectIndex + 1}-${goalIndex + 1}`,
-          projectId: project.id,
-          nombre,
-          orden: goalIndex,
-          posicion: initialGoalPosition(projects, project.id, goalIndex),
-          createdAt
-        }))
-      );
-      const taskData = [
-        [projects[0].id, "goal-1-1", "Revisar bibliografia critica principal", "Separar textos base y anexos para fichaje.", "p1", true],
-        [projects[0].id, "goal-1-1", "Completar fichas de lectura pendientes", "", "p2", false],
-        [projects[0].id, "goal-1-2", "Escribir introduccion del capitulo", "Mantener version breve para revision.", "p1", false],
-        [projects[0].id, "goal-1-2", "Pulir transicion entre apartados", "", "p4", true],
-        [projects[0].id, "goal-1-3", "Incorporar comentarios de revision", "", "p2", false],
-        [projects[1].id, "goal-2-1", "Actualizar pauta del seminario", "", "p2", true],
-        [projects[1].id, "goal-2-2", "Subir lecturas al campus", "", "p3", false],
-        [projects[2].id, "goal-3-1", "Preparar minuta de reunion", "", "p2", false],
-        [projects[2].id, "goal-3-2", "Cerrar acuerdos pendientes", "", "p1", false],
-        [projects[3].id, "goal-4-1", "Normalizar referencias", "", "p3", true],
-        [projects[3].id, "goal-4-2", "Enviar resumen a coautoria", "", "p2", false],
-        [projects[4].id, "goal-5-1", "Revisar contraparte institucional", "", "p3", false],
-        [projects[4].id, "goal-5-2", "Confirmar panel de conversacion", "", "p2", false],
-        [projects[5].id, "goal-6-1", "Preparar ejercicios aplicados", "", "p2", true],
-        [projects[5].id, "goal-6-2", "Agendar sesiones de seguimiento", "", "p4", false],
-        [projects[6].id, "goal-7-1", "Ordenar citas por eje conceptual", "", "p3", true],
-        [projects[6].id, "goal-7-2", "Respaldar carpeta de trabajo", "", "p4", false]
-      ];
-      return {
-        kingdomName: "Atelier",
-        view: "map",
-        selectedProjectId: projects[0].id,
-        selectedGoalId: goalKey(projects[0].id, "goal-1-1"),
-        selectedTaskId: null,
-        projects,
-        sections,
-        tasks: taskData.map(([projectId, sectionId, nombre, descripcion, prioridad, completada], index) => ({
-          id: `task-demo-v2-${index + 1}`,
-          projectId,
-          sectionId,
-          nombre,
-          descripcion,
-          prioridad,
-          completada,
-          fechaVencimiento: index % 4 === 0 ? new Date(Date.now() + (index + 3) * 86400000).toISOString().slice(0, 10) : null,
-          orden: index,
-          createdAt,
-          completedAt: completada ? createdAt : null
-        }))
-      };
     }
 
     function shadeColor(hex, percent) {
@@ -5386,7 +5241,6 @@
               <div class="detail-card">
                 <strong>Persistencia local</strong>
                 <p class="muted">Tus proyectos, secciones y tareas se guardan en este navegador con localStorage.</p>
-                <button type="button" class="small-btn" data-action="reset-demo">Restaurar datos demo</button>
                 <button type="button" class="danger-btn small-btn" data-action="clear-all">Limpiar todo</button>
               </div>
             </div>
@@ -5654,14 +5508,6 @@
         const form = actionTarget.closest("form");
         form.elements.icono.value = editingIcon;
         form.querySelectorAll(".icon-choice").forEach((button) => button.classList.toggle("is-active", button.dataset.icon === editingIcon));
-      }
-      if (action === "reset-demo") {
-        if (confirm("¿Restaurar los datos de demostración? Se reemplazará el contenido actual.")) {
-          state = normalizeState({ ...demoStateV2(), userName: state.userName, userPhoto: state.userPhoto });
-          saveState();
-          showToast("✓ Datos demo restaurados");
-          render();
-        }
       }
       if (action === "clear-all") {
         if (confirm("Limpiar todos los proyectos, metas y tareas?")) {
@@ -7898,7 +7744,7 @@
                 </div>
               </div>
               ${renderSupabaseSettingsCard()}
-              <div class="detail-card"><strong>Persistencia local</strong><p class="muted">Tus proyectos, metas y tareas se guardan tambien en este navegador con localStorage como respaldo.</p><button type="button" class="small-btn" data-action="reset-demo">Restaurar datos demo</button><button type="button" class="danger-btn small-btn" data-action="clear-all">Limpiar todo</button></div>
+              <div class="detail-card"><strong>Persistencia local</strong><p class="muted">Tus proyectos, metas y tareas se guardan tambien en este navegador con localStorage como respaldo.</p><button type="button" class="danger-btn small-btn" data-action="clear-all">Limpiar todo</button></div>
             </div>
             <div class="modal-foot"><button type="button" class="ghost-btn" data-action="close-modal">Cancelar</button><button type="submit" class="primary-btn">Guardar</button></div>
           </form>

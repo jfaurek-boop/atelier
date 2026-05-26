@@ -1621,13 +1621,15 @@
     }
 
     .calendar-item {
+      border-color: color-mix(in srgb, var(--entry-accent, #8da2b5) 34%, rgba(193, 202, 214, 0.12));
       background:
-        linear-gradient(90deg, color-mix(in srgb, var(--entry-accent, #8da2b5) 17%, transparent), rgba(255, 255, 255, 0.035) 42%);
+        linear-gradient(90deg, color-mix(in srgb, var(--entry-accent, #8da2b5) 24%, transparent), rgba(255, 255, 255, 0.035) 50%);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--entry-accent, #8da2b5) 10%, transparent);
     }
 
     .calendar-item.has-gradient {
       background:
-        linear-gradient(90deg, color-mix(in srgb, var(--entry-accent, #8da2b5) 18%, transparent), color-mix(in srgb, var(--entry-accent-2, #8da2b5) 12%, transparent) 55%, rgba(255, 255, 255, 0.035));
+        linear-gradient(90deg, color-mix(in srgb, var(--entry-accent, #8da2b5) 24%, transparent), color-mix(in srgb, var(--entry-accent-2, #8da2b5) 18%, transparent) 62%, rgba(255, 255, 255, 0.035));
     }
 
     .calendar-item strong,
@@ -1854,6 +1856,19 @@
       color: #cbd5e1;
       background: rgba(100, 116, 139, 0.18);
       border-color: rgba(100, 116, 139, 0.72);
+    }
+
+    .calendar-item .priority {
+      color: #f8fafc;
+      background: color-mix(in srgb, var(--entry-accent, #8da2b5) 26%, rgba(17, 24, 39, 0.74));
+      border-color: color-mix(in srgb, var(--entry-accent, #8da2b5) 68%, rgba(248, 250, 252, 0.16));
+    }
+
+    .calendar-item.has-gradient .priority {
+      background: linear-gradient(90deg,
+        color-mix(in srgb, var(--entry-accent, #8da2b5) 32%, rgba(17, 24, 39, 0.72)),
+        color-mix(in srgb, var(--entry-accent-2, #8da2b5) 28%, rgba(17, 24, 39, 0.72)));
+      border-color: color-mix(in srgb, var(--entry-accent, #8da2b5) 48%, var(--entry-accent-2, #8da2b5));
     }
 
     .due {
@@ -3435,7 +3450,10 @@
           normalized.listProjectOpen = false;
           normalized.selectedGoalId = null;
           normalized.selectedTaskId = null;
+          normalized.mapGoalPopupId = null;
+          normalized.mapTaskPopupId = null;
           normalized.continentPopupId = null;
+          normalized.modal = null;
           return normalized;
         }
       } catch (error) {
@@ -3454,6 +3472,7 @@
         selectedProjectId: null,
         selectedGoalId: null,
         selectedTaskId: null,
+        mapGoalPopupId: null,
         mapTaskPopupId: null,
         projects: [],
         sections: [],
@@ -3494,6 +3513,7 @@
           : projects[0]?.id || null,
         selectedTaskId: data.selectedTaskId && tasks.some((t) => t.id === data.selectedTaskId) ? data.selectedTaskId : null,
         selectedGoalId: data.selectedGoalId || null,
+        mapGoalPopupId: data.mapGoalPopupId || null,
         mapTaskPopupId: data.mapTaskPopupId && tasks.some((t) => t.id === data.mapTaskPopupId) ? data.mapTaskPopupId : null,
         continentPopupId: data.continentPopupId || null,
         mapZoomMode: "free",
@@ -3544,7 +3564,19 @@
     }
 
     function buildPersistableState() {
-      const { modal, continentPopupId, listProjectOpen, ...persistable } = state;
+      const {
+        modal,
+        continentPopupId,
+        mapGoalPopupId,
+        mapTaskPopupId,
+        listProjectOpen,
+        selectedGoalId,
+        selectedTaskId,
+        recentlyCompletedTaskId,
+        celebratingProjectId,
+        celebratingGoalId,
+        ...persistable
+      } = state;
       return persistable;
     }
 
@@ -3852,6 +3884,16 @@
       }
       if (data?.state) {
         state = normalizeState({ ...data.state, modal: state.modal });
+        state.selectedGoalId = null;
+        state.selectedTaskId = null;
+        state.mapGoalPopupId = null;
+        state.mapTaskPopupId = null;
+        state.continentPopupId = null;
+        state.listProjectOpen = false;
+        state.modal = null;
+        state.recentlyCompletedTaskId = null;
+        state.celebratingProjectId = null;
+        state.celebratingGoalId = null;
         saveState({ skipRemote: true });
         setSupabaseStatus({
           connected: true,
@@ -5450,6 +5492,8 @@
           listProjectOpen: false,
           selectedGoalId: null,
           selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           continentPopupId: null,
           mapViewBox: { x: 0, y: 0, w: 900, h: 800 }
         });
@@ -5460,6 +5504,8 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           continentPopupId: null,
           listProjectOpen: false,
           mapViewBox: mapBoxForContinent(projectId)
@@ -5473,6 +5519,8 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           continentPopupId: null,
           listProjectOpen: true,
           mapViewBox: mapBoxForContinent(projectId)
@@ -5484,6 +5532,8 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           continentPopupId: null,
           listProjectOpen: true,
           mapViewBox: mapBoxForContinent(projectId)
@@ -5495,6 +5545,8 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           continentPopupId: null,
           ...(state.view === "list" ? { listProjectOpen: !closeCurrentProject, mapViewBox: mapBoxForContinent(projectId) } : {})
         });
@@ -5504,19 +5556,20 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           continentPopupId: state.continentPopupId === projectId ? null : projectId
         }, false);
       }
       if (action === "close-continent-popup") setState({ continentPopupId: null }, false);
-      if (action === "close-goal-popup") setState({ selectedGoalId: null, mapTaskPopupId: null }, false);
+      if (action === "close-goal-popup") setState({ mapGoalPopupId: null }, false);
       if (action === "close-task-popup") setState({ mapTaskPopupId: null }, false);
       if (action === "show-task-popup") {
         const task = state.tasks.find((item) => item.id === taskId);
         if (task) {
           setState({
-            selectedProjectId: task.projectId,
-            selectedGoalId: goalKey(task.projectId, task.sectionId),
             selectedTaskId: null,
+            mapGoalPopupId: null,
             mapTaskPopupId: task.id,
             continentPopupId: null
           }, false);
@@ -5529,12 +5582,14 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           listProjectOpen: true,
           continentPopupId: null,
           mapViewBox: mapBoxForContinent(projectId)
         });
       }
-      if (action === "select-goal") setState({ view: "list", selectedProjectId: projectId, selectedGoalId: goalKey(projectId, sectionId || null), selectedTaskId: null, continentPopupId: null, listProjectOpen: true });
+      if (action === "select-goal") setState({ view: "list", selectedProjectId: projectId, selectedGoalId: goalKey(projectId, sectionId || null), selectedTaskId: null, mapGoalPopupId: null, mapTaskPopupId: null, continentPopupId: null, listProjectOpen: true });
       if (action === "set-calendar-mode") setState({ calendarMode: actionTarget.dataset.mode || "agenda" });
       if (action === "open-calendar-item") openCalendarItem(actionTarget);
       if (action === "open-project") {
@@ -5551,6 +5606,8 @@
           selectedProjectId: task?.projectId || state.selectedProjectId,
           selectedGoalId: task ? goalKey(task.projectId, task.sectionId) : state.selectedGoalId,
           selectedTaskId: taskId,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           modal: { type: "task", id: taskId }
         }, false);
       }
@@ -5560,6 +5617,8 @@
           selectedProjectId: task?.projectId || state.selectedProjectId,
           selectedGoalId: task ? goalKey(task.projectId, task.sectionId) : state.selectedGoalId,
           selectedTaskId: taskId,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
           listProjectOpen: true,
           modal: { type: "task", id: taskId }
         }, false);
@@ -6132,7 +6191,6 @@
         offsetY: point.y - basePosition.y,
         moved: false
       };
-      state.selectedProjectId = projectId;
       state.selectedTaskId = null;
     }
 
@@ -6550,6 +6608,8 @@
         selectedProjectId: projectId,
         selectedGoalId: null,
         selectedTaskId: null,
+        mapGoalPopupId: null,
+        mapTaskPopupId: null,
         continentPopupId: null,
         listProjectOpen: true,
         mapViewBox: mapBoxForContinent(projectId)
@@ -6698,11 +6758,12 @@
         if (task) {
           setState({
             view: "list",
-            selectedProjectId: task.projectId,
-            selectedGoalId: goalKey(task.projectId, task.sectionId),
-            selectedTaskId: task.id,
-            mapTaskPopupId: null,
-            continentPopupId: null,
+          selectedProjectId: task.projectId,
+          selectedGoalId: goalKey(task.projectId, task.sectionId),
+          selectedTaskId: task.id,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null,
             listProjectOpen: true,
             mapViewBox: mapBoxForContinent(task.projectId)
           });
@@ -6716,6 +6777,7 @@
           selectedProjectId: goalNode.dataset.projectId,
           selectedGoalId: goalKey(goalNode.dataset.projectId, goalNode.dataset.sectionId || null),
           selectedTaskId: null,
+          mapGoalPopupId: null,
           mapTaskPopupId: null,
           continentPopupId: null,
           listProjectOpen: true,
@@ -7326,7 +7388,7 @@
     }
 
     function renderCastleLabel(project, goal, index) {
-      const selected = goalKey(project.id, goal.id) === state.selectedGoalId;
+      const selected = goalKey(project.id, goal.id) === state.mapGoalPopupId;
       if (!selected) return "";
       const stats = statsForGoal(project.id, goal.id);
       const pos = goalPosition(goal, project, index);
@@ -8032,7 +8094,6 @@
         moved: false
       };
       state.selectedProjectId = projectId;
-      state.selectedGoalId = goalKey(projectId, sectionId);
       state.selectedTaskId = null;
     }
 
@@ -8066,7 +8127,22 @@
       const projectId = dragCastle.projectId;
       const sectionId = dragCastle.sectionId;
       dragCastle = null;
-      setState({ view: "list", selectedProjectId: projectId, selectedGoalId: goalKey(projectId, sectionId), selectedTaskId: null, continentPopupId: null, listProjectOpen: true });
+      if (!moved) {
+        const nextGoalId = goalKey(projectId, sectionId);
+        setState({
+          selectedTaskId: null,
+          mapGoalPopupId: state.mapGoalPopupId === nextGoalId ? null : nextGoalId,
+          mapTaskPopupId: null,
+          continentPopupId: null
+        }, false);
+        return;
+      }
+      setState({
+        selectedTaskId: null,
+        mapGoalPopupId: null,
+        mapTaskPopupId: null,
+        continentPopupId: null
+      }, false);
       if (moved) showToast("Meta actualizada; el proyecto crecio si hacia falta");
     }
 

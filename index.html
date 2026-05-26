@@ -671,8 +671,11 @@
     }
 
     .castle-node,
-    .castle-label {
-      cursor: grab;
+    .castle-label,
+    .task-construction,
+    .continent-title-group,
+    .continent {
+      cursor: pointer;
     }
 
     .castle-node:active,
@@ -686,10 +689,6 @@
 
     .continent-title-group {
       cursor: pointer;
-    }
-
-    .continent {
-      cursor: zoom-in;
     }
 
     .continent-title-text {
@@ -709,11 +708,21 @@
       transition: opacity 0.16s ease;
     }
 
-    .continent-title-group:hover .continent-title-popup,
     .continent-title-group.is-open .continent-title-popup,
     .castle-detail-popup.is-open {
       opacity: 1;
       pointer-events: auto;
+    }
+
+    .map-hover-popup {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s ease;
+    }
+
+    .castle-node:hover > .map-hover-popup,
+    .task-construction:hover > .map-hover-popup {
+      opacity: 1;
     }
 
     .map-popup-close {
@@ -3179,6 +3188,8 @@
     let state = loadState();
     let dragCastle = null;
     let dragMap = null;
+    let mapClickTimer = null;
+    let lastMapClick = null;
     let suppressNextMapClick = false;
     let draggedTaskId = null;
     let draggedProjectId = null;
@@ -4028,7 +4039,6 @@
 
     function pendingTasksForPopup(projectId, sectionId) {
       return sortedTasks(projectId, sectionId)
-        .filter((task) => !task.completada)
         .sort((a, b) => dueRank(a) - dueRank(b)
           || priorityRank(a.prioridad) - priorityRank(b.prioridad)
           || a.orden - b.orden
@@ -5418,6 +5428,7 @@
       });
       document.querySelectorAll(".kingdom-map").forEach((svg) => {
         svg.addEventListener("pointerdown", handleMapPointerDown);
+        svg.addEventListener("click", handleMapClick);
         svg.addEventListener("wheel", handleMapWheel, { passive: false });
         svg.addEventListener("dblclick", handleMapDoubleClick);
       });
@@ -6616,6 +6627,85 @@
       });
     }
 
+    function centerProjectOnMap(projectId) {
+      const projects = sortedProjects();
+      const index = projects.findIndex((project) => project.id === projectId);
+      if (index < 0) return;
+      const project = projects[index];
+      const bounds = pathBounds(continentPathForProject(project, index));
+      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
+      const targetW = Math.min(box.w, 700);
+      const targetH = targetW / (900 / 800);
+      const cx = (bounds.minX + bounds.maxX) / 2;
+      const cy = (bounds.minY + bounds.maxY) / 2;
+      setState({
+        selectedProjectId: projectId,
+        selectedGoalId: null,
+        selectedTaskId: null,
+        mapGoalPopupId: null,
+        mapTaskPopupId: null,
+        continentPopupId: null,
+        listProjectOpen: false,
+        mapViewBox: clampMapBox({
+          x: cx - targetW / 2,
+          y: cy - targetH / 2,
+          w: targetW,
+          h: targetH
+        })
+      });
+    }
+
+    function projectIdForMapTarget(target) {
+      const taskNode = taskNodeFromMapTarget(target);
+      if (taskNode?.dataset.taskId) {
+        return state.tasks.find((item) => item.id === taskNode.dataset.taskId)?.projectId || null;
+      }
+      const goalNode = goalNodeFromMapTarget(target);
+      if (goalNode?.dataset.projectId) return goalNode.dataset.projectId;
+      return projectIdFromMapTarget(target);
+    }
+
+    function openMapTargetInPanels(target) {
+      const taskNode = taskNodeFromMapTarget(target);
+      if (taskNode?.dataset.taskId) {
+        const task = state.tasks.find((item) => item.id === taskNode.dataset.taskId);
+        if (!task) return false;
+        setState({
+          view: "list",
+          selectedProjectId: task.projectId,
+          selectedGoalId: goalKey(task.projectId, task.sectionId),
+          selectedTaskId: task.id,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null,
+          listProjectOpen: true,
+          mapViewBox: mapBoxForContinent(task.projectId)
+        });
+        return true;
+      }
+      const goalNode = goalNodeFromMapTarget(target);
+      if (goalNode?.dataset.projectId) {
+        setState({
+          view: "list",
+          selectedProjectId: goalNode.dataset.projectId,
+          selectedGoalId: goalKey(goalNode.dataset.projectId, goalNode.dataset.sectionId || null),
+          selectedTaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null,
+          listProjectOpen: true,
+          mapViewBox: mapBoxForContinent(goalNode.dataset.projectId)
+        });
+        return true;
+      }
+      const projectId = projectIdFromMapTarget(target);
+      if (projectId) {
+        focusContinent(projectId);
+        return true;
+      }
+      return false;
+    }
+
     function projectIdFromMapTarget(target) {
       const title = target?.closest?.(".continent-title-group");
       if (title?.dataset.projectId) return title.dataset.projectId;
@@ -6741,6 +6831,35 @@
       if (moved) suppressNextMapClick = true;
     }
 
+    function handleMapClick(event) {
+      if (event.target.closest(".map-toolbar, .continent-title-popup, .map-popup-close, .task-map-popup, .castle-detail-popup")) return;
+      if (suppressNextMapClick) {
+        suppressNextMapClick = false;
+        return;
+      }
+      const projectId = projectIdForMapTarget(event.target);
+      if (!projectId) return;
+      const now = Date.now();
+      const clickKey = `${projectId}:${taskNodeFromMapTarget(event.target)?.dataset.taskId || goalNodeFromMapTarget(event.target)?.dataset.goalKey || "project"}`;
+      const isDouble = event.detail >= 2 || (lastMapClick && lastMapClick.key === clickKey && now - lastMapClick.time < 360);
+      if (isDouble) {
+        window.clearTimeout(mapClickTimer);
+        mapClickTimer = null;
+        lastMapClick = null;
+        event.preventDefault();
+        openMapTargetInPanels(event.target);
+        return;
+      }
+      lastMapClick = { key: clickKey, time: now };
+      window.clearTimeout(mapClickTimer);
+      mapClickTimer = window.setTimeout(() => {
+        if (lastMapClick && lastMapClick.key === clickKey) {
+          centerProjectOnMap(projectId);
+          lastMapClick = null;
+        }
+      }, 220);
+    }
+
     function handleMapWheel(event) {
       event.preventDefault();
       const svg = event.currentTarget;
@@ -6752,46 +6871,47 @@
     function handleMapDoubleClick(event) {
       if (event.target.closest(".map-toolbar, .continent-title-popup, .map-popup-close")) return;
       event.preventDefault();
-      const taskNode = taskNodeFromMapTarget(event.target);
-      if (taskNode?.dataset.taskId) {
-        const task = state.tasks.find((item) => item.id === taskNode.dataset.taskId);
-        if (task) {
-          setState({
-            view: "list",
-          selectedProjectId: task.projectId,
-          selectedGoalId: goalKey(task.projectId, task.sectionId),
-          selectedTaskId: task.id,
-          mapGoalPopupId: null,
-          mapTaskPopupId: null,
-          continentPopupId: null,
-            listProjectOpen: true,
-            mapViewBox: mapBoxForContinent(task.projectId)
-          });
-          return;
-        }
-      }
-      const goalNode = goalNodeFromMapTarget(event.target);
-      if (goalNode?.dataset.projectId) {
-        setState({
-          view: "list",
-          selectedProjectId: goalNode.dataset.projectId,
-          selectedGoalId: goalKey(goalNode.dataset.projectId, goalNode.dataset.sectionId || null),
-          selectedTaskId: null,
-          mapGoalPopupId: null,
-          mapTaskPopupId: null,
-          continentPopupId: null,
-          listProjectOpen: true,
-          mapViewBox: mapBoxForContinent(goalNode.dataset.projectId)
-        });
-        return;
-      }
-      const projectId = projectIdFromMapTarget(event.target);
-      if (projectId) {
-        focusContinent(projectId);
-        return;
-      }
+      window.clearTimeout(mapClickTimer);
+      mapClickTimer = null;
+      lastMapClick = null;
+      if (openMapTargetInPanels(event.target)) return;
       const point = svgPoint(event.currentTarget, event.clientX, event.clientY);
       zoomMapAtPoint(point.x, point.y, 0.72);
+    }
+
+    function handleMapGoalHover(event) {
+      const node = event.currentTarget;
+      const projectId = node.dataset.projectId;
+      const sectionId = node.dataset.sectionId || null;
+      if (!projectId) return;
+      const nextGoalId = goalKey(projectId, sectionId);
+      if (state.mapGoalPopupId === nextGoalId && !state.mapTaskPopupId) return;
+      setState({
+        mapGoalPopupId: nextGoalId,
+        mapTaskPopupId: null,
+        continentPopupId: null
+      }, false);
+    }
+
+    function handleMapGoalLeave(event) {
+      const node = event.currentTarget;
+      const nextGoalId = goalKey(node.dataset.projectId, node.dataset.sectionId || null);
+      if (state.mapGoalPopupId === nextGoalId) setState({ mapGoalPopupId: null }, false);
+    }
+
+    function handleMapTaskHover(event) {
+      const taskId = event.currentTarget.dataset.taskId;
+      if (!taskId || state.mapTaskPopupId === taskId) return;
+      setState({
+        mapTaskPopupId: taskId,
+        mapGoalPopupId: null,
+        continentPopupId: null
+      }, false);
+    }
+
+    function handleMapTaskLeave(event) {
+      const taskId = event.currentTarget.dataset.taskId;
+      if (state.mapTaskPopupId === taskId) setState({ mapTaskPopupId: null }, false);
     }
 
     function renderMapSvg() {
@@ -7144,6 +7264,7 @@
       const pct = progress * 100;
       return `
         <g class="castle-node" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" transform="translate(${pos.x} ${pos.y}) scale(${cityScale})" filter="url(#softShadow)">
+          <title>${escapeHtml(goal.nombre)}</title>
           <ellipse cx="0" cy="47" rx="74" ry="16" fill="rgba(0,0,0,0.28)"/>
           ${renderCityWall(project, stats.progress)}
           <g transform="translate(0 -11) scale(${castleScale})">
@@ -7155,6 +7276,30 @@
             ${pct >= 80 ? renderGoldenFlag() : ""}
           </g>
           <rect x="-82" y="-62" width="164" height="126" fill="transparent"/>
+          ${renderGoalHoverPopup(project, goal, stats, cityScale)}
+        </g>
+      `;
+    }
+
+    function renderGoalHoverPopup(project, goal, stats, cityScale) {
+      const inv = 1 / cityScale;
+      const tasks = pendingTasksForPopup(project.id, goal.id);
+      const shownTasks = tasks.slice(0, 4);
+      const width = 320;
+      const lineHeight = 14;
+      const taskLines = shownTasks.length
+        ? shownTasks.map((task) => `${task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir"} - ${priorityLabels[task.prioridad]} - ${task.nombre}`)
+        : ["Sin tareas asociadas"];
+      if (tasks.length > shownTasks.length) taskLines.push(`+ ${tasks.length - shownTasks.length} mas`);
+      const nameLines = wrapSvgLines(goal.nombre, 34).slice(0, 2);
+      const height = 54 + nameLines.length * 14 + taskLines.length * lineHeight;
+      return `
+        <g class="map-hover-popup" transform="translate(86 -112) scale(${inv})">
+          <rect width="${width}" height="${height}" rx="8" fill="rgba(7,12,16,0.95)" stroke="${project.color}" stroke-width="1.3"/>
+          ${nameLines.map((line, lineIndex) => `<text x="13" y="${22 + lineIndex * 14}" fill="#f8fafc" font-size="12.4" font-weight="800">${escapeHtml(line)}</text>`).join("")}
+          <text x="13" y="${32 + nameLines.length * 14}" fill="#cbd5e1" font-size="10.6">${stats.completed}/${stats.total} tareas logradas</text>
+          <text x="13" y="${49 + nameLines.length * 14}" fill="#f2dfb9" font-size="10.6" font-weight="800">Tareas asociadas</text>
+          ${taskLines.map((line, lineIndex) => `<text x="13" y="${66 + nameLines.length * 14 + lineIndex * lineHeight}" fill="#e5e7eb" font-size="10.2">${escapeHtml(line.slice(0, 52))}</text>`).join("")}
         </g>
       `;
     }
@@ -7293,8 +7438,28 @@
       const complete = task.completada;
       return `
         <g class="task-construction ${pop}" data-action="show-task-popup" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${point.scale})">
+          <title>${escapeHtml(task.nombre)}</title>
           ${renderTaskHouse(task, index)}
           ${renderPriorityCrew(task, complete, index)}
+          ${renderTaskHoverPopup(task, point.scale)}
+        </g>
+      `;
+    }
+
+    function renderTaskHoverPopup(task, taskScale) {
+      const inv = 1 / taskScale;
+      const goal = state.sections.find((item) => item.id === task.sectionId);
+      const project = state.projects.find((item) => item.id === task.projectId);
+      const nameLines = wrapSvgLines(task.nombre, 34).slice(0, 3);
+      const due = task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir";
+      const width = 292;
+      const height = 58 + nameLines.length * 15;
+      return `
+        <g class="map-hover-popup" transform="translate(30 -92) scale(${inv})">
+          <rect width="${width}" height="${height}" rx="8" fill="rgba(7,12,16,0.96)" stroke="${project?.color || priorityAccent[task.prioridad]}" stroke-width="1.3"/>
+          <text x="13" y="22" fill="#f2dfb9" font-size="11.2" font-weight="800">Tarea - ${priorityLabels[task.prioridad]}</text>
+          ${nameLines.map((line, lineIndex) => `<text x="13" y="${43 + lineIndex * 15}" fill="#f8fafc" font-size="12.2" font-weight="760">${escapeHtml(line)}</text>`).join("")}
+          <text x="13" y="${58 + nameLines.length * 15}" fill="#cbd5e1" font-size="10.6">${escapeHtml(due)}${goal ? ` - ${escapeHtml(goal.nombre.slice(0, 30))}` : ""}</text>
         </g>
       `;
     }
@@ -7396,7 +7561,7 @@
       const shownTasks = pending.slice(0, 5);
       const taskLines = shownTasks.length
         ? shownTasks.map((task) => `${task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir"} - ${priorityLabels[task.prioridad]} - ${task.nombre}`)
-        : ["Sin tareas pendientes"];
+        : ["Sin tareas asociadas"];
       if (pending.length > shownTasks.length) taskLines.push(`+ ${pending.length - shownTasks.length} mas`);
       const width = 390;
       const lineHeight = 16;
@@ -7411,8 +7576,8 @@
             <text x="10" y="10" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-size="11" font-weight="800">x</text>
           </g>
           <text x="14" y="24" fill="#f8fafc" font-size="13" font-weight="800">${escapeHtml(goal.nombre.slice(0, 34))}</text>
-          <text x="14" y="45" fill="#cbd5e1" font-size="10.8">${stats.completed}/${stats.total} metas logradas</text>
-          <text x="14" y="64" fill="#f2dfb9" font-size="10.8" font-weight="800">Tareas pendientes</text>
+          <text x="14" y="45" fill="#cbd5e1" font-size="10.8">${stats.completed}/${stats.total} tareas logradas</text>
+          <text x="14" y="64" fill="#f2dfb9" font-size="10.8" font-weight="800">Tareas asociadas</text>
           ${taskLines.map((line, lineIndex) => `<text x="14" y="${82 + lineIndex * lineHeight}" fill="#e5e7eb" font-size="10.4">${escapeHtml(line)}</text>`).join("")}
         </g>
       `;
@@ -8128,13 +8293,6 @@
       const sectionId = dragCastle.sectionId;
       dragCastle = null;
       if (!moved) {
-        const nextGoalId = goalKey(projectId, sectionId);
-        setState({
-          selectedTaskId: null,
-          mapGoalPopupId: state.mapGoalPopupId === nextGoalId ? null : nextGoalId,
-          mapTaskPopupId: null,
-          continentPopupId: null
-        }, false);
         return;
       }
       setState({

@@ -720,8 +720,18 @@
       transition: opacity 0.12s ease;
     }
 
-    .castle-node:hover > .map-hover-popup,
-    .task-construction:hover > .map-hover-popup {
+    .goal-hover-hit,
+    .task-hover-hit {
+      cursor: pointer;
+    }
+
+    .map-hover-zone {
+      fill: rgba(255, 255, 255, 0.001);
+      pointer-events: all;
+    }
+
+    .goal-hover-hit:hover > .map-hover-popup,
+    .task-hover-hit:hover > .map-hover-popup {
       opacity: 1;
     }
 
@@ -3438,6 +3448,10 @@
       const x = Math.max(0, Math.min(900 - w, Number(box.x) || 0));
       const y = Math.max(0, Math.min(800 - h, Number(box.y) || 0));
       return { x, y, w, h };
+    }
+
+    function clampNumber(value, min, max) {
+      return Math.max(min, Math.min(max, value));
     }
 
     function mapBoxString(box) {
@@ -6246,10 +6260,23 @@
     }
 
     function svgPoint(svg, clientX, clientY) {
-      const pt = svg.createSVGPoint();
-      pt.x = clientX;
-      pt.y = clientY;
-      return pt.matrixTransform(svg.getScreenCTM().inverse());
+      if (typeof svg.createSVGPoint === "function" && svg.getScreenCTM()) {
+        const pt = svg.createSVGPoint();
+        pt.x = clientX;
+        pt.y = clientY;
+        return pt.matrixTransform(svg.getScreenCTM().inverse());
+      }
+      const rect = svg.getBoundingClientRect();
+      const [x = 0, y = 0, w = 900, h = 800] = (svg.getAttribute("viewBox") || "0 0 900 800")
+        .split(/\s+/)
+        .map(Number);
+      const scale = Math.min(rect.width / w, rect.height / h);
+      const offsetX = (rect.width - w * scale) / 2;
+      const offsetY = (rect.height - h * scale) / 2;
+      return {
+        x: x + (clientX - rect.left - offsetX) / scale,
+        y: y + (clientY - rect.top - offsetY) / scale
+      };
     }
 
     function handleTaskDragStart(event) {
@@ -6715,11 +6742,11 @@
     }
 
     function goalNodeFromMapTarget(target) {
-      return target?.closest?.(".castle-node, .castle-label") || null;
+      return target?.closest?.(".castle-node, .castle-label, .goal-hover-hit") || null;
     }
 
     function taskNodeFromMapTarget(target) {
-      return target?.closest?.(".task-construction") || null;
+      return target?.closest?.(".task-construction, .task-hover-hit") || null;
     }
 
     function mapViewBox(projects) {
@@ -6793,11 +6820,12 @@
 
     function handleMapPointerDown(event) {
       if (event.button !== 0) return;
-      if (event.target.closest(".castle-node, .castle-label, .continent-title-group, .task-construction, .map-toolbar")) return;
+      if (event.target.closest(".castle-node, .castle-label, .goal-hover-hit, .task-hover-hit, .continent-title-group, .task-construction, .map-toolbar, .continent-title-popup, .map-popup-close, .task-map-popup, .castle-detail-popup, .map-hover-popup")) return;
       const svg = event.currentTarget;
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
       dragMap = {
         svg,
+        target: resolveMapEventTarget(event),
         startClientX: event.clientX,
         startClientY: event.clientY,
         startBox: box,
@@ -6825,10 +6853,15 @@
     function handleMapPointerUp() {
       if (!dragMap) return;
       const moved = dragMap.moved;
+      const target = dragMap.target;
       dragMap.svg.classList.remove("is-panning");
       saveState();
       dragMap = null;
-      if (moved) suppressNextMapClick = true;
+      if (moved) {
+        suppressNextMapClick = true;
+        return;
+      }
+      if (activateMapTarget(target)) suppressNextMapClick = true;
     }
 
     function handleMapClick(event) {
@@ -6837,27 +6870,75 @@
         suppressNextMapClick = false;
         return;
       }
-      const projectId = projectIdForMapTarget(event.target);
+      activateMapTarget(resolveMapEventTarget(event), { isDouble: event.detail >= 2 });
+    }
+
+    function resolveMapEventTarget(event) {
+      const directTarget = event.target;
+      if (projectIdForMapTarget(directTarget)) return directTarget;
+      const pointTarget = document.elementFromPoint(event.clientX, event.clientY);
+      if (pointTarget && event.currentTarget?.contains?.(pointTarget) && projectIdForMapTarget(pointTarget)) return pointTarget;
+      return directTarget;
+    }
+
+    function projectIdAtMapPoint(svg, point) {
+      if (!svg || !point) return null;
+      const svgPoint = typeof DOMPoint === "function" ? new DOMPoint(point.x, point.y) : { x: point.x, y: point.y };
+      const paths = Array.from(svg.querySelectorAll("path[data-coast-project-id]")).reverse();
+      const hit = paths.find((path) => {
+        if (typeof path.isPointInFill === "function" && path.isPointInFill(svgPoint)) return true;
+        try {
+          const box = path.getBBox();
+          return point.x >= box.x && point.x <= box.x + box.width && point.y >= box.y && point.y <= box.y + box.height;
+        } catch {
+          return false;
+        }
+      });
+      return hit?.dataset.coastProjectId || null;
+    }
+
+    function activateMapTarget(target, options = {}) {
+      const projectId = projectIdForMapTarget(target);
       if (!projectId) return;
+      const taskNode = taskNodeFromMapTarget(target);
+      const goalNode = goalNodeFromMapTarget(target);
       const now = Date.now();
-      const clickKey = `${projectId}:${taskNodeFromMapTarget(event.target)?.dataset.taskId || goalNodeFromMapTarget(event.target)?.dataset.goalKey || "project"}`;
-      const isDouble = event.detail >= 2 || (lastMapClick && lastMapClick.key === clickKey && now - lastMapClick.time < 360);
+      const clickKey = `${projectId}:${taskNode?.dataset.taskId || goalNode?.dataset.goalKey || "project"}`;
+      const isDouble = options.isDouble || (lastMapClick && lastMapClick.key === clickKey && now - lastMapClick.time < 480);
       if (isDouble) {
         window.clearTimeout(mapClickTimer);
         mapClickTimer = null;
         lastMapClick = null;
-        event.preventDefault();
-        openMapTargetInPanels(event.target);
-        return;
+        openMapTargetInPanels(target);
+        return true;
       }
       lastMapClick = { key: clickKey, time: now };
       window.clearTimeout(mapClickTimer);
       mapClickTimer = window.setTimeout(() => {
         if (lastMapClick && lastMapClick.key === clickKey) {
-          centerProjectOnMap(projectId);
+          if (taskNode?.dataset.taskId) {
+            setState({
+              selectedTaskId: null,
+              mapGoalPopupId: null,
+              mapTaskPopupId: taskNode.dataset.taskId,
+              continentPopupId: null
+            }, false);
+          } else if (goalNode?.dataset.projectId) {
+            setState({
+              selectedProjectId: projectId,
+              selectedGoalId: null,
+              selectedTaskId: null,
+              mapGoalPopupId: goalKey(projectId, goalNode.dataset.sectionId || null),
+              mapTaskPopupId: null,
+              continentPopupId: null
+            }, false);
+          } else {
+            centerProjectOnMap(projectId);
+          }
           lastMapClick = null;
         }
-      }, 220);
+      }, 420);
+      return true;
     }
 
     function handleMapWheel(event) {
@@ -6874,8 +6955,13 @@
       window.clearTimeout(mapClickTimer);
       mapClickTimer = null;
       lastMapClick = null;
-      if (openMapTargetInPanels(event.target)) return;
+      if (openMapTargetInPanels(resolveMapEventTarget(event))) return;
       const point = svgPoint(event.currentTarget, event.clientX, event.clientY);
+      const projectId = projectIdAtMapPoint(event.currentTarget, point);
+      if (projectId) {
+        focusContinent(projectId);
+        return;
+      }
       zoomMapAtPoint(point.x, point.y, 0.72);
     }
 
@@ -6927,6 +7013,7 @@
       const labels = goals.map(({ project, goal, index }) => renderCastleLabel(project, goal, index)).join("");
       const taskPopup = renderTaskMapPopup(projects);
       const continentLabels = renderContinentLabels(projects);
+      const hoverLayer = renderMapHoverLayer(goals);
       const celebration = state.celebratingGoalId
         ? renderFullCelebration(goals.find(({ project, goal }) => goalKey(project.id, goal.id) === state.celebratingGoalId))
         : "";
@@ -6986,6 +7073,7 @@
           ${castles}
           ${workers}
           ${continentLabels}
+          ${hoverLayer}
           ${labels}
           ${taskPopup}
           ${celebration}
@@ -7003,6 +7091,53 @@
             <text class="footer-ribbon" x="450" y="786" text-anchor="middle">Atlas de proyectos - metas, castillos y tareas en construccion</text>
           </g>
         </svg>
+      `;
+    }
+
+    function renderMapHoverLayer(goals) {
+      const goalHits = goals.map(({ project, goal, index }) => renderGoalHoverHit(project, goal, index)).join("");
+      const taskHits = goals.map(({ project, goal, index }) => {
+        const stats = statsForGoal(project.id, goal.id);
+        const cityScale = cityScaleForGoal(stats);
+        const cityPos = goalPosition(goal, project, index);
+        return sortedTasks(project.id, goal.id)
+          .map((task, taskIndex) => renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale))
+          .join("");
+      }).join("");
+      return `<g class="map-hover-layer">${goalHits}${taskHits}</g>`;
+    }
+
+    function renderGoalHoverHit(project, goal, index) {
+      const stats = statsForGoal(project.id, goal.id);
+      const cityScale = cityScaleForGoal(stats);
+      const pos = goalPosition(goal, project, index);
+      const width = 320;
+      const shownCount = Math.min(pendingTasksForPopup(project.id, goal.id).length || 1, 4);
+      const extraLine = pendingTasksForPopup(project.id, goal.id).length > 4 ? 1 : 0;
+      const nameLines = wrapSvgLines(goal.nombre, 34).slice(0, 2).length;
+      const height = 54 + nameLines * 14 + (shownCount + extraLine) * 14;
+      const popupX = clampNumber(pos.x - width / 2, 8, 900 - width - 8);
+      const popupY = clampNumber(pos.y - height - 62, 8, 800 - height - 48);
+      return `
+        <g class="goal-hover-hit" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}">
+          <ellipse class="map-hover-zone" cx="${pos.x}" cy="${pos.y}" rx="${Math.max(48, 86 * cityScale)}" ry="${Math.max(42, 72 * cityScale)}"/>
+          ${renderGoalHoverPopup(project, goal, stats, popupX, popupY)}
+        </g>
+      `;
+    }
+
+    function renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale) {
+      const point = taskPlotPoint(cityPos, taskIndex, cityScale);
+      const width = 292;
+      const nameLines = wrapSvgLines(task.nombre, 34).slice(0, 3).length;
+      const height = 58 + nameLines * 15;
+      const popupX = clampNumber(point.x + 22, 8, 900 - width - 8);
+      const popupY = clampNumber(point.y - height - 28, 8, 800 - height - 48);
+      return `
+        <g class="task-hover-hit" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" data-task-id="${task.id}">
+          <rect class="map-hover-zone" x="${point.x - 23}" y="${point.y - 28}" width="46" height="58" rx="8"/>
+          ${renderTaskHoverPopup(task, popupX, popupY)}
+        </g>
       `;
     }
 
@@ -7276,13 +7411,11 @@
             ${pct >= 80 ? renderGoldenFlag() : ""}
           </g>
           <rect x="-82" y="-62" width="164" height="126" fill="transparent"/>
-          ${renderGoalHoverPopup(project, goal, stats, cityScale)}
         </g>
       `;
     }
 
-    function renderGoalHoverPopup(project, goal, stats, cityScale) {
-      const inv = 1 / cityScale;
+    function renderGoalHoverPopup(project, goal, stats, x, y) {
       const tasks = pendingTasksForPopup(project.id, goal.id);
       const shownTasks = tasks.slice(0, 4);
       const width = 320;
@@ -7294,7 +7427,7 @@
       const nameLines = wrapSvgLines(goal.nombre, 34).slice(0, 2);
       const height = 54 + nameLines.length * 14 + taskLines.length * lineHeight;
       return `
-        <g class="map-hover-popup" transform="translate(86 -112) scale(${inv})">
+        <g class="map-hover-popup" transform="translate(${x} ${y})">
           <rect width="${width}" height="${height}" rx="8" fill="rgba(7,12,16,0.95)" stroke="${project.color}" stroke-width="1.3"/>
           ${nameLines.map((line, lineIndex) => `<text x="13" y="${22 + lineIndex * 14}" fill="#f8fafc" font-size="12.4" font-weight="800">${escapeHtml(line)}</text>`).join("")}
           <text x="13" y="${32 + nameLines.length * 14}" fill="#cbd5e1" font-size="10.6">${stats.completed}/${stats.total} tareas logradas</text>
@@ -7441,13 +7574,11 @@
           <title>${escapeHtml(task.nombre)}</title>
           ${renderTaskHouse(task, index)}
           ${renderPriorityCrew(task, complete, index)}
-          ${renderTaskHoverPopup(task, point.scale)}
         </g>
       `;
     }
 
-    function renderTaskHoverPopup(task, taskScale) {
-      const inv = 1 / taskScale;
+    function renderTaskHoverPopup(task, x, y) {
       const goal = state.sections.find((item) => item.id === task.sectionId);
       const project = state.projects.find((item) => item.id === task.projectId);
       const nameLines = wrapSvgLines(task.nombre, 34).slice(0, 3);
@@ -7455,7 +7586,7 @@
       const width = 292;
       const height = 58 + nameLines.length * 15;
       return `
-        <g class="map-hover-popup" transform="translate(30 -92) scale(${inv})">
+        <g class="map-hover-popup" transform="translate(${x} ${y})">
           <rect width="${width}" height="${height}" rx="8" fill="rgba(7,12,16,0.96)" stroke="${project?.color || priorityAccent[task.prioridad]}" stroke-width="1.3"/>
           <text x="13" y="22" fill="#f2dfb9" font-size="11.2" font-weight="800">Tarea - ${priorityLabels[task.prioridad]}</text>
           ${nameLines.map((line, lineIndex) => `<text x="13" y="${43 + lineIndex * 15}" fill="#f8fafc" font-size="12.2" font-weight="760">${escapeHtml(line)}</text>`).join("")}

@@ -701,6 +701,18 @@
       stroke-linejoin: round;
     }
 
+    .city-title-text {
+      fill: #f7ecd1;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0;
+      paint-order: stroke;
+      stroke: rgba(38, 29, 18, 0.7);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
     .continent-title-popup,
     .castle-detail-popup {
       opacity: 0;
@@ -3451,12 +3463,34 @@
     }
 
     function clampNumber(value, min, max) {
+      if (max < min) return (min + max) / 2;
       return Math.max(min, Math.min(max, value));
     }
 
     function mapBoxString(box) {
       const clamped = clampMapBox(box);
       return `${roundViewBox(clamped.x)} ${roundViewBox(clamped.y)} ${roundViewBox(clamped.w)} ${roundViewBox(clamped.h)}`;
+    }
+
+    function mapPopupScale() {
+      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
+      return clampNumber(box.w / 900, 0.36, 1);
+    }
+
+    function mapPopupPlacement(anchorX, anchorY, width, height, options = {}) {
+      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
+      const scale = mapPopupScale();
+      const margin = 10 * scale;
+      const offsetX = (options.offsetX ?? 20) * scale;
+      const offsetY = (options.offsetY ?? 30) * scale;
+      let x = anchorX + offsetX;
+      let y = anchorY - (height * scale) - offsetY;
+      const maxX = box.x + box.w - width * scale - margin;
+      const minX = box.x + margin;
+      if (x > maxX) x = anchorX - width * scale - offsetX;
+      x = clampNumber(x, minX, maxX);
+      y = clampNumber(y, box.y + margin, box.y + box.h - height * scale - margin);
+      return { x: roundViewBox(x), y: roundViewBox(y), scale: roundViewBox(scale) };
     }
 
     function roundViewBox(value) {
@@ -7095,6 +7129,7 @@
     }
 
     function renderMapHoverLayer(goals) {
+      if (state.mapGoalPopupId || state.mapTaskPopupId) return "";
       const goalHits = goals.map(({ project, goal, index }) => renderGoalHoverHit(project, goal, index)).join("");
       const taskHits = goals.map(({ project, goal, index }) => {
         const stats = statsForGoal(project.id, goal.id);
@@ -7112,31 +7147,30 @@
       const cityScale = cityScaleForGoal(stats);
       const pos = goalPosition(goal, project, index);
       const width = 320;
-      const shownCount = Math.min(pendingTasksForPopup(project.id, goal.id).length || 1, 4);
-      const extraLine = pendingTasksForPopup(project.id, goal.id).length > 4 ? 1 : 0;
+      const tasks = pendingTasksForPopup(project.id, goal.id);
+      const shownCount = Math.min(tasks.length || 1, 3);
+      const extraLine = tasks.length > 3 ? 1 : 0;
       const nameLines = wrapSvgLines(goal.nombre, 34).slice(0, 2).length;
-      const height = 54 + nameLines * 14 + (shownCount + extraLine) * 14;
-      const popupX = clampNumber(pos.x - width / 2, 8, 900 - width - 8);
-      const popupY = clampNumber(pos.y - height - 62, 8, 800 - height - 48);
+      const height = 60 + nameLines * 17 + (shownCount + extraLine) * 15;
+      const popup = mapPopupPlacement(pos.x, pos.y, width, height, { offsetX: 20, offsetY: 42 });
       return `
         <g class="goal-hover-hit" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}">
           <ellipse class="map-hover-zone" cx="${pos.x}" cy="${pos.y}" rx="${Math.max(48, 86 * cityScale)}" ry="${Math.max(42, 72 * cityScale)}"/>
-          ${renderGoalHoverPopup(project, goal, stats, popupX, popupY)}
+          ${renderGoalHoverPopup(project, goal, stats, popup.x, popup.y, popup.scale, { width, maxTasks: 3 })}
         </g>
       `;
     }
 
     function renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale) {
       const point = taskPlotPoint(cityPos, taskIndex, cityScale);
-      const width = 292;
-      const nameLines = wrapSvgLines(task.nombre, 34).slice(0, 3).length;
-      const height = 58 + nameLines * 15;
-      const popupX = clampNumber(point.x + 22, 8, 900 - width - 8);
-      const popupY = clampNumber(point.y - height - 28, 8, 800 - height - 48);
+      const width = 300;
+      const nameLines = wrapSvgLines(task.nombre, 28).slice(0, 3).length;
+      const height = 62 + nameLines * 17;
+      const popup = mapPopupPlacement(point.x, point.y, width, height, { offsetX: 16, offsetY: 24 });
       return `
         <g class="task-hover-hit" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" data-task-id="${task.id}">
           <rect class="map-hover-zone" x="${point.x - 23}" y="${point.y - 28}" width="46" height="58" rx="8"/>
-          ${renderTaskHoverPopup(task, popupX, popupY)}
+          ${renderTaskHoverPopup(task, popup.x, popup.y, popup.scale, { width })}
         </g>
       `;
     }
@@ -7415,24 +7449,26 @@
       `;
     }
 
-    function renderGoalHoverPopup(project, goal, stats, x, y) {
+    function renderGoalHoverPopup(project, goal, stats, x, y, scale = 1, options = {}) {
       const tasks = pendingTasksForPopup(project.id, goal.id);
-      const shownTasks = tasks.slice(0, 4);
-      const width = 320;
-      const lineHeight = 14;
+      const maxTasks = options.maxTasks || 3;
+      const shownTasks = tasks.slice(0, maxTasks);
+      const width = options.width || 250;
+      const lineHeight = 15;
       const taskLines = shownTasks.length
         ? shownTasks.map((task) => `${task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir"} - ${priorityLabels[task.prioridad]} - ${task.nombre}`)
         : ["Sin tareas asociadas"];
       if (tasks.length > shownTasks.length) taskLines.push(`+ ${tasks.length - shownTasks.length} mas`);
-      const nameLines = wrapSvgLines(goal.nombre, 34).slice(0, 2);
-      const height = 54 + nameLines.length * 14 + taskLines.length * lineHeight;
+      const nameLines = wrapSvgLines(goal.nombre, 31).slice(0, 2);
+      const height = 60 + nameLines.length * 17 + taskLines.length * lineHeight;
       return `
-        <g class="map-hover-popup" transform="translate(${x} ${y})">
-          <rect width="${width}" height="${height}" rx="8" fill="rgba(7,12,16,0.95)" stroke="${project.color}" stroke-width="1.3"/>
-          ${nameLines.map((line, lineIndex) => `<text x="13" y="${22 + lineIndex * 14}" fill="#f8fafc" font-size="12.4" font-weight="800">${escapeHtml(line)}</text>`).join("")}
-          <text x="13" y="${32 + nameLines.length * 14}" fill="#cbd5e1" font-size="10.6">${stats.completed}/${stats.total} tareas logradas</text>
-          <text x="13" y="${49 + nameLines.length * 14}" fill="#f2dfb9" font-size="10.6" font-weight="800">Tareas asociadas</text>
-          ${taskLines.map((line, lineIndex) => `<text x="13" y="${66 + nameLines.length * 14 + lineIndex * lineHeight}" fill="#e5e7eb" font-size="10.2">${escapeHtml(line.slice(0, 52))}</text>`).join("")}
+        <g class="map-hover-popup" transform="translate(${x} ${y}) scale(${scale})">
+          <rect width="${width}" height="${height}" rx="7" fill="rgba(242,230,199,0.97)" stroke="${project.color}" stroke-width="1.15"/>
+          <rect width="5" height="${height}" rx="2.5" fill="${project.color}" opacity="0.82"/>
+          ${nameLines.map((line, lineIndex) => `<text x="16" y="${23 + lineIndex * 17}" fill="#2f281e" font-size="14" font-weight="800">${escapeHtml(line)}</text>`).join("")}
+          <text x="16" y="${35 + nameLines.length * 17}" fill="#5f5746" font-size="11.7">${stats.completed}/${stats.total} tareas logradas</text>
+          <text x="16" y="${52 + nameLines.length * 17}" fill="#6d4f25" font-size="12" font-weight="800">Tareas asociadas</text>
+          ${taskLines.map((line, lineIndex) => `<text x="16" y="${68 + nameLines.length * 17 + lineIndex * lineHeight}" fill="#332b20" font-size="11.2">${escapeHtml(line.slice(0, 45))}</text>`).join("")}
         </g>
       `;
     }
@@ -7578,19 +7614,20 @@
       `;
     }
 
-    function renderTaskHoverPopup(task, x, y) {
+    function renderTaskHoverPopup(task, x, y, scale = 1, options = {}) {
       const goal = state.sections.find((item) => item.id === task.sectionId);
       const project = state.projects.find((item) => item.id === task.projectId);
-      const nameLines = wrapSvgLines(task.nombre, 34).slice(0, 3);
+      const width = options.width || 300;
+      const nameLines = wrapSvgLines(task.nombre, 30).slice(0, 3);
       const due = task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir";
-      const width = 292;
-      const height = 58 + nameLines.length * 15;
+      const height = 62 + nameLines.length * 17;
       return `
-        <g class="map-hover-popup" transform="translate(${x} ${y})">
-          <rect width="${width}" height="${height}" rx="8" fill="rgba(7,12,16,0.96)" stroke="${project?.color || priorityAccent[task.prioridad]}" stroke-width="1.3"/>
-          <text x="13" y="22" fill="#f2dfb9" font-size="11.2" font-weight="800">Tarea - ${priorityLabels[task.prioridad]}</text>
-          ${nameLines.map((line, lineIndex) => `<text x="13" y="${43 + lineIndex * 15}" fill="#f8fafc" font-size="12.2" font-weight="760">${escapeHtml(line)}</text>`).join("")}
-          <text x="13" y="${58 + nameLines.length * 15}" fill="#cbd5e1" font-size="10.6">${escapeHtml(due)}${goal ? ` - ${escapeHtml(goal.nombre.slice(0, 30))}` : ""}</text>
+        <g class="map-hover-popup" transform="translate(${x} ${y}) scale(${scale})">
+          <rect width="${width}" height="${height}" rx="7" fill="rgba(242,230,199,0.97)" stroke="${project?.color || priorityAccent[task.prioridad]}" stroke-width="1.15"/>
+          <rect width="5" height="${height}" rx="2.5" fill="${project?.color || priorityAccent[task.prioridad]}" opacity="0.82"/>
+          <text x="16" y="22" fill="#6d4f25" font-size="12" font-weight="800">Tarea - ${priorityLabels[task.prioridad]}</text>
+          ${nameLines.map((line, lineIndex) => `<text x="16" y="${43 + lineIndex * 17}" fill="#2f281e" font-size="14" font-weight="760">${escapeHtml(line)}</text>`).join("")}
+          <text x="16" y="${59 + nameLines.length * 17}" fill="#5f5746" font-size="11.5">${escapeHtml(`${due}${goal ? ` - ${goal.nombre}` : ""}`.slice(0, 42))}</text>
         </g>
       `;
     }
@@ -7694,22 +7731,23 @@
         ? shownTasks.map((task) => `${task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir"} - ${priorityLabels[task.prioridad]} - ${task.nombre}`)
         : ["Sin tareas asociadas"];
       if (pending.length > shownTasks.length) taskLines.push(`+ ${pending.length - shownTasks.length} mas`);
-      const width = 390;
-      const lineHeight = 16;
-      const height = 76 + taskLines.length * lineHeight;
-      const labelX = Math.max(8, Math.min(900 - width - 8, pos.x + 42));
-      const labelY = Math.max(8, Math.min(800 - height - 8, pos.y - 78));
+      const width = 300;
+      const lineHeight = 13;
+      const nameLines = wrapSvgLines(goal.nombre, 34).slice(0, 2);
+      const height = 64 + nameLines.length * 13 + taskLines.length * lineHeight;
+      const popup = mapPopupPlacement(pos.x, pos.y, width, height, { offsetX: 34, offsetY: 50 });
       return `
-        <g class="castle-label castle-detail-popup is-selected is-open" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" transform="translate(${roundViewBox(labelX)} ${roundViewBox(labelY)})">
-          <rect class="castle-label-box" x="0" y="0" width="${width}" height="${height}" rx="9" fill="rgba(7,12,16,0.94)" stroke="${project.color}" stroke-width="1.4"/>
-          <g class="map-popup-close" data-action="close-goal-popup" data-project-id="${project.id}" data-section-id="${goal.id || ""}" transform="translate(${width - 30} 9)">
+        <g class="castle-label castle-detail-popup is-selected is-open" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" transform="translate(${popup.x} ${popup.y}) scale(${popup.scale})">
+          <rect class="castle-label-box" x="0" y="0" width="${width}" height="${height}" rx="8" fill="rgba(242,230,199,0.98)" stroke="${project.color}" stroke-width="1.2"/>
+          <rect width="6" height="${height}" rx="3" fill="${project.color}" opacity="0.82"/>
+          <g class="map-popup-close" data-action="close-goal-popup" data-project-id="${project.id}" data-section-id="${goal.id || ""}" transform="translate(${width - 28} 8)">
             <rect width="20" height="20" rx="5"/>
-            <text x="10" y="10" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-size="11" font-weight="800">x</text>
+            <text x="10" y="10" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-size="10.5" font-weight="800">x</text>
           </g>
-          <text x="14" y="24" fill="#f8fafc" font-size="13" font-weight="800">${escapeHtml(goal.nombre.slice(0, 34))}</text>
-          <text x="14" y="45" fill="#cbd5e1" font-size="10.8">${stats.completed}/${stats.total} tareas logradas</text>
-          <text x="14" y="64" fill="#f2dfb9" font-size="10.8" font-weight="800">Tareas asociadas</text>
-          ${taskLines.map((line, lineIndex) => `<text x="14" y="${82 + lineIndex * lineHeight}" fill="#e5e7eb" font-size="10.4">${escapeHtml(line)}</text>`).join("")}
+          ${nameLines.map((line, lineIndex) => `<text x="16" y="${20 + lineIndex * 13}" fill="#2f281e" font-size="11.2" font-weight="800">${escapeHtml(line)}</text>`).join("")}
+          <text x="16" y="${32 + nameLines.length * 13}" fill="#5f5746" font-size="9.4">${stats.completed}/${stats.total} tareas logradas</text>
+          <text x="16" y="${48 + nameLines.length * 13}" fill="#6d4f25" font-size="9.6" font-weight="800">Tareas asociadas</text>
+          ${taskLines.map((line, lineIndex) => `<text x="16" y="${63 + nameLines.length * 13 + lineIndex * lineHeight}" fill="#332b20" font-size="9">${escapeHtml(line.slice(0, 47))}</text>`).join("")}
         </g>
       `;
     }
@@ -7735,23 +7773,22 @@
       const taskIndex = Math.max(0, sortedTasks(project.id, goal.id).findIndex((item) => item.id === task.id));
       const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
       const point = taskPlotPoint(goalPosition(goal, project, goalIndex), taskIndex, cityScale);
-      const nameLines = wrapSvgLines(task.nombre, 36);
-      const width = 340;
-      const height = 78 + nameLines.length * 15;
-      const labelX = Math.max(8, Math.min(900 - width - 8, point.x + 24));
-      const labelY = Math.max(8, Math.min(800 - height - 8, point.y - height - 28));
+      const nameLines = wrapSvgLines(task.nombre, 31).slice(0, 3);
+      const width = 270;
+      const height = 62 + nameLines.length * 13;
+      const popup = mapPopupPlacement(point.x, point.y, width, height, { offsetX: 22, offsetY: 28 });
       const due = task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "Por definir";
       return `
-        <g class="task-map-popup is-open" data-task-id="${task.id}" transform="translate(${roundViewBox(labelX)} ${roundViewBox(labelY)})">
-          <rect width="${width}" height="${height}" rx="9" fill="rgba(7,12,16,0.96)" stroke="${priorityAccent[task.prioridad]}" stroke-width="1.45"/>
-          <g class="map-popup-close" data-action="close-task-popup" data-task-id="${task.id}" transform="translate(${width - 31} 9)">
+        <g class="task-map-popup is-open" data-task-id="${task.id}" transform="translate(${popup.x} ${popup.y}) scale(${popup.scale})">
+          <rect width="${width}" height="${height}" rx="8" fill="rgba(242,230,199,0.98)" stroke="${project.color}" stroke-width="1.2"/>
+          <rect width="6" height="${height}" rx="3" fill="${project.color}" opacity="0.82"/>
+          <g class="map-popup-close" data-action="close-task-popup" data-task-id="${task.id}" transform="translate(${width - 29} 8)">
             <rect width="21" height="21" rx="5"/>
-            <text x="10.5" y="10.5" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-size="11" font-weight="800">x</text>
+            <text x="10.5" y="10.5" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-size="10.5" font-weight="800">x</text>
           </g>
-          <text x="14" y="24" fill="#f2dfb9" font-size="11.5" font-weight="800">Tarea</text>
-          ${nameLines.map((line, lineIndex) => `<text x="14" y="${45 + lineIndex * 15}" fill="#f8fafc" font-size="12.6" font-weight="760">${escapeHtml(line)}</text>`).join("")}
-          <text x="14" y="${60 + nameLines.length * 15}" fill="#cbd5e1" font-size="11.2">${escapeHtml(due)} - ${priorityLabels[task.prioridad]}</text>
-          <text x="14" y="${76 + nameLines.length * 15}" fill="#9fb0bf" font-size="10.8">${escapeHtml(goal.nombre)}</text>
+          <text x="16" y="19" fill="#6d4f25" font-size="9.6" font-weight="800">Tarea - ${priorityLabels[task.prioridad]}</text>
+          ${nameLines.map((line, lineIndex) => `<text x="16" y="${38 + lineIndex * 13}" fill="#2f281e" font-size="11" font-weight="760">${escapeHtml(line)}</text>`).join("")}
+          <text x="16" y="${52 + nameLines.length * 13}" fill="#5f5746" font-size="9.2">${escapeHtml(`${due} - ${goal.nombre}`.slice(0, 43))}</text>
         </g>
       `;
     }

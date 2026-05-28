@@ -3804,6 +3804,272 @@
       height: 24px;
       font-size: 0.78rem;
     }
+
+    .project-tree-panel > .panel-tree {
+      border-left-color: rgba(94, 133, 170, 0.92);
+      background:
+        linear-gradient(90deg, rgba(94, 133, 170, 0.15), rgba(94, 133, 170, 0.06) 45%, rgba(255, 255, 255, 0.02)),
+        rgba(255, 255, 255, 0.025);
+    }
+
+    .project-tree-panel .panel-block-head {
+      background: linear-gradient(90deg, rgba(38, 60, 83, 0.72), rgba(23, 37, 52, 0.54));
+    }
+
+    .tree-section-heading {
+      margin: 10px 0 3px;
+      color: var(--muted);
+      font-size: 0.58rem;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .tree-section-heading.is-create {
+      margin-top: 7px;
+      opacity: 0.88;
+    }
+
+    .tree-section-heading.is-meta {
+      color: #f2d38f;
+    }
+
+    .tree-section-heading.is-task {
+      margin-left: 28px;
+      color: #a7d6b2;
+    }
+
+    .tree-section-heading.is-subtask,
+    .tree-empty.is-subtask,
+    .tree-add.is-subtask {
+      margin-left: var(--tree-indent, 56px);
+    }
+
+    .tree-section-heading.is-subtask.depth-1 {
+      color: #f0aaa0;
+    }
+
+    .tree-section-heading.is-subtask.depth-2 {
+      color: #cbb7f0;
+    }
+
+    .tree-section-heading.is-subtask.depth-3 {
+      color: #9ddbd6;
+    }
+
+    .tree-section-heading.is-subtask.depth-4 {
+      color: #f0c188;
+    }
+
+    .tree-section-heading.is-subtask.depth-5 {
+      color: #b9c7d8;
+    }
+
+    .project-tree-panel .quick-add,
+    .map-view.has-task .project-tree-panel .quick-add,
+    .map-view.has-task .project-tree-panel .quick-add.is-goal,
+    .map-view.has-task .project-tree-panel .quick-add.is-subtask {
+      grid-template-columns: minmax(0, 1fr) 58px minmax(144px, 180px) auto auto;
+      gap: 6px;
+      padding: 7px;
+    }
+
+    .project-tree-panel .quick-add input[name="nombre"] {
+      min-height: 32px;
+    }
+
+    .project-tree-panel .quick-add select {
+      min-width: 58px;
+      text-align: center;
+      text-align-last: center;
+    }
+
+    .project-tree-panel .quick-add input[type="date"] {
+      min-width: 144px;
+    }
+
+    .project-tree-panel .quick-add .primary-btn,
+    .project-tree-panel .quick-add .quick-add-card-btn {
+      min-width: 84px;
+      min-height: 32px;
+      padding: 0 12px;
+      font-size: 0.74rem;
+    }
+
+    .tree-add.is-goal .primary-btn {
+      background: linear-gradient(90deg, #d5ad65, #ead69a);
+      color: #1b1610;
+    }
+
+    .tree-add.is-task .primary-btn,
+    .tree-add.is-task .quick-add-card-btn {
+      background: linear-gradient(90deg, #72a987, #b9d493);
+      color: #10170f;
+      border-color: rgba(126, 186, 143, 0.38);
+    }
+
+    .tree-add.is-subtask .primary-btn,
+    .tree-add.is-subtask .quick-add-card-btn {
+      background: linear-gradient(90deg, #b85f58, #e4a09a);
+      color: #1b1110;
+      border-color: rgba(184, 95, 88, 0.42);
+    }
+
+    .tree-add.is-subtask.depth-2 .primary-btn,
+    .tree-add.is-subtask.depth-2 .quick-add-card-btn {
+      background: linear-gradient(90deg, #7964a7, #c3b0ee);
+    }
+
+    .tree-add.is-subtask.depth-3 .primary-btn,
+    .tree-add.is-subtask.depth-3 .quick-add-card-btn {
+      background: linear-gradient(90deg, #4e9d98, #9ddbd6);
+    }
+
+    .tree-add.is-subtask.depth-4 .primary-btn,
+    .tree-add.is-subtask.depth-4 .quick-add-card-btn {
+      background: linear-gradient(90deg, #b47b45, #e5bd86);
+    }
+
+    .tree-add.is-subtask.depth-5 .primary-btn,
+    .tree-add.is-subtask.depth-5 .quick-add-card-btn {
+      background: linear-gradient(90deg, #637487, #b9c7d8);
+    }
+
+    .tree-row {
+      grid-template-columns: 28px minmax(0, 1fr) 42px minmax(116px, 142px) auto;
+      gap: 6px;
+      min-height: 42px;
+      padding: 6px 7px;
+    }
+
+    .tree-row.is-task {
+      margin-left: 28px;
+      border-color: rgba(91, 168, 120, 0.34);
+      background: rgba(91, 168, 120, 0.095);
+      box-shadow: inset 4px 0 0 rgba(91, 168, 120, 0.86);
+    }
+
+    .tree-row.is-subtask {
+      margin-left: var(--tree-indent, 56px);
+      border-color: rgba(184, 95, 88, 0.34);
+      background: rgba(184, 95, 88, 0.09);
+      box-shadow: inset 4px 0 0 rgba(184, 95, 88, 0.86);
+    }
+
+    .tree-row.is-subtask.depth-2 {
+      border-color: rgba(121, 100, 167, 0.36);
+      background: rgba(121, 100, 167, 0.09);
+      box-shadow: inset 4px 0 0 rgba(121, 100, 167, 0.86);
+    }
+
+    .tree-row.is-subtask.depth-3 {
+      border-color: rgba(78, 157, 152, 0.36);
+      background: rgba(78, 157, 152, 0.09);
+      box-shadow: inset 4px 0 0 rgba(78, 157, 152, 0.86);
+    }
+
+    .tree-row.is-subtask.depth-4 {
+      border-color: rgba(180, 123, 69, 0.36);
+      background: rgba(180, 123, 69, 0.09);
+      box-shadow: inset 4px 0 0 rgba(180, 123, 69, 0.86);
+    }
+
+    .tree-row.is-subtask.depth-5 {
+      border-color: rgba(99, 116, 135, 0.38);
+      background: rgba(99, 116, 135, 0.11);
+      box-shadow: inset 4px 0 0 rgba(99, 116, 135, 0.9);
+    }
+
+    .tree-row.is-selected.is-meta {
+      background: linear-gradient(90deg, rgba(212, 165, 116, 0.42), rgba(212, 165, 116, 0.24) 62%, rgba(212, 165, 116, 0.12));
+    }
+
+    .tree-row.is-selected.is-task {
+      border-color: rgba(126, 206, 148, 0.82);
+      background: linear-gradient(90deg, rgba(91, 168, 120, 0.42), rgba(44, 96, 64, 0.24) 62%, rgba(44, 96, 64, 0.1));
+    }
+
+    .tree-row.is-selected.is-subtask {
+      border-color: rgba(226, 126, 118, 0.84);
+      background: linear-gradient(90deg, rgba(184, 95, 88, 0.42), rgba(105, 45, 42, 0.24) 62%, rgba(105, 45, 42, 0.1));
+    }
+
+    .tree-row.is-selected.is-subtask.depth-2 {
+      border-color: rgba(203, 183, 240, 0.84);
+      background: linear-gradient(90deg, rgba(121, 100, 167, 0.42), rgba(75, 57, 117, 0.24) 62%, rgba(75, 57, 117, 0.1));
+    }
+
+    .tree-row.is-selected.is-subtask.depth-3 {
+      border-color: rgba(157, 219, 214, 0.84);
+      background: linear-gradient(90deg, rgba(78, 157, 152, 0.42), rgba(42, 98, 94, 0.24) 62%, rgba(42, 98, 94, 0.1));
+    }
+
+    .tree-row.is-selected.is-subtask.depth-4 {
+      border-color: rgba(240, 193, 136, 0.84);
+      background: linear-gradient(90deg, rgba(180, 123, 69, 0.42), rgba(102, 65, 34, 0.24) 62%, rgba(102, 65, 34, 0.1));
+    }
+
+    .tree-row.is-selected.is-subtask.depth-5 {
+      border-color: rgba(185, 199, 216, 0.84);
+      background: linear-gradient(90deg, rgba(99, 116, 135, 0.44), rgba(53, 65, 80, 0.26) 62%, rgba(53, 65, 80, 0.12));
+    }
+
+    .tree-description {
+      display: block;
+      margin-top: 1px;
+      overflow: hidden;
+      color: rgba(194, 207, 220, 0.78);
+      font-size: 0.67rem;
+      line-height: 1.12;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-priority,
+    .tree-date {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.68rem;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-priority {
+      justify-self: end;
+      min-width: 0;
+      font-weight: 850;
+      text-align: right;
+    }
+
+    .tree-date {
+      justify-self: stretch;
+      min-width: 0;
+      padding-left: 2px;
+      text-align: left;
+    }
+
+    .tree-actions {
+      gap: 4px;
+    }
+
+    .tree-actions .icon-btn {
+      width: 28px;
+      min-width: 28px;
+      height: 28px;
+      min-height: 28px;
+    }
+
+    .tree-empty {
+      margin-left: 0;
+      padding: 7px 9px;
+      font-size: 0.72rem;
+    }
+
+    .tree-empty.is-task {
+      margin-left: 28px;
+    }
   </style>
 </head>
 <body>
@@ -3825,6 +4091,7 @@
     const priorityAccent = { p1: "#b64a4a", p2: "#b98652", p3: "#5e85aa", p4: "#7d8790" };
     const priorityGoalColor = { p1: "#c75050", p2: "#c98a47", p3: "#5e85aa", p4: "#7d8790" };
     const neutralBuildColor = "#8a806d";
+    const MAX_SUBTASK_DEPTH = 5;
     function normalizePriority(value) {
       return priorities.includes(value) ? value : "";
     }
@@ -4347,6 +4614,7 @@
         })),
         sections: sections.map((section, index) => ({
           ...section,
+          descripcion: section.descripcion || "",
           prioridad: normalizePriority(section.prioridad),
           fechaVencimiento: section.fechaVencimiento || null,
           secondaryProjectId: section.secondaryProjectId && projects.some((project) => project.id === section.secondaryProjectId) && section.secondaryProjectId !== section.projectId ? section.secondaryProjectId : null,
@@ -4373,6 +4641,7 @@
         subtasks: subtasks.map((subtask, index) => ({
           ...subtask,
           taskId: subtask.taskId || null,
+          parentSubtaskId: subtask.parentSubtaskId || null,
           nombre: subtask.nombre || `Subtarea ${index + 1}`,
           descripcion: subtask.descripcion || "",
           prioridad: normalizePriority(subtask.prioridad),
@@ -4832,6 +5101,39 @@
         .sort((a, b) => a.orden - b.orden || a.createdAt.localeCompare(b.createdAt));
     }
 
+    function sortedSubtaskChildren(taskId, parentSubtaskId = null) {
+      return (state.subtasks || [])
+        .filter((subtask) => subtask.taskId === taskId && (subtask.parentSubtaskId || null) === (parentSubtaskId || null))
+        .sort((a, b) => a.orden - b.orden || a.createdAt.localeCompare(b.createdAt));
+    }
+
+    function subtaskDepth(subtaskId) {
+      let depth = 0;
+      let current = state.subtasks.find((subtask) => subtask.id === subtaskId);
+      const seen = new Set();
+      while (current && !seen.has(current.id) && depth < MAX_SUBTASK_DEPTH + 2) {
+        seen.add(current.id);
+        depth += 1;
+        current = current.parentSubtaskId ? state.subtasks.find((subtask) => subtask.id === current.parentSubtaskId) : null;
+      }
+      return Math.max(1, Math.min(MAX_SUBTASK_DEPTH, depth || 1));
+    }
+
+    function subtaskDescendantIds(subtaskId) {
+      const result = new Set([subtaskId]);
+      const visit = (parentId) => {
+        (state.subtasks || [])
+          .filter((subtask) => subtask.parentSubtaskId === parentId)
+          .forEach((child) => {
+            if (result.has(child.id)) return;
+            result.add(child.id);
+            visit(child.id);
+          });
+      };
+      visit(subtaskId);
+      return result;
+    }
+
     function statsForTask(taskId) {
       const subtasks = sortedSubtasks(taskId);
       const completed = subtasks.filter((subtask) => subtask.completada).length;
@@ -4841,6 +5143,28 @@
         pending: subtasks.length - completed,
         progress: subtasks.length ? completed / subtasks.length : 0
       };
+    }
+
+    function statsForSubtask(subtaskId) {
+      const subtask = state.subtasks.find((item) => item.id === subtaskId);
+      const children = subtask ? sortedSubtaskChildren(subtask.taskId, subtaskId) : [];
+      const completed = children.filter((item) => item.completada).length;
+      return {
+        total: children.length,
+        completed,
+        pending: children.length - completed,
+        progress: children.length ? completed / children.length : (subtask?.completada ? 1 : 0)
+      };
+    }
+
+    function percentForTask(task) {
+      const stats = statsForTask(task.id);
+      return Math.round((stats.total ? stats.progress : task.completada ? 1 : 0) * 100);
+    }
+
+    function percentForSubtask(subtask) {
+      const stats = statsForSubtask(subtask.id);
+      return Math.round(stats.progress * 100);
     }
 
     function priorityRank(priority) {
@@ -6562,6 +6886,20 @@
         const subtaskId = actionTarget.dataset.subtaskId || null;
         setState({ selectedSubtaskId: subtaskId, modal: { type: "subtask", id: subtaskId, taskId: taskId || state.selectedTaskId } }, false);
       }
+      if (action === "select-subtask") {
+        const subtaskId = actionTarget.dataset.subtaskId || null;
+        const subtask = state.subtasks.find((item) => item.id === subtaskId);
+        const task = subtask ? state.tasks.find((item) => item.id === subtask.taskId) : null;
+        if (subtask && task) {
+          setState({
+            selectedProjectId: task.projectId,
+            selectedGoalId: goalKey(task.projectId, task.sectionId),
+            selectedTaskId: task.id,
+            selectedSubtaskId: subtask.id,
+            modal: null
+          }, false);
+        }
+      }
       if (action === "set-priority") setPriorityInForm(actionTarget);
       if (action === "set-task-status") setTaskStatusInForm(actionTarget);
       if (action === "add-comment") addTaskComment(taskId);
@@ -6828,6 +7166,7 @@
           id: sectionId,
           projectId,
           nombre: name,
+          descripcion: "",
           prioridad: normalizePriority(form.elements.prioridad?.value),
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           tags: [],
@@ -6851,22 +7190,29 @@
     }
 
     function saveQuickSubtask(form, event) {
-      const taskId = form.dataset.taskId;
+      const parentSubtaskId = form.dataset.parentSubtaskId || null;
+      const parentSubtask = parentSubtaskId ? state.subtasks.find((item) => item.id === parentSubtaskId) : null;
+      const taskId = parentSubtask?.taskId || form.dataset.taskId;
       const task = state.tasks.find((item) => item.id === taskId);
       const name = form.elements.nombre.value.trim();
       if (!task || !name) return;
+      if (parentSubtask && subtaskDepth(parentSubtask.id) >= MAX_SUBTASK_DEPTH) {
+        showToast("Ya alcanzaste el maximo de niveles de subtareas");
+        return;
+      }
       mutate(() => {
         const subtaskId = uid("subtask");
         state.subtasks.push({
           id: subtaskId,
           taskId,
+          parentSubtaskId,
           nombre: name,
           descripcion: "",
           prioridad: normalizePriority(form.elements.prioridad?.value),
           completada: false,
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           tags: [],
-          orden: sortedSubtasks(taskId).length,
+          orden: sortedSubtaskChildren(taskId, parentSubtaskId).length,
           createdAt: nowISO(),
           completedAt: null
         });
@@ -6877,7 +7223,7 @@
       });
       showToast("Subtarea creada");
       if (event.shiftKey) {
-        const sameForm = document.querySelector(`form[data-action="quick-add-subtask"][data-task-id="${taskId}"]`);
+        const sameForm = document.querySelector(`form[data-action="quick-add-subtask"][data-task-id="${taskId}"][data-parent-subtask-id="${parentSubtaskId || ""}"]`);
         if (sameForm) sameForm.elements.nombre.focus();
       }
     }
@@ -6923,6 +7269,7 @@
       const id = form.elements.id.value;
       const projectId = form.elements.projectId.value;
       const nombre = form.elements.nombre.value.trim();
+      const descripcion = form.elements.descripcion?.value.trim() || "";
       const prioridad = normalizePriority(form.elements.prioridad?.value);
       const fechaVencimiento = form.elements.fechaVencimiento?.value || null;
       const secondaryProjectId = form.elements.secondaryProjectId?.value || null;
@@ -6935,6 +7282,7 @@
           const section = state.sections.find((s) => s.id === id);
           if (section) {
             section.nombre = nombre;
+            section.descripcion = descripcion;
             section.prioridad = prioridad;
             section.fechaVencimiento = fechaVencimiento;
             section.secondaryProjectId = secondaryProjectId && secondaryProjectId !== projectId ? secondaryProjectId : null;
@@ -6946,6 +7294,7 @@
             id: sectionId,
             projectId,
             nombre,
+            descripcion,
             prioridad,
             fechaVencimiento,
             secondaryProjectId: secondaryProjectId && secondaryProjectId !== projectId ? secondaryProjectId : null,
@@ -7022,6 +7371,7 @@
     function saveSubtask(form) {
       const id = form.elements.id.value;
       const taskId = form.elements.taskId.value;
+      const parentSubtaskId = form.elements.parentSubtaskId?.value || null;
       const task = state.tasks.find((item) => item.id === taskId);
       const nombre = form.elements.nombre.value.trim();
       if (!task || !nombre) return;
@@ -7031,13 +7381,15 @@
           subtask = {
             id: uid("subtask"),
             taskId,
+            parentSubtaskId,
             createdAt: nowISO(),
-            orden: sortedSubtasks(taskId).length
+            orden: sortedSubtaskChildren(taskId, parentSubtaskId).length
           };
           state.subtasks.push(subtask);
         }
         const nextComplete = form.elements.completada ? form.elements.completada.value === "true" : Boolean(subtask.completada);
         subtask.taskId = taskId;
+        subtask.parentSubtaskId = parentSubtaskId;
         subtask.nombre = nombre;
         subtask.descripcion = form.elements.descripcion?.value.trim() || "";
         subtask.prioridad = normalizePriority(form.elements.prioridad?.value);
@@ -7164,9 +7516,10 @@
       if (!subtask) return;
       if (!confirm(`Eliminar la subtarea "${subtask.nombre}"?`)) return;
       mutate(() => {
-        state.subtasks = state.subtasks.filter((item) => item.id !== subtaskId);
-        if (state.selectedSubtaskId === subtaskId) state.selectedSubtaskId = null;
-        if (state.modal?.id === subtaskId) state.modal = null;
+        const deletedIds = subtaskDescendantIds(subtaskId);
+        state.subtasks = state.subtasks.filter((item) => !deletedIds.has(item.id));
+        if (state.selectedSubtaskId && deletedIds.has(state.selectedSubtaskId)) state.selectedSubtaskId = null;
+        if (state.modal?.id && deletedIds.has(state.modal.id)) state.modal = null;
       });
       showToast("Subtarea eliminada");
     }
@@ -8984,13 +9337,15 @@
           <div class="panel-section panel-tree">
             <div class="panel-block-head">
               <div>
-                <strong>Árbol del proyecto</strong>
-                <small>Metas, tareas y subtareas en orden jerárquico</small>
+                <strong>Proyecto: ${escapeHtml(project.nombre)}</strong>
+                <small>Seleccione un elemento para abrir su siguiente nivel; edite, ordene o borre desde sus botones.</small>
               </div>
             </div>
-            ${renderQuickAddGoal(project.id)}
             <div class="tree-list">
-              ${goals.length ? goals.map((goal, index) => renderTreeGoal(project, goal, index, goals.length, activeGoal)).join("") : `<div class="tree-empty">Crea una meta para comenzar este proyecto.</div>`}
+              <div class="tree-section-heading is-meta">Metas definidas</div>
+              ${goals.length ? goals.map((goal, index) => renderTreeGoal(project, goal, index, goals.length, activeGoal)).join("") : `<div class="tree-empty">Este proyecto aun no tiene metas.</div>`}
+              <div class="tree-section-heading is-create is-meta">Nueva meta</div>
+              <div class="tree-add is-goal">${renderQuickAddGoal(project.id)}</div>
             </div>
           </div>
         </aside>
@@ -9001,19 +9356,18 @@
       const stats = statsForGoal(project.id, goal.id);
       const isActive = activeGoal && goalKey(project.id, goal.id) === goalKey(project.id, activeGoal.id);
       const priority = goalPriority(goal);
-      const metaParts = [
-        priorityLabel(priority),
-        goal.fechaVencimiento ? formatDate(goal.fechaVencimiento) : "",
-        `${stats.completed}/${stats.total} tareas logradas`
-      ].filter(Boolean);
+      const metaText = `${stats.completed}/${stats.total} tareas logradas`;
       const tasks = sortedTasks(project.id, goal.id);
       return `
         <div class="tree-row is-meta ${isActive ? "is-selected" : ""}">
           <span class="tree-level-label is-meta">M</span>
           <button type="button" class="tree-main" data-action="select-goal" data-project-id="${project.id}" data-section-id="${goal.id || ""}">
             <span class="tree-title">${escapeHtml(goal.nombre)}</span>
-            <span class="tree-meta">${escapeHtml(metaParts.join(" - "))}</span>
+            ${goal.descripcion ? `<span class="tree-description">${escapeHtml(goal.descripcion)}</span>` : ""}
+            <span class="tree-meta">${escapeHtml(metaText)}</span>
           </button>
+          <span class="tree-priority">${priority ? escapeHtml(priorityLabel(priority)) : ""}</span>
+          <span class="tree-date">${goal.fechaVencimiento ? escapeHtml(formatDate(goal.fechaVencimiento)) : ""}</span>
           <div class="tree-actions">
             <span class="tree-percent">${Math.round(stats.progress * 100)}%</span>
             <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="up" data-section-id="${goal.id}" title="Subir meta" aria-label="Subir meta" ${index === 0 ? "disabled" : ""}>&#8593;</button>
@@ -9022,55 +9376,74 @@
             <button type="button" class="icon-btn goal-delete-btn" data-action="delete-section" data-section-id="${goal.id}" title="Borrar meta" aria-label="Borrar meta">&#128465;</button>
           </div>
         </div>
-        ${isActive ? `<div class="tree-add is-task">${renderQuickAdd(project.id, goal.id, "Nueva tarea para esta meta")}</div>` : ""}
-        ${tasks.length ? tasks.map((task) => renderTreeTask(project, goal, task)).join("") : isActive ? `<div class="tree-empty">Esta meta aun no tiene tareas.</div>` : ""}
+        ${isActive ? `
+          <div class="tree-section-heading is-task">Tareas de esta meta</div>
+          ${tasks.length ? tasks.map((task) => renderTreeTask(project, goal, task)).join("") : `<div class="tree-empty is-task">Esta meta aun no tiene tareas.</div>`}
+          <div class="tree-section-heading is-create is-task">Nueva tarea</div>
+          <div class="tree-add is-task">${renderQuickAdd(project.id, goal.id, "Nueva tarea para esta meta")}</div>
+        ` : ""}
       `;
     }
 
     function renderTreeTask(project, goal, task) {
-      const subtasks = sortedSubtasks(task.id);
+      const subtasks = sortedSubtaskChildren(task.id, null);
       const stats = statsForTask(task.id);
       const selected = task.id === state.selectedTaskId;
-      const metaParts = [
-        priorityLabel(task.prioridad),
-        task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "",
-        subtasks.length ? `${stats.completed}/${stats.total} subtareas logradas` : ""
-      ].filter(Boolean);
+      const metaText = subtasks.length ? `${stats.completed}/${stats.total} subtareas logradas` : "";
       return `
         <div class="tree-row is-task ${task.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
           <button type="button" class="check-btn ${task.completada ? "is-complete" : ""}" data-action="toggle-task" data-task-id="${task.id}" aria-label="${task.completada ? "Reabrir tarea" : "Completar tarea"}">${task.completada ? "✓" : ""}</button>
           <button type="button" class="tree-main" data-action="select-task" data-task-id="${task.id}">
             <span class="tree-title">${escapeHtml(task.nombre)}</span>
-            <span class="tree-meta">${escapeHtml(metaParts.join(" - "))}</span>
+            ${task.descripcion ? `<span class="tree-description">${escapeHtml(task.descripcion)}</span>` : ""}
+            <span class="tree-meta">${escapeHtml(metaText)}</span>
           </button>
+          <span class="tree-priority">${task.prioridad ? escapeHtml(priorityLabel(task.prioridad)) : ""}</span>
+          <span class="tree-date">${task.fechaVencimiento ? escapeHtml(formatDate(task.fechaVencimiento)) : ""}</span>
           <div class="tree-actions">
+            <span class="tree-percent">${percentForTask(task)}%</span>
             <button type="button" class="icon-btn" data-action="open-task" data-task-id="${task.id}" title="Editar tarea" aria-label="Editar tarea">&#9998;</button>
             <button type="button" class="icon-btn" data-action="delete-task" data-task-id="${task.id}" title="Eliminar tarea" aria-label="Eliminar tarea">&#128465;</button>
           </div>
         </div>
-        ${selected ? `<div class="tree-add is-subtask">${renderQuickAddSubtask(task.id)}</div>` : ""}
-        ${subtasks.map((subtask) => renderTreeSubtask(task, subtask)).join("")}
+        ${selected ? `
+          <div class="tree-section-heading is-subtask depth-1" style="--tree-indent:56px">Subtareas de esta tarea</div>
+          ${subtasks.length ? subtasks.map((subtask) => renderTreeSubtask(task, subtask, 1)).join("") : `<div class="tree-empty is-subtask" style="--tree-indent:56px">Esta tarea aun no tiene subtareas.</div>`}
+          <div class="tree-section-heading is-create is-subtask depth-1" style="--tree-indent:56px">Nueva subtarea</div>
+          <div class="tree-add is-subtask depth-1" style="--tree-indent:56px">${renderQuickAddSubtask(task.id, null, "Nueva subtarea")}</div>
+        ` : ""}
       `;
     }
 
-    function renderTreeSubtask(task, subtask) {
+    function renderTreeSubtask(task, subtask, depth = 1) {
       const selected = subtask.id === state.selectedSubtaskId;
-      const metaParts = [
-        priorityLabel(subtask.prioridad),
-        subtask.fechaVencimiento ? formatDate(subtask.fechaVencimiento) : ""
-      ].filter(Boolean);
+      const children = sortedSubtaskChildren(task.id, subtask.id);
+      const stats = statsForSubtask(subtask.id);
+      const safeDepth = Math.max(1, Math.min(MAX_SUBTASK_DEPTH, depth));
+      const indent = 56 + (safeDepth - 1) * 28;
+      const expanded = selected || Boolean(state.selectedSubtaskId && subtaskDescendantIds(subtask.id).has(state.selectedSubtaskId));
       return `
-        <div class="tree-row is-subtask ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
+        <div class="tree-row is-subtask depth-${safeDepth} ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" style="--tree-indent:${indent}px">
           <button type="button" class="check-btn ${subtask.completada ? "is-complete" : ""}" data-action="toggle-subtask" data-subtask-id="${subtask.id}" aria-label="${subtask.completada ? "Reabrir subtarea" : "Completar subtarea"}">${subtask.completada ? "✓" : ""}</button>
-          <button type="button" class="tree-main" data-action="open-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}">
+          <button type="button" class="tree-main" data-action="select-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}">
             <span class="tree-title">${escapeHtml(subtask.nombre)}</span>
-            <span class="tree-meta">${escapeHtml(metaParts.join(" - "))}</span>
+            ${subtask.descripcion ? `<span class="tree-description">${escapeHtml(subtask.descripcion)}</span>` : ""}
+            <span class="tree-meta">${children.length ? `${stats.completed}/${stats.total} subtareas logradas` : ""}</span>
           </button>
+          <span class="tree-priority">${subtask.prioridad ? escapeHtml(priorityLabel(subtask.prioridad)) : ""}</span>
+          <span class="tree-date">${subtask.fechaVencimiento ? escapeHtml(formatDate(subtask.fechaVencimiento)) : ""}</span>
           <div class="tree-actions">
+            <span class="tree-percent">${percentForSubtask(subtask)}%</span>
             <button type="button" class="icon-btn" data-action="open-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}" title="Editar subtarea" aria-label="Editar subtarea">&#9998;</button>
             <button type="button" class="icon-btn" data-action="delete-subtask" data-subtask-id="${subtask.id}" title="Eliminar subtarea" aria-label="Eliminar subtarea">&#128465;</button>
           </div>
         </div>
+        ${selected && safeDepth < MAX_SUBTASK_DEPTH ? `
+          <div class="tree-section-heading is-subtask depth-${safeDepth + 1}" style="--tree-indent:${indent + 28}px">Subtareas de esta subtarea</div>
+          ${children.length ? children.map((child) => renderTreeSubtask(task, child, safeDepth + 1)).join("") : `<div class="tree-empty is-subtask" style="--tree-indent:${indent + 28}px">Esta subtarea aun no tiene subtareas.</div>`}
+          <div class="tree-section-heading is-create is-subtask depth-${safeDepth + 1}" style="--tree-indent:${indent + 28}px">Nueva subtarea</div>
+          <div class="tree-add is-subtask depth-${safeDepth + 1}" style="--tree-indent:${indent + 28}px">${renderQuickAddSubtask(task.id, subtask.id, "Nueva subtarea")}</div>
+        ` : expanded ? children.map((child) => renderTreeSubtask(task, child, safeDepth + 1)).join("") : ""}
       `;
     }
 
@@ -9134,10 +9507,10 @@
       `;
     }
 
-    function renderQuickAddSubtask(taskId) {
+    function renderQuickAddSubtask(taskId, parentSubtaskId = null, placeholder = "+ Nueva subtarea") {
       return `
-        <form class="quick-add is-subtask" data-action="quick-add-subtask" data-task-id="${taskId}">
-          <input type="text" name="nombre" placeholder="+ Nueva subtarea" autocomplete="off">
+        <form class="quick-add is-subtask" data-action="quick-add-subtask" data-task-id="${taskId}" data-parent-subtask-id="${parentSubtaskId || ""}">
+          <input type="text" name="nombre" placeholder="${escapeHtml(placeholder)}" autocomplete="off">
           <select name="prioridad" aria-label="Prioridad de subtarea">
             ${renderPriorityOptions()}
           </select>
@@ -9298,6 +9671,7 @@
                 </select>
               </div>
               <div class="field"><label>Nombre de la meta</label><input name="nombre" value="${escapeHtml(section?.nombre || "")}" placeholder="Nombre de la meta" required autofocus></div>
+              <div class="field"><label>Descripcion</label><textarea name="descripcion" placeholder="Descripcion de la meta">${escapeHtml(section?.descripcion || "")}</textarea></div>
               <div class="field">
                 <label>Prioridad de la meta</label>
                 <select name="prioridad">
@@ -9565,9 +9939,11 @@
     function renderSubtaskModal(subtaskId, taskId) {
       const parentTask = state.tasks.find((task) => task.id === taskId) || state.tasks.find((task) => task.id === state.selectedTaskId);
       if (!parentTask) return "";
+      const modalParentSubtaskId = state.modal?.parentSubtaskId || null;
       const subtask = state.subtasks.find((item) => item.id === subtaskId) || {
         id: "",
         taskId: parentTask.id,
+        parentSubtaskId: modalParentSubtaskId,
         nombre: "",
         descripcion: "",
         prioridad: "",
@@ -9585,6 +9961,7 @@
             </div>
             <input type="hidden" name="id" value="${subtask.id}">
             <input type="hidden" name="taskId" value="${parentTask.id}">
+            <input type="hidden" name="parentSubtaskId" value="${subtask.parentSubtaskId || ""}">
             <input type="hidden" name="completada" value="${subtask.completada ? "true" : "false"}">
             <div class="task-editor-grid">
               <section class="task-editor-main">

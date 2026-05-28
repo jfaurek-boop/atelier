@@ -409,13 +409,15 @@
     }
 
     .map-view.has-project.has-goal.no-task {
-      grid-template-columns: minmax(320px, 400px) minmax(430px, 1fr) minmax(470px, 1fr);
+      grid-template-columns: minmax(300px, 360px) minmax(390px, 1fr) minmax(430px, 1fr);
     }
 
     .map-view.has-task {
-      grid-template-columns: minmax(300px, 360px) minmax(360px, 0.9fr) minmax(400px, 1fr) minmax(520px, 1.15fr);
+      grid-template-columns: minmax(230px, 300px) minmax(300px, 0.9fr) minmax(330px, 1fr) minmax(330px, 1fr);
       align-items: start;
-      overflow-x: auto;
+      gap: 6px;
+      padding: 10px;
+      overflow-x: hidden;
       overflow-y: hidden;
     }
 
@@ -1068,12 +1070,17 @@
     }
 
     .panel-subtasks {
-      height: 100%;
+      height: auto;
+      min-height: 0;
       padding: 15px;
       border-left: 6px solid rgba(91, 168, 120, 0.86) !important;
       background:
         linear-gradient(90deg, rgba(91, 168, 120, 0.18), rgba(91, 168, 120, 0.07) 48%, rgba(255, 255, 255, 0.02));
       box-shadow: 0 12px 28px rgba(19, 60, 38, 0.22), inset 0 0 0 1px rgba(91, 168, 120, 0.14);
+    }
+
+    .subtasks-panel {
+      align-self: start;
     }
 
     .panel-subtasks .panel-block-head {
@@ -1315,17 +1322,26 @@
     }
 
     .quick-add.is-goal {
-      grid-template-columns: minmax(260px, 1fr) 104px 170px 124px;
+      grid-template-columns: minmax(0, 1fr) 108px 156px 126px;
       margin-bottom: 10px;
       border-color: rgba(212, 165, 116, 0.34);
       background: rgba(96, 69, 35, 0.2);
     }
 
+    .quick-add.is-goal input,
+    .quick-add.is-goal select,
+    .quick-add.is-goal button {
+      min-width: 0;
+      width: 100%;
+    }
+
     .quick-add.is-goal .primary-btn {
-      min-width: 116px;
+      min-width: 0;
+      padding: 0 10px;
       border-color: rgba(212, 165, 116, 0.62);
       background: linear-gradient(135deg, #c99f62, #ead7a8);
       color: #24190d;
+      white-space: nowrap;
     }
 
     .panel-tasks .quick-add {
@@ -1357,6 +1373,142 @@
     .quick-add input[type="date"] {
       color: var(--muted);
       min-width: 0;
+    }
+
+    .map-view.has-task .project-panel,
+    .map-view.has-task .goal-tasks-panel,
+    .map-view.has-task .task-detail {
+      font-size: 0.84rem;
+    }
+
+    .map-view.has-task .panel-section {
+      padding: 10px;
+    }
+
+    .map-view.has-task .project-panel > .panel-section.panel-goals,
+    .map-view.has-task .project-panel > .panel-section.panel-tasks,
+    .map-view.has-task .project-panel > .panel-section.panel-subtasks {
+      margin: 10px;
+      padding: 10px;
+      border-left-width: 4px !important;
+    }
+
+    .map-view.has-task .panel-goals .panel-block-head,
+    .map-view.has-task .panel-tasks .panel-block-head,
+    .map-view.has-task .panel-subtasks .panel-block-head {
+      margin: -10px -10px 9px;
+      padding: 8px 10px;
+    }
+
+    .map-view.has-task .panel-block-head {
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .map-view.has-task .panel-block-head strong {
+      font-size: 0.82rem;
+      line-height: 1.15;
+    }
+
+    .map-view.has-task .panel-block-head small {
+      margin-top: 2px;
+      font-size: 0.68rem;
+      line-height: 1.15;
+    }
+
+    .map-view.has-task .panel-close-btn {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      min-height: 30px;
+    }
+
+    .map-view.has-task .progress-wrap {
+      height: 6px;
+      margin-top: 8px;
+    }
+
+    .map-view.has-task .quick-add {
+      gap: 6px;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .map-view.has-task .quick-add input,
+    .map-view.has-task .quick-add select,
+    .map-view.has-task .quick-add button {
+      min-height: 32px;
+      padding-inline: 8px;
+      font-size: 0.78rem;
+    }
+
+    .map-view.has-task .quick-add.is-goal,
+    .map-view.has-task .quick-add.is-subtask {
+      grid-template-columns: 70px minmax(0, 1fr);
+    }
+
+    .map-view.has-task .quick-add.is-goal input[name="nombre"],
+    .map-view.has-task .quick-add.is-subtask input[name="nombre"] {
+      grid-column: 1 / -1;
+    }
+
+    .map-view.has-task .quick-add.is-goal .primary-btn,
+    .map-view.has-task .quick-add.is-subtask .primary-btn {
+      grid-column: 1 / -1;
+      min-height: 30px;
+    }
+
+    .map-view.has-task .panel-tasks .quick-add {
+      grid-template-columns: 64px minmax(0, 1fr) 70px;
+    }
+
+    .map-view.has-task .panel-tasks .quick-add .quick-add-card-btn {
+      grid-column: 1 / -1;
+      min-width: 0;
+      min-height: 30px;
+    }
+
+    .map-view.has-task .panel-goals .project-list {
+      gap: 6px;
+    }
+
+    .map-view.has-task .panel-goals .goal-item {
+      min-height: 50px;
+      gap: 6px;
+      padding: 6px;
+    }
+
+    .map-view.has-task .goal-select-main {
+      gap: 6px;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+    }
+
+    .map-view.has-task .goal-select-main.has-no-priority {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .map-view.has-task .goal-select-main strong {
+      font-size: 0.78rem;
+      line-height: 1.12;
+    }
+
+    .map-view.has-task .goal-select-main small {
+      font-size: 0.68rem;
+      line-height: 1.12;
+    }
+
+    .map-view.has-task .goal-actions {
+      gap: 4px;
+    }
+
+    .map-view.has-task .goal-edit-btn,
+    .map-view.has-task .goal-delete-btn {
+      min-width: 42px;
+      min-height: 30px;
+      padding: 0 7px;
+      font-size: 0.68rem;
     }
 
     .tag-pill,
@@ -1958,6 +2110,68 @@
     .subtask-row .due,
     .subtask-row .row-actions {
       margin-top: 2px;
+    }
+
+    .map-view.has-task .goal-tasks-panel .task-row,
+    .map-view.has-task .subtask-row {
+      grid-template-columns: 26px minmax(0, 1fr) 42px 62px 60px;
+      min-height: 48px;
+      gap: 6px;
+      padding: 6px 8px;
+    }
+
+    .map-view.has-task .goal-tasks-panel .task-main,
+    .map-view.has-task .subtask-main {
+      padding-top: 1px;
+    }
+
+    .map-view.has-task .task-name,
+    .map-view.has-task .subtask-name {
+      font-size: 0.78rem;
+      line-height: 1.14;
+    }
+
+    .map-view.has-task .task-description,
+    .map-view.has-task .subtask-description {
+      font-size: 0.68rem;
+      line-height: 1.12;
+    }
+
+    .map-view.has-task .priority {
+      width: 38px;
+      min-width: 34px;
+      min-height: 22px;
+      padding: 0 6px;
+      font-size: 0.68rem;
+    }
+
+    .map-view.has-task .priority-placeholder {
+      width: 38px;
+    }
+
+    .map-view.has-task .due {
+      width: 62px;
+      min-height: 22px;
+      font-size: 0.68rem;
+    }
+
+    .map-view.has-task .row-actions {
+      gap: 4px;
+    }
+
+    .map-view.has-task .row-actions .icon-btn,
+    .map-view.has-task .goal-tasks-panel .row-actions .icon-btn {
+      width: 28px;
+      min-width: 28px;
+      height: 28px;
+      min-height: 28px;
+      font-size: 0.76rem;
+    }
+
+    .map-view.has-task .check-btn {
+      width: 22px;
+      height: 22px;
+      font-size: 0.76rem;
     }
 
     .task-main {
@@ -3111,11 +3325,11 @@
       }
 
       .map-view.has-project.has-goal.no-task {
-        grid-template-columns: minmax(290px, 360px) minmax(420px, 520px) minmax(420px, 1fr);
+        grid-template-columns: minmax(280px, 340px) minmax(360px, 1fr) minmax(380px, 1fr);
       }
 
       .map-view.has-task {
-        grid-template-columns: minmax(270px, 340px) minmax(360px, 500px) minmax(380px, 480px) minmax(460px, 1fr);
+        grid-template-columns: minmax(220px, 280px) minmax(290px, 1fr) minmax(310px, 1fr) minmax(310px, 1fr);
       }
 
       .map-panel-resizer {
@@ -3276,7 +3490,7 @@
     }
     function renderPriorityOptions(selected = "") {
       const current = normalizePriority(selected);
-      return `<option value="" ${current === "" ? "selected" : ""}></option>${priorities.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}`;
+      return `<option value="" ${current === "" ? "selected" : ""}>Prioridad</option>${priorities.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}`;
     }
     function renderPriorityChip(value, extraClass = "") {
       const priority = normalizePriority(value);

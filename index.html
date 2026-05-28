@@ -529,6 +529,12 @@
       color: #f4d6a7;
     }
 
+    .map-delete-project-btn {
+      border-color: rgba(185, 74, 74, 0.42);
+      background: rgba(185, 74, 74, 0.14);
+      color: #f4c7bd;
+    }
+
     .map-project-select {
       width: 100%;
       margin-top: 10px;
@@ -558,29 +564,54 @@
       align-content: start;
     }
 
-    .map-project-list button {
+    .map-project-row {
       min-height: 34px;
       display: grid;
-      grid-template-columns: 12px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
       gap: 8px;
       padding: 0 10px;
       border: 1px solid rgba(193, 202, 214, 0.16);
       border-radius: 6px;
       background: rgba(255, 255, 255, 0.04);
+    }
+
+    .map-project-name-btn {
+      min-width: 0;
+      min-height: 34px;
+      display: grid;
+      grid-template-columns: 12px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      padding: 0;
+      border: 0;
+      background: transparent;
       color: var(--text);
       text-align: left;
     }
 
-    .map-project-list button.is-active {
+    .map-project-row.is-active {
       border-color: rgba(212, 165, 116, 0.48);
       background: rgba(212, 165, 116, 0.12);
     }
 
-    .map-project-list span:last-child {
+    .map-project-name-btn span:last-child {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .map-project-order {
+      display: flex;
+      gap: 4px;
+    }
+
+    .map-project-order .project-order-btn {
+      width: 28px;
+      min-width: 28px;
+      height: 28px;
+      min-height: 28px;
+      padding: 0;
     }
 
     .map-focus-project-btn {
@@ -650,6 +681,26 @@
       background: #d8c99f;
       color: #172027;
       border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .empty-atlas-create-btn {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 4;
+      transform: translate(-50%, -50%);
+      min-height: 48px;
+      padding: 0 24px;
+      border-radius: 6px;
+      border: 1px solid rgba(231, 219, 191, 0.42);
+      background: linear-gradient(135deg, #d8c18e, #b99055);
+      color: #17120c;
+      font-weight: 900;
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.34);
+    }
+
+    .empty-atlas-create-btn:hover {
+      filter: brightness(1.05);
     }
 
     .kingdom-map {
@@ -889,7 +940,8 @@
     }
 
     .panel-goals,
-    .panel-tasks {
+    .panel-tasks,
+    .panel-subtasks {
       background: rgba(255, 255, 255, 0.025);
     }
 
@@ -926,7 +978,8 @@
     }
 
     .panel-goals .panel-block-head,
-    .panel-tasks .panel-block-head {
+    .panel-tasks .panel-block-head,
+    .panel-subtasks .panel-block-head {
       margin: -15px -15px 15px;
       padding: 12px 15px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -967,17 +1020,34 @@
       text-align: left;
     }
 
+    .goal-select-main.has-no-priority {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
     .goal-select-main strong,
     .goal-select-main small {
       display: block;
     }
 
-    .goal-edit-btn {
+    .goal-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      align-self: center;
+    }
+
+    .goal-edit-btn,
+    .goal-delete-btn {
       width: auto;
       min-width: 52px;
       padding: 0 9px;
-      align-self: center;
       font-size: 0.76rem;
+    }
+
+    .goal-delete-btn {
+      border-color: rgba(185, 74, 74, 0.42);
+      background: rgba(185, 74, 74, 0.14);
+      color: #f4c7bd;
     }
 
     .panel-goals .project-chip.is-active,
@@ -995,6 +1065,19 @@
 
     .panel-tasks .panel-block-head {
       background: rgba(31, 45, 58, 0.58);
+    }
+
+    .panel-subtasks {
+      height: 100%;
+      padding: 15px;
+      border-left: 6px solid rgba(91, 168, 120, 0.86) !important;
+      background:
+        linear-gradient(90deg, rgba(91, 168, 120, 0.18), rgba(91, 168, 120, 0.07) 48%, rgba(255, 255, 255, 0.02));
+      box-shadow: 0 12px 28px rgba(19, 60, 38, 0.22), inset 0 0 0 1px rgba(91, 168, 120, 0.14);
+    }
+
+    .panel-subtasks .panel-block-head {
+      background: rgba(28, 66, 45, 0.5);
     }
 
     .panel-tasks .task-list {
@@ -1809,6 +1892,74 @@
       min-height: 30px;
     }
 
+    .subtask-list {
+      display: flex;
+      flex-direction: column;
+      margin-top: 12px;
+      border: 1px solid rgba(91, 168, 120, 0.14);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(5, 14, 9, 0.24);
+    }
+
+    .subtask-row {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) 52px 78px 76px;
+      align-items: start;
+      gap: 9px;
+      min-height: 58px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(231, 219, 191, 0.08);
+    }
+
+    .subtask-row:last-child {
+      border-bottom: 0;
+    }
+
+    .subtask-row:hover {
+      background: rgba(91, 168, 120, 0.08);
+    }
+
+    .subtask-row.is-selected {
+      background: rgba(91, 168, 120, 0.13);
+    }
+
+    .subtask-row.is-complete .subtask-name {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .subtask-main {
+      min-width: 0;
+      padding: 2px 0 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+    }
+
+    .subtask-name {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 760;
+      line-height: 1.2;
+      white-space: normal;
+    }
+
+    .subtask-description {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.2;
+    }
+
+    .subtask-row .priority,
+    .subtask-row .due,
+    .subtask-row .row-actions {
+      margin-top: 2px;
+    }
+
     .task-main {
       min-width: 0;
       text-align: left;
@@ -1862,6 +2013,13 @@
       border: 1px solid;
       font-size: 0.78rem;
       font-weight: 800;
+      justify-self: center;
+    }
+
+    .priority-placeholder {
+      display: block;
+      width: 46px;
+      min-height: 1px;
       justify-self: center;
     }
 
@@ -2593,7 +2751,7 @@
     }
 
     .priority-picker {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: 32px repeat(4, minmax(0, 1fr));
     }
 
     .priority-picker input[type="hidden"] {
@@ -2633,6 +2791,21 @@
       border-color: rgba(148, 163, 184, 0.48);
       background: rgba(148, 163, 184, 0.14);
       color: #d7dde6;
+    }
+
+    .priority-button.priority-empty {
+      min-width: 32px;
+      padding: 0;
+      border-color: rgba(193, 202, 214, 0.24);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .priority-button.priority-empty::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(232, 237, 244, 0.42);
     }
 
     .priority-button.is-active,
@@ -3093,6 +3266,22 @@
     const priorityCrewSize = { p1: 4, p2: 3, p3: 2, p4: 1 };
     const priorityAccent = { p1: "#b64a4a", p2: "#b98652", p3: "#5e85aa", p4: "#7d8790" };
     const priorityGoalColor = { p1: "#c75050", p2: "#c98a47", p3: "#5e85aa", p4: "#7d8790" };
+    const neutralBuildColor = "#8a806d";
+    function normalizePriority(value) {
+      return priorities.includes(value) ? value : "";
+    }
+    function priorityLabel(value) {
+      const priority = normalizePriority(value);
+      return priority ? priorityLabels[priority] : "";
+    }
+    function renderPriorityOptions(selected = "") {
+      const current = normalizePriority(selected);
+      return `<option value="" ${current === "" ? "selected" : ""}></option>${priorities.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}`;
+    }
+    function renderPriorityChip(value, extraClass = "") {
+      const priority = normalizePriority(value);
+      return priority ? `<span class="priority priority-${priority} ${extraClass}">${priorityLabels[priority]}</span>` : "";
+    }
     const projectIcons = ["◆", "◈", "✦", "✧", "☉", "◎", "▲", "■"];
     const taskPlotPositions = [
       { dx: -52, dy: 14, scale: 0.78, mirror: false },
@@ -3531,11 +3720,13 @@
         selectedProjectId: null,
         selectedGoalId: null,
         selectedTaskId: null,
+        selectedSubtaskId: null,
         mapGoalPopupId: null,
         mapTaskPopupId: null,
         projects: [],
         sections: [],
         tasks: [],
+        subtasks: [],
         tags: []
       };
     }
@@ -3545,6 +3736,7 @@
       const projects = Array.isArray(data.projects) ? data.projects : [];
       const sections = Array.isArray(data.sections) ? data.sections : [];
       const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      const subtasks = Array.isArray(data.subtasks) ? data.subtasks : [];
       const tags = Array.isArray(data.tags) ? data.tags : [];
       const allowedViews = ["map", "list", "calendar", "tags"];
       const normalizedView = allowedViews.includes(data.view)
@@ -3571,6 +3763,7 @@
           ? data.selectedProjectId
           : projects[0]?.id || null,
         selectedTaskId: data.selectedTaskId && tasks.some((t) => t.id === data.selectedTaskId) ? data.selectedTaskId : null,
+        selectedSubtaskId: data.selectedSubtaskId && subtasks.some((s) => s.id === data.selectedSubtaskId) ? data.selectedSubtaskId : null,
         selectedGoalId: data.selectedGoalId || null,
         mapGoalPopupId: data.mapGoalPopupId || null,
         mapTaskPopupId: data.mapTaskPopupId && tasks.some((t) => t.id === data.mapTaskPopupId) ? data.mapTaskPopupId : null,
@@ -3596,7 +3789,7 @@
         })),
         sections: sections.map((section, index) => ({
           ...section,
-          prioridad: priorities.includes(section.prioridad) ? section.prioridad : inferredGoalPriority(section.id, tasks),
+          prioridad: normalizePriority(section.prioridad),
           fechaVencimiento: section.fechaVencimiento || null,
           secondaryProjectId: section.secondaryProjectId && projects.some((project) => project.id === section.secondaryProjectId) && section.secondaryProjectId !== section.projectId ? section.secondaryProjectId : null,
           tags: Array.isArray(section.tags) ? section.tags.filter(Boolean) : [],
@@ -3609,7 +3802,7 @@
         tasks: tasks.map((task, index) => ({
           ...task,
           descripcion: task.descripcion || "",
-          prioridad: priorities.includes(task.prioridad) ? task.prioridad : "p4",
+          prioridad: normalizePriority(task.prioridad),
           completada: Boolean(task.completada),
           fechaVencimiento: task.fechaVencimiento || null,
           secondaryProjectId: task.secondaryProjectId && projects.some((project) => project.id === task.secondaryProjectId) && task.secondaryProjectId !== task.projectId ? task.secondaryProjectId : null,
@@ -3618,6 +3811,19 @@
           orden: Number.isFinite(task.orden) ? task.orden : index,
           comentarios: Array.isArray(task.comentarios) ? task.comentarios : [],
           completedAt: task.completada ? task.completedAt || nowISO() : null
+        })),
+        subtasks: subtasks.map((subtask, index) => ({
+          ...subtask,
+          taskId: subtask.taskId || null,
+          nombre: subtask.nombre || `Subtarea ${index + 1}`,
+          descripcion: subtask.descripcion || "",
+          prioridad: normalizePriority(subtask.prioridad),
+          completada: Boolean(subtask.completada),
+          fechaVencimiento: subtask.fechaVencimiento || null,
+          tags: Array.isArray(subtask.tags) ? subtask.tags.filter(Boolean) : [],
+          orden: Number.isFinite(subtask.orden) ? subtask.orden : index,
+          createdAt: subtask.createdAt || nowISO(),
+          completedAt: subtask.completada ? subtask.completedAt || nowISO() : null
         }))
       };
     }
@@ -3631,6 +3837,7 @@
         listProjectOpen,
         selectedGoalId,
         selectedTaskId,
+        selectedSubtaskId,
         recentlyCompletedTaskId,
         celebratingProjectId,
         celebratingGoalId,
@@ -4061,6 +4268,23 @@
         .sort((a, b) => a.orden - b.orden || a.createdAt.localeCompare(b.createdAt));
     }
 
+    function sortedSubtasks(taskId) {
+      return (state.subtasks || [])
+        .filter((subtask) => subtask.taskId === taskId)
+        .sort((a, b) => a.orden - b.orden || a.createdAt.localeCompare(b.createdAt));
+    }
+
+    function statsForTask(taskId) {
+      const subtasks = sortedSubtasks(taskId);
+      const completed = subtasks.filter((subtask) => subtask.completada).length;
+      return {
+        total: subtasks.length,
+        completed,
+        pending: subtasks.length - completed,
+        progress: subtasks.length ? completed / subtasks.length : 0
+      };
+    }
+
     function priorityRank(priority) {
       const index = priorities.indexOf(priority);
       return index === -1 ? priorities.length : index;
@@ -4068,15 +4292,16 @@
 
     function inferredGoalPriority(sectionId, tasks = state.tasks) {
       const found = priorities.find((priority) => tasks.some((task) => task.sectionId === sectionId && task.prioridad === priority));
-      return found || "p4";
+      return found || "";
     }
 
     function goalPriority(goal) {
-      return priorities.includes(goal?.prioridad) ? goal.prioridad : "p4";
+      return normalizePriority(goal?.prioridad);
     }
 
     function goalPriorityColor(goal) {
-      return priorityGoalColor[goalPriority(goal)] || priorityGoalColor.p4;
+      const priority = goalPriority(goal);
+      return priority ? priorityGoalColor[priority] : "transparent";
     }
 
     function dueRank(task) {
@@ -4490,14 +4715,14 @@
     }
 
     function renderWorker(task, project, pos, complete, index) {
-      const scale = 1.6 * workerScale[task.prioridad];
+      const scale = 1.6 * (workerScale[normalizePriority(task.prioridad)] || workerScale.p4);
       const x = project.posicion.x + pos.dx;
       const y = project.posicion.y + pos.dy;
       const mirror = pos.mirror ? " scale(-1 1)" : "";
       const pop = task.id === state.recentlyCompletedTaskId ? "worker-pop" : "";
       return `
         <g class="${pop}" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${scale})${mirror}">
-          ${renderWorkerShape(complete, pos.type || (index % 2 ? "saw" : "hammer"), task.prioridad, task.id === state.recentlyCompletedTaskId)}
+            ${renderWorkerShape(complete, pos.type || (index % 2 ? "saw" : "hammer"), normalizePriority(task.prioridad) || "p4", task.id === state.recentlyCompletedTaskId)}
         </g>
       `;
     }
@@ -4756,7 +4981,7 @@
             <div class="workspace-head">
               <div>
                 <h2>Calendario</h2>
-                <p>Fechas limite de metas y tareas, filtradas por proyecto y etiqueta.</p>
+                <p>Fechas limite de metas, tareas y subtareas, filtradas por proyecto y etiqueta.</p>
               </div>
               <div class="calendar-mode-toggle" aria-label="Modo de calendario">
                 <button type="button" data-action="set-calendar-mode" data-mode="agenda" class="${mode === "agenda" ? "is-active" : ""}">Lista</button>
@@ -4772,9 +4997,10 @@
               </label>
               <label>Tipo
                 <select name="type" data-action="calendar-filter">
-                  <option value="all" ${filters.type === "all" ? "selected" : ""}>Metas y tareas</option>
+                  <option value="all" ${filters.type === "all" ? "selected" : ""}>Metas, tareas y subtareas</option>
                   <option value="goal" ${filters.type === "goal" ? "selected" : ""}>Solo metas</option>
                   <option value="task" ${filters.type === "task" ? "selected" : ""}>Solo tareas</option>
+                  <option value="subtask" ${filters.type === "subtask" ? "selected" : ""}>Solo subtareas</option>
                 </select>
               </label>
               <label>Etiqueta
@@ -4852,7 +5078,35 @@
             complete: task.completada
           };
         });
-      return goalEntries.concat(taskEntries).sort((a, b) => a.date.localeCompare(b.date) || priorities.indexOf(a.priority) - priorities.indexOf(b.priority) || a.name.localeCompare(b.name));
+      const subtaskEntries = (state.subtasks || [])
+        .filter((subtask) => subtask.fechaVencimiento)
+        .map((subtask) => {
+          const task = state.tasks.find((item) => item.id === subtask.taskId);
+          if (!task) return null;
+          const projectMeta = calendarProjectMeta(task.projectId, task.secondaryProjectId);
+          const goal = state.sections.find((item) => item.id === task.sectionId);
+          return {
+            type: "subtask",
+            id: subtask.id,
+            projectId: task.projectId,
+            secondaryProjectId: task.secondaryProjectId || null,
+            projectIds: projectMeta.projectIds,
+            sectionId: task.sectionId,
+            taskId: task.id,
+            name: subtask.nombre,
+            date: subtask.fechaVencimiento,
+            priority: subtask.prioridad,
+            tags: subtask.tags || [],
+            projectName: projectMeta.projectName,
+            projectColor: projectMeta.projectColor,
+            secondaryProjectColor: projectMeta.secondaryProjectColor,
+            goalName: goal?.nombre || "Tareas por clasificar",
+            taskName: task.nombre,
+            complete: subtask.completada
+          };
+        })
+        .filter(Boolean);
+      return goalEntries.concat(taskEntries, subtaskEntries).sort((a, b) => a.date.localeCompare(b.date) || priorityRank(a.priority) - priorityRank(b.priority) || a.name.localeCompare(b.name));
     }
 
     function calendarEntryMatches(entry, filters) {
@@ -4910,14 +5164,18 @@
     }
 
     function renderCalendarItem(entry) {
+      const kindLabel = entry.type === "goal" ? "Meta" : entry.type === "subtask" ? "Subtarea" : "Tarea";
+      const context = entry.type === "subtask"
+        ? `${entry.projectName} - ${entry.goalName} - ${entry.taskName}`
+        : `${entry.projectName} - ${entry.goalName}`;
       return `
         <button type="button" class="calendar-item ${entry.secondaryProjectId ? "has-gradient" : ""}" style="${calendarEntryColorStyle(entry)}" data-action="open-calendar-item" data-item-type="${entry.type}" data-item-id="${entry.id}">
-          <span class="item-kind">${entry.type === "goal" ? "Meta" : "Tarea"}</span>
+          <span class="item-kind">${kindLabel}</span>
           <span>
             <strong>${escapeHtml(entry.name)}</strong>
-            <small>${escapeHtml(entry.projectName)} - ${escapeHtml(entry.goalName)}</small>
+            <small>${escapeHtml(context)}</small>
           </span>
-          <span class="priority priority-${entry.priority}">${priorityLabels[entry.priority]}</span>
+          ${renderPriorityChip(entry.priority)}
         </button>
       `;
     }
@@ -4964,9 +5222,11 @@
     }
 
     function renderWeekEvent(entry) {
+      const priorityClass = normalizePriority(entry.priority) ? `priority-${entry.priority}` : "";
+      const icon = entry.type === "goal" ? "Meta" : entry.type === "subtask" ? "Subtarea" : "Tarea";
       return `
-        <button type="button" class="week-event priority-${entry.priority} ${entry.secondaryProjectId ? "has-gradient" : ""}" style="${calendarEntryColorStyle(entry)}" data-action="open-calendar-item" data-item-type="${entry.type}" data-item-id="${entry.id}" title="${escapeHtml(entry.name)}">
-          <span>${entry.type === "goal" ? "◎" : "○"} ${escapeHtml(entry.name)}</span>
+        <button type="button" class="week-event ${priorityClass} ${entry.secondaryProjectId ? "has-gradient" : ""}" style="${calendarEntryColorStyle(entry)}" data-action="open-calendar-item" data-item-type="${entry.type}" data-item-id="${entry.id}" title="${escapeHtml(entry.name)}">
+          <span>${escapeHtml(icon)}: ${escapeHtml(entry.name)}</span>
         </button>
       `;
     }
@@ -5017,7 +5277,35 @@
             complete: task.completada
           };
         });
-      return goalEntries.concat(taskEntries);
+      const subtaskEntries = (state.subtasks || [])
+        .filter((subtask) => !subtask.fechaVencimiento)
+        .map((subtask) => {
+          const task = state.tasks.find((item) => item.id === subtask.taskId);
+          if (!task) return null;
+          const projectMeta = calendarProjectMeta(task.projectId, task.secondaryProjectId);
+          const goal = state.sections.find((item) => item.id === task.sectionId);
+          return {
+            type: "subtask",
+            id: subtask.id,
+            projectId: task.projectId,
+            secondaryProjectId: task.secondaryProjectId || null,
+            projectIds: projectMeta.projectIds,
+            sectionId: task.sectionId,
+            taskId: task.id,
+            name: subtask.nombre,
+            date: "",
+            priority: subtask.prioridad,
+            tags: subtask.tags || [],
+            projectName: projectMeta.projectName,
+            projectColor: projectMeta.projectColor,
+            secondaryProjectColor: projectMeta.secondaryProjectColor,
+            goalName: goal?.nombre || "Tareas por clasificar",
+            taskName: task.nombre,
+            complete: subtask.completada
+          };
+        })
+        .filter(Boolean);
+      return goalEntries.concat(taskEntries, subtaskEntries);
     }
 
     function projectNameForCalendar(filters) {
@@ -5074,12 +5362,19 @@
       if (type === "goal") {
         const goal = state.sections.find((item) => item.id === id);
         if (!goal) return;
-        setState({ view: "list", selectedProjectId: goal.projectId, selectedGoalId: goalKey(goal.projectId, goal.id), selectedTaskId: null, listProjectOpen: true });
+        setState({ view: "list", selectedProjectId: goal.projectId, selectedGoalId: goalKey(goal.projectId, goal.id), selectedTaskId: null, selectedSubtaskId: null, listProjectOpen: true });
+        return;
+      }
+      if (type === "subtask") {
+        const subtask = state.subtasks.find((item) => item.id === id);
+        const task = subtask ? state.tasks.find((item) => item.id === subtask.taskId) : null;
+        if (!task) return;
+        setState({ view: "list", selectedProjectId: task.projectId, selectedGoalId: goalKey(task.projectId, task.sectionId), selectedTaskId: task.id, selectedSubtaskId: subtask.id, listProjectOpen: true });
         return;
       }
       const task = state.tasks.find((item) => item.id === id);
       if (!task) return;
-      setState({ view: "list", selectedProjectId: task.projectId, selectedGoalId: goalKey(task.projectId, task.sectionId), selectedTaskId: task.id, listProjectOpen: true });
+      setState({ view: "list", selectedProjectId: task.projectId, selectedGoalId: goalKey(task.projectId, task.sectionId), selectedTaskId: task.id, selectedSubtaskId: null, listProjectOpen: true });
     }
 
     function renderTagsView() {
@@ -5090,7 +5385,7 @@
             <div class="workspace-head">
               <div>
                 <h2>Etiquetas</h2>
-                <p>Dashboard transversal para agrupar metas y tareas de distintos proyectos.</p>
+                <p>Dashboard transversal para agrupar metas, tareas y subtareas de distintos proyectos.</p>
               </div>
             </div>
             <form class="tag-manager" data-action="save-tag">
@@ -5099,7 +5394,7 @@
               <button class="primary-btn" type="submit">Crear etiqueta</button>
             </form>
             <div class="tag-dashboard-grid">
-              ${tags.length ? tags.map(renderTagDashboardCard).join("") : `<div class="empty-state">Crea una etiqueta para agrupar metas y tareas.</div>`}
+              ${tags.length ? tags.map(renderTagDashboardCard).join("") : `<div class="empty-state">Crea una etiqueta para agrupar metas, tareas y subtareas.</div>`}
             </div>
           </div>
         </section>
@@ -5109,13 +5404,19 @@
     function renderTagDashboardCard(tag) {
       const goals = state.sections.filter((goal) => (goal.tags || []).includes(tag.id));
       const tasks = state.tasks.filter((task) => (task.tags || []).includes(tag.id));
+      const subtasks = (state.subtasks || []).filter((subtask) => (subtask.tags || []).includes(tag.id));
       return `
         <article class="dashboard-card" style="--tag-color:${tag.color}">
           <h3><span class="tag-dot"></span> ${escapeHtml(tag.nombre)}</h3>
           <div class="dashboard-items">
             ${goals.map((goal) => renderTagDashboardItem("Meta", goal.nombre, state.projects.find((project) => project.id === goal.projectId)?.nombre || "Sin proyecto", goalPriority(goal), "goal", goal.id)).join("")}
             ${tasks.map((task) => renderTagDashboardItem("Tarea", task.nombre, state.projects.find((project) => project.id === task.projectId)?.nombre || "Sin proyecto", task.prioridad, "task", task.id)).join("")}
-            ${!goals.length && !tasks.length ? `<div class="empty-state">Sin elementos asociados.</div>` : ""}
+            ${subtasks.map((subtask) => {
+              const task = state.tasks.find((item) => item.id === subtask.taskId);
+              const project = task ? state.projects.find((item) => item.id === task.projectId) : null;
+              return renderTagDashboardItem("Subtarea", subtask.nombre, `${project?.nombre || "Sin proyecto"}${task ? ` - ${task.nombre}` : ""}`, subtask.prioridad, "subtask", subtask.id);
+            }).join("")}
+            ${!goals.length && !tasks.length && !subtasks.length ? `<div class="empty-state">Sin elementos asociados.</div>` : ""}
             <button type="button" class="ghost-btn small-btn" data-action="delete-tag" data-tag-id="${tag.id}">Eliminar etiqueta</button>
           </div>
         </article>
@@ -5127,7 +5428,7 @@
         <button type="button" class="dashboard-item" data-action="open-calendar-item" data-item-type="${type}" data-item-id="${id}">
           <span class="item-kind">${kind}</span>
           <span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(context)}</small></span>
-          <span class="priority priority-${priority}">${priorityLabels[priority]}</span>
+          ${renderPriorityChip(priority)}
         </button>
       `;
     }
@@ -5216,7 +5517,7 @@
         <form class="quick-add is-task" data-action="quick-add" data-project-id="${projectId}" data-section-id="${sectionId || ""}">
           <input type="text" name="nombre" placeholder="+ ${escapeHtml(placeholder)}" autocomplete="off">
           <select name="prioridad" aria-label="Prioridad">
-            ${priorities.map((p) => `<option value="${p}" ${p === "p4" ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}
+            ${renderPriorityOptions()}
           </select>
           <input type="date" name="fechaVencimiento" aria-label="Fecha limite" title="Fecha limite">
           <button class="primary-btn" type="submit">Crear</button>
@@ -5234,7 +5535,7 @@
             <span class="task-name">${escapeHtml(task.nombre)}</span>
             ${task.descripcion && !compact ? `<span class="task-description">${escapeHtml(task.descripcion)}</span>` : ""}
           </button>
-          <span class="priority priority-${task.prioridad}">${priorityLabels[task.prioridad]}</span>
+          ${renderPriorityChip(task.prioridad) || `<span class="priority-placeholder" aria-hidden="true"></span>`}
           <span class="due ${task.fechaVencimiento ? "" : "is-undefined"}">${task.fechaVencimiento ? escapeHtml(formatDate(task.fechaVencimiento)) : "Por definir"}</span>
           <span class="row-actions">
             <button type="button" class="icon-btn" data-action="open-task" data-task-id="${task.id}" title="Editar tarea">✎</button>
@@ -5257,7 +5558,7 @@
           <div class="detail-body">
             ${task ? `
               <div class="detail-card">
-                <p class="priority priority-${task.prioridad}">${priorityLabels[task.prioridad]}</p>
+                ${renderPriorityChip(task.prioridad)}
                 <h3>${escapeHtml(task.nombre)}</h3>
                 <p class="muted">${escapeHtml(project?.nombre || "")}${section ? ` · ${escapeHtml(section.nombre)}` : ""}</p>
                 ${task.descripcion ? `<p>${escapeHtml(task.descripcion)}</p>` : `<p class="muted">Sin descripción.</p>`}
@@ -5276,6 +5577,7 @@
       if (type === "project") return renderProjectModal(id);
       if (type === "section") return renderSectionModal(id, state.modal.projectId);
       if (type === "task") return renderTaskModal(id);
+      if (type === "subtask") return renderSubtaskModal(id, state.modal.taskId);
       if (type === "settings") return renderSettingsModal();
       return "";
     }
@@ -5373,7 +5675,7 @@
               <div class="field">
                 <label>Prioridad</label>
                 <select name="prioridad">
-                  ${priorities.map((p) => `<option value="${p}" ${p === task.prioridad ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}
+                  ${renderPriorityOptions(task.prioridad)}
                 </select>
               </div>
               <div class="field">
@@ -5538,7 +5840,7 @@
         const nextView = actionTarget.dataset.view;
         setState({
           view: nextView,
-          ...(nextView === "list" ? { listProjectOpen: false, selectedTaskId: null } : {}),
+          ...(nextView === "list" ? { listProjectOpen: false, selectedTaskId: null, selectedSubtaskId: null } : {}),
           ...(nextView === "calendar" && state.view !== "calendar" ? { calendarMode: "agenda" } : {})
         });
       }
@@ -5551,6 +5853,7 @@
           listProjectOpen: false,
           selectedGoalId: null,
           selectedTaskId: null,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           continentPopupId: null,
@@ -5563,6 +5866,7 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           continentPopupId: null,
@@ -5570,14 +5874,15 @@
           mapViewBox: mapBoxForContinent(projectId)
         });
       }
-      if (action === "back-to-continent") setState({ selectedGoalId: null, selectedTaskId: null, listProjectOpen: true }, false);
-      if (action === "close-task-detail") setState({ selectedTaskId: null, listProjectOpen: true }, false);
+      if (action === "back-to-continent") setState({ selectedGoalId: null, selectedTaskId: null, selectedSubtaskId: null, listProjectOpen: true }, false);
+      if (action === "close-task-detail") setState({ selectedTaskId: null, selectedSubtaskId: null, listProjectOpen: true }, false);
       if (action === "select-map-project") {
         setState({
           view: "list",
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           continentPopupId: null,
@@ -5591,6 +5896,7 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           continentPopupId: null,
@@ -5604,6 +5910,7 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           continentPopupId: null,
@@ -5615,6 +5922,7 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           continentPopupId: state.continentPopupId === projectId ? null : projectId
@@ -5628,6 +5936,7 @@
         if (task) {
           setState({
             selectedTaskId: null,
+            selectedSubtaskId: null,
             mapGoalPopupId: null,
             mapTaskPopupId: task.id,
             continentPopupId: null
@@ -5641,6 +5950,7 @@
           selectedProjectId: projectId,
           selectedGoalId: null,
           selectedTaskId: null,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           listProjectOpen: true,
@@ -5648,7 +5958,7 @@
           mapViewBox: mapBoxForContinent(projectId)
         });
       }
-      if (action === "select-goal") setState({ view: "list", selectedProjectId: projectId, selectedGoalId: goalKey(projectId, sectionId || null), selectedTaskId: null, mapGoalPopupId: null, mapTaskPopupId: null, continentPopupId: null, listProjectOpen: true });
+      if (action === "select-goal") setState({ view: "list", selectedProjectId: projectId, selectedGoalId: goalKey(projectId, sectionId || null), selectedTaskId: null, selectedSubtaskId: null, mapGoalPopupId: null, mapTaskPopupId: null, continentPopupId: null, listProjectOpen: true });
       if (action === "set-calendar-mode") setState({ calendarMode: actionTarget.dataset.mode || "agenda" });
       if (action === "open-calendar-item") openCalendarItem(actionTarget);
       if (action === "open-project") {
@@ -5665,6 +5975,7 @@
           selectedProjectId: task?.projectId || state.selectedProjectId,
           selectedGoalId: task ? goalKey(task.projectId, task.sectionId) : state.selectedGoalId,
           selectedTaskId: taskId,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           modal: { type: "task", id: taskId }
@@ -5676,12 +5987,14 @@
           selectedProjectId: task?.projectId || state.selectedProjectId,
           selectedGoalId: task ? goalKey(task.projectId, task.sectionId) : state.selectedGoalId,
           selectedTaskId: taskId,
+          selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
           listProjectOpen: true,
-          modal: { type: "task", id: taskId }
+          modal: null
         }, false);
       }
+      if (action === "close-subtask-panel") setState({ selectedTaskId: null, selectedSubtaskId: null }, false);
       if (action === "toggle-task") toggleTask(taskId);
       if (action === "toggle-combo") toggleTaskCombo(actionTarget);
       if (action === "choose-combo") chooseTaskCombo(actionTarget);
@@ -5690,11 +6003,17 @@
         const form = actionTarget.closest("form");
         if (form) saveQuickTaskCard(form);
       }
+      if (action === "open-subtask") {
+        const subtaskId = actionTarget.dataset.subtaskId || null;
+        setState({ selectedSubtaskId: subtaskId, modal: { type: "subtask", id: subtaskId, taskId: taskId || state.selectedTaskId } }, false);
+      }
       if (action === "set-priority") setPriorityInForm(actionTarget);
       if (action === "set-task-status") setTaskStatusInForm(actionTarget);
       if (action === "add-comment") addTaskComment(taskId);
       if (action === "delete-tag") deleteTag(actionTarget.dataset.tagId);
       if (action === "delete-task") deleteTask(taskId);
+      if (action === "toggle-subtask") toggleSubtask(actionTarget.dataset.subtaskId);
+      if (action === "delete-subtask") deleteSubtask(actionTarget.dataset.subtaskId);
       if (action === "delete-project") deleteProject(projectId);
       if (action === "delete-section") deleteSection(sectionId);
       if (action === "open-settings") setState({ modal: { type: "settings" } }, false);
@@ -5740,7 +6059,7 @@
       }
       if (action === "clear-all") {
         if (confirm("Limpiar todos los proyectos, metas y tareas?")) {
-          state = normalizeState({ kingdomName: state.kingdomName, userName: state.userName, userPhoto: state.userPhoto, view: "list", projects: [], sections: [], tasks: [] });
+          state = normalizeState({ kingdomName: state.kingdomName, userName: state.userName, userPhoto: state.userPhoto, view: "list", projects: [], sections: [], tasks: [], subtasks: [] });
           saveState();
           showToast("Datos limpiados");
           render();
@@ -5754,9 +6073,11 @@
       const action = form.dataset.action;
       if (action === "quick-add") saveQuickTask(form, event);
       if (action === "quick-add-goal") saveQuickGoal(form, event);
+      if (action === "quick-add-subtask") saveQuickSubtask(form, event);
       if (action === "save-project") saveProject(form);
       if (action === "save-section") saveSection(form);
       if (action === "save-task") saveTask(form);
+      if (action === "save-subtask") saveSubtask(form);
       if (action === "save-tag") saveTag(form);
       if (action === "save-settings") saveSettings(form);
     }
@@ -5884,7 +6205,7 @@
           sectionId,
           nombre: name,
           descripcion: "",
-          prioridad: form.elements.prioridad.value || "p4",
+          prioridad: normalizePriority(form.elements.prioridad.value),
           completada: false,
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           orden: state.tasks.filter((task) => task.projectId === projectId && task.sectionId === sectionId).length,
@@ -5916,7 +6237,7 @@
           sectionId,
           nombre: name,
           descripcion: "",
-          prioridad: form.elements.prioridad.value || "p4",
+          prioridad: normalizePriority(form.elements.prioridad.value),
           completada: false,
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           orden: state.tasks.filter((item) => item.projectId === projectId && item.sectionId === sectionId).length,
@@ -5945,7 +6266,7 @@
           id: sectionId,
           projectId,
           nombre: name,
-          prioridad: form.elements.prioridad?.value || "p4",
+          prioridad: normalizePriority(form.elements.prioridad?.value),
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           tags: [],
           orden: goalIndex,
@@ -5956,12 +6277,45 @@
         state.selectedProjectId = projectId;
         state.selectedGoalId = goalKey(projectId, sectionId);
         state.selectedTaskId = null;
+        state.selectedSubtaskId = null;
         state.continentPopupId = null;
       });
       showToast("Meta creada");
       const keepOpen = event.submitter && event.submitter.dataset.keep === "true";
       if (keepOpen || event.shiftKey) {
         const sameForm = document.querySelector(`form[data-action="quick-add-goal"][data-project-id="${projectId}"]`);
+        if (sameForm) sameForm.elements.nombre.focus();
+      }
+    }
+
+    function saveQuickSubtask(form, event) {
+      const taskId = form.dataset.taskId;
+      const task = state.tasks.find((item) => item.id === taskId);
+      const name = form.elements.nombre.value.trim();
+      if (!task || !name) return;
+      mutate(() => {
+        const subtaskId = uid("subtask");
+        state.subtasks.push({
+          id: subtaskId,
+          taskId,
+          nombre: name,
+          descripcion: "",
+          prioridad: normalizePriority(form.elements.prioridad?.value),
+          completada: false,
+          fechaVencimiento: form.elements.fechaVencimiento?.value || null,
+          tags: [],
+          orden: sortedSubtasks(taskId).length,
+          createdAt: nowISO(),
+          completedAt: null
+        });
+        state.selectedProjectId = task.projectId;
+        state.selectedGoalId = goalKey(task.projectId, task.sectionId);
+        state.selectedTaskId = taskId;
+        state.selectedSubtaskId = subtaskId;
+      });
+      showToast("Subtarea creada");
+      if (event.shiftKey) {
+        const sameForm = document.querySelector(`form[data-action="quick-add-subtask"][data-task-id="${taskId}"]`);
         if (sameForm) sameForm.elements.nombre.focus();
       }
     }
@@ -6007,7 +6361,7 @@
       const id = form.elements.id.value;
       const projectId = form.elements.projectId.value;
       const nombre = form.elements.nombre.value.trim();
-      const prioridad = form.elements.prioridad?.value || "p4";
+      const prioridad = normalizePriority(form.elements.prioridad?.value);
       const fechaVencimiento = form.elements.fechaVencimiento?.value || null;
       const secondaryProjectId = form.elements.secondaryProjectId?.value || null;
       const tags = selectedTagIds(form);
@@ -6082,7 +6436,7 @@
         const nextComplete = form.elements.completada ? form.elements.completada.value === "true" : task.completada;
         task.nombre = form.elements.nombre.value.trim();
         task.descripcion = form.elements.descripcion.value.trim();
-        task.prioridad = form.elements.prioridad.value;
+        task.prioridad = normalizePriority(form.elements.prioridad.value);
         task.projectId = form.elements.projectId.value;
         task.sectionId = form.elements.sectionId.value || null;
         task.fechaVencimiento = form.elements.fechaVencimiento.value || null;
@@ -6097,9 +6451,45 @@
         state.selectedProjectId = task.projectId;
         state.selectedGoalId = goalKey(task.projectId, task.sectionId);
         state.selectedTaskId = task.id;
+        state.selectedSubtaskId = null;
         state.modal = null;
       });
       showToast("✓ Tarea actualizada");
+    }
+
+    function saveSubtask(form) {
+      const id = form.elements.id.value;
+      const taskId = form.elements.taskId.value;
+      const task = state.tasks.find((item) => item.id === taskId);
+      const nombre = form.elements.nombre.value.trim();
+      if (!task || !nombre) return;
+      mutate(() => {
+        let subtask = state.subtasks.find((item) => item.id === id);
+        if (!subtask) {
+          subtask = {
+            id: uid("subtask"),
+            taskId,
+            createdAt: nowISO(),
+            orden: sortedSubtasks(taskId).length
+          };
+          state.subtasks.push(subtask);
+        }
+        const nextComplete = form.elements.completada ? form.elements.completada.value === "true" : Boolean(subtask.completada);
+        subtask.taskId = taskId;
+        subtask.nombre = nombre;
+        subtask.descripcion = form.elements.descripcion?.value.trim() || "";
+        subtask.prioridad = normalizePriority(form.elements.prioridad?.value);
+        subtask.fechaVencimiento = form.elements.fechaVencimiento?.value || null;
+        subtask.tags = selectedTagIds(form);
+        subtask.completada = nextComplete;
+        subtask.completedAt = nextComplete ? subtask.completedAt || nowISO() : null;
+        state.selectedProjectId = task.projectId;
+        state.selectedGoalId = goalKey(task.projectId, task.sectionId);
+        state.selectedTaskId = taskId;
+        state.selectedSubtaskId = subtask.id;
+        state.modal = null;
+      });
+      showToast(id ? "Subtarea guardada" : "Subtarea creada");
     }
 
     function saveSettings(form) {
@@ -6183,10 +6573,40 @@
       if (!confirm(`¿Eliminar la tarea "${task.nombre}"?`)) return;
       mutate(() => {
         state.tasks = state.tasks.filter((item) => item.id !== taskId);
+        state.subtasks = state.subtasks.filter((item) => item.taskId !== taskId);
         if (state.selectedTaskId === taskId) state.selectedTaskId = null;
+        state.selectedSubtaskId = null;
         if (state.modal?.id === taskId) state.modal = null;
       });
       showToast("Tarea eliminada");
+    }
+
+    function toggleSubtask(subtaskId) {
+      const subtask = state.subtasks.find((item) => item.id === subtaskId);
+      if (!subtask) return;
+      mutate(() => {
+        subtask.completada = !subtask.completada;
+        subtask.completedAt = subtask.completada ? nowISO() : null;
+        const task = state.tasks.find((item) => item.id === subtask.taskId);
+        if (task) {
+          state.selectedProjectId = task.projectId;
+          state.selectedGoalId = goalKey(task.projectId, task.sectionId);
+          state.selectedTaskId = task.id;
+        }
+      });
+      showToast(subtask.completada ? "Subtarea construida" : "Subtarea reabierta");
+    }
+
+    function deleteSubtask(subtaskId) {
+      const subtask = state.subtasks.find((item) => item.id === subtaskId);
+      if (!subtask) return;
+      if (!confirm(`Eliminar la subtarea "${subtask.nombre}"?`)) return;
+      mutate(() => {
+        state.subtasks = state.subtasks.filter((item) => item.id !== subtaskId);
+        if (state.selectedSubtaskId === subtaskId) state.selectedSubtaskId = null;
+        if (state.modal?.id === subtaskId) state.modal = null;
+      });
+      showToast("Subtarea eliminada");
     }
 
     function deleteProject(projectId) {
@@ -6194,11 +6614,30 @@
       if (!project) return;
       if (!confirm(`Eliminar el proyecto "${project.nombre}" y todas sus metas y tareas?`)) return;
       mutate(() => {
+        const deletedSectionIds = new Set(state.sections.filter((item) => item.projectId === projectId).map((item) => item.id));
         state.projects = state.projects.filter((item) => item.id !== projectId);
         state.sections = state.sections.filter((item) => item.projectId !== projectId);
+        const deletedTaskIds = new Set(state.tasks.filter((item) => item.projectId === projectId).map((item) => item.id));
         state.tasks = state.tasks.filter((item) => item.projectId !== projectId);
+        state.subtasks = state.subtasks.filter((item) => !deletedTaskIds.has(item.taskId));
+        state.sections.forEach((section) => {
+          if (section.secondaryProjectId === projectId) section.secondaryProjectId = "";
+          if (Array.isArray(section.linkedGoalIds)) {
+            section.linkedGoalIds = section.linkedGoalIds.filter((id) => !deletedSectionIds.has(id));
+          }
+        });
+        state.tasks.forEach((task) => {
+          if (task.secondaryProjectId === projectId) task.secondaryProjectId = "";
+        });
         state.selectedProjectId = state.projects[0]?.id || null;
+        state.selectedGoalId = null;
         state.selectedTaskId = null;
+        state.selectedSubtaskId = null;
+        state.mapGoalPopupId = null;
+        state.mapTaskPopupId = null;
+        state.continentPopupId = null;
+        state.listProjectOpen = false;
+        state.mapViewBox = { x: 0, y: 0, w: 900, h: 800 };
         state.modal = null;
       });
       showToast("Proyecto eliminado");
@@ -6213,6 +6652,8 @@
         state.tasks.forEach((task) => {
           if (task.sectionId === sectionId) task.sectionId = null;
         });
+        if (state.selectedGoalId === goalKey(section.projectId, sectionId)) state.selectedGoalId = null;
+        if (state.mapGoalPopupId === goalKey(section.projectId, sectionId)) state.mapGoalPopupId = null;
         state.modal = null;
       });
       showToast("Meta eliminada");
@@ -6226,6 +6667,7 @@
         state.tags = state.tags.filter((item) => item.id !== tagId);
         state.sections.forEach((goal) => goal.tags = (goal.tags || []).filter((id) => id !== tagId));
         state.tasks.forEach((task) => task.tags = (task.tags || []).filter((id) => id !== tagId));
+        state.subtasks.forEach((subtask) => subtask.tags = (subtask.tags || []).filter((id) => id !== tagId));
       });
       showToast("Etiqueta eliminada");
     }
@@ -6377,6 +6819,7 @@
         ordered.splice(nextIndex, 0, project);
         ordered.forEach((item, index) => item.orden = index);
         state.selectedProjectId = projectId;
+        state.mapViewBox = mapBoxForContinent(projectId);
         state.selectedTaskId = null;
       });
       showToast("Proyectos reordenados");
@@ -6468,10 +6911,11 @@
         const projectId = mapProjectSelect.value;
         setState({
           view: "list",
-          selectedProjectId: projectId,
-          selectedGoalId: null,
-          selectedTaskId: null,
-          continentPopupId: null,
+        selectedProjectId: projectId,
+        selectedGoalId: null,
+        selectedTaskId: null,
+        selectedSubtaskId: null,
+        continentPopupId: null,
           listProjectOpen: true,
           mapViewBox: mapBoxForContinent(projectId)
         });
@@ -6588,9 +7032,11 @@
     function renderMapView() {
       const panelWidth = Math.max(340, Math.min(900, Number(state.mapPanelWidth) || 620));
       const project = getSelectedProject();
+      const hasProjects = sortedProjects().length > 0;
       const showProjectPanel = Boolean(project && state.listProjectOpen);
       const showGoalTasks = Boolean(showProjectPanel && selectedGoalForPanel(project.id));
-      const showTaskDetail = false;
+      const selectedTask = getSelectedTask();
+      const showTaskDetail = Boolean(showGoalTasks && selectedTask && selectedTask.projectId === project.id);
       return `
         <section class="map-view ${showProjectPanel ? "has-project" : "no-project"} ${showGoalTasks ? "has-goal" : "no-goal"} ${showTaskDetail ? "has-task" : "no-task"}" style="--map-panel-width:${panelWidth}px">
           <div class="map-column">
@@ -6599,8 +7045,10 @@
               <button type="button" data-action="map-zoom-out" title="Alejar" aria-label="Alejar">−</button>
               <button type="button" data-action="map-zoom-in" title="Acercar" aria-label="Acercar">+</button>
               <button type="button" data-action="map-reset" title="Centrar atlas">Centrar</button>
+              <button type="button" class="map-create-project-control" data-action="open-project" title="Crear proyecto">Crear proyecto</button>
             </div>
             ${renderMapSvg()}
+            ${hasProjects ? "" : `<button type="button" class="empty-atlas-create-btn" data-action="open-project">Crear proyecto</button>`}
             ${showProjectPanel ? `<button type="button" class="small-btn map-focus-project-btn" data-action="focus-project-map" data-project-id="${project.id}" title="Ver solo este proyecto">Vista proyecto</button>` : ""}
           </div>
           ${showProjectPanel ? renderMapContextPanel(project) : ""}
@@ -6608,6 +7056,7 @@
           ${showProjectPanel ? `
             ${renderProjectPanel()}
             ${showGoalTasks ? renderGoalTasksPanel(project) : ""}
+            ${showTaskDetail ? renderSubtasksPanel(selectedTask) : ""}
           ` : ""}
         </section>
       `;
@@ -6680,6 +7129,7 @@
         selectedProjectId: projectId,
         selectedGoalId: null,
         selectedTaskId: null,
+        selectedSubtaskId: null,
         mapGoalPopupId: null,
         mapTaskPopupId: null,
         continentPopupId: null,
@@ -6703,6 +7153,7 @@
         selectedProjectId: projectId,
         selectedGoalId: null,
         selectedTaskId: null,
+        selectedSubtaskId: null,
         mapGoalPopupId: null,
         mapTaskPopupId: null,
         continentPopupId: null,
@@ -7052,6 +7503,9 @@
       const taskPopup = renderTaskMapPopup(projects);
       const continentLabels = renderContinentLabels(projects);
       const hoverLayer = renderMapHoverLayer(goals);
+      const footerText = projects.length
+        ? "Doble click en un proyecto para abrir sus metas y tareas"
+        : "Presione en Crear proyecto para comenzar la aventura";
       const celebration = state.celebratingGoalId
         ? renderFullCelebration(goals.find(({ project, goal }) => goalKey(project.id, goal.id) === state.celebratingGoalId))
         : "";
@@ -7127,7 +7581,7 @@
           </g>
           <g>
             <rect x="0" y="760" width="900" height="40" fill="rgba(5,8,12,0.72)"/>
-            <text class="footer-ribbon" x="450" y="786" text-anchor="middle">Atlas de proyectos - metas, castillos y tareas en construccion</text>
+            <text class="footer-ribbon" x="450" y="786" text-anchor="middle">${footerText}</text>
           </g>
         </svg>
       `;
@@ -7621,7 +8075,36 @@
         <g class="task-construction ${pop}" data-action="show-task-popup" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${point.scale})">
           <title>${escapeHtml(task.nombre)}</title>
           ${renderTaskHouse(task, index)}
+          ${renderSubtaskGarden(task)}
           ${renderPriorityCrew(task, complete, index)}
+        </g>
+      `;
+    }
+
+    function renderSubtaskGarden(task) {
+      const subtasks = sortedSubtasks(task.id).slice(0, 8);
+      if (!subtasks.length) return "";
+      const positions = [
+        { x: -35, y: 31 }, { x: -21, y: 38 }, { x: -7, y: 34 }, { x: 8, y: 38 },
+        { x: 23, y: 31 }, { x: 36, y: 23 }, { x: -38, y: 18 }, { x: 38, y: 12 }
+      ];
+      return `
+        <g class="subtask-garden" aria-label="Jardin de subtareas">
+          ${subtasks.map((subtask, index) => {
+            const pos = positions[index % positions.length];
+            const color = subtask.completada ? "#5ba878" : priorityAccent[normalizePriority(subtask.prioridad)] || "#9a7f52";
+            const bloom = subtask.completada
+              ? `<circle cx="${pos.x}" cy="${pos.y - 8}" r="3.2" fill="#f2d184"/><circle cx="${pos.x - 3}" cy="${pos.y - 7}" r="2.2" fill="${color}"/><circle cx="${pos.x + 3}" cy="${pos.y - 7}" r="2.2" fill="${color}"/>`
+              : `<path d="M${pos.x} ${pos.y - 1} C${pos.x - 2} ${pos.y - 7} ${pos.x - 7} ${pos.y - 8} ${pos.x - 6} ${pos.y - 3} M${pos.x} ${pos.y - 1} C${pos.x + 2} ${pos.y - 8} ${pos.x + 7} ${pos.y - 8} ${pos.x + 6} ${pos.y - 3}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/>`;
+            return `
+              <g opacity="${subtask.completada ? 0.95 : 0.76}">
+                <ellipse cx="${pos.x}" cy="${pos.y}" rx="8" ry="3.6" fill="#6b5635" opacity="0.34"/>
+                <path d="M${pos.x} ${pos.y} L${pos.x} ${pos.y - 10}" stroke="#557046" stroke-width="1.5" stroke-linecap="round"/>
+                ${bloom}
+              </g>
+            `;
+          }).join("")}
+          ${sortedSubtasks(task.id).length > subtasks.length ? `<text x="0" y="48" text-anchor="middle" fill="#4f4632" font-size="8" font-weight="800">+${sortedSubtasks(task.id).length - subtasks.length}</text>` : ""}
         </g>
       `;
     }
@@ -7632,10 +8115,11 @@
       const width = options.width || 330;
       const lines = taskPopupLines(task, goal, width, { titleChars: 34, metaChars: 38 });
       const height = taskPopupHeight(lines);
+      const accent = project?.color || priorityAccent[normalizePriority(task.prioridad)] || neutralBuildColor;
       return `
         <g class="map-hover-popup" transform="translate(${x} ${y}) scale(${scale})">
-          <rect width="${width}" height="${height}" rx="7" fill="rgba(242,230,199,0.97)" stroke="${project?.color || priorityAccent[task.prioridad]}" stroke-width="1.15"/>
-          <rect width="5" height="${height}" rx="2.5" fill="${project?.color || priorityAccent[task.prioridad]}" opacity="0.82"/>
+          <rect width="${width}" height="${height}" rx="7" fill="rgba(242,230,199,0.97)" stroke="${accent}" stroke-width="1.15"/>
+          <rect width="5" height="${height}" rx="2.5" fill="${accent}" opacity="0.82"/>
           ${lines.title.map((line, lineIndex) => `<text x="18" y="${23 + lineIndex * 16}" fill="#2f281e" font-size="13.6" font-weight="760">${escapeHtml(line)}</text>`).join("")}
           ${lines.meta.map((line, lineIndex) => `<text x="18" y="${42 + lines.title.length * 16 + lineIndex * 13}" fill="#5f5746" font-size="10.8">${escapeHtml(line)}</text>`).join("")}
         </g>
@@ -7644,7 +8128,7 @@
 
     function renderTaskHouse(task, index) {
       const complete = task.completada;
-      const roof = complete ? "#5ba878" : priorityAccent[task.prioridad];
+      const roof = complete ? "#5ba878" : priorityAccent[normalizePriority(task.prioridad)] || neutralBuildColor;
       const wall = complete ? "#d9cba3" : "#cbb783";
       const detail = complete ? "#6f8b69" : "#8a6741";
       const scaffold = complete ? "" : `
@@ -7672,7 +8156,9 @@
     }
 
     function renderPriorityCrew(task, complete, index) {
-      const count = priorityCrewSize[task.prioridad] || 1;
+      const priority = normalizePriority(task.prioridad);
+      if (!priority) return "";
+      const count = priorityCrewSize[priority] || 1;
       const offsets = [
         { dx: -18, dy: 26, mirror: false, type: "hammer" },
         { dx: 18, dy: 26, mirror: true, type: "hammer" },
@@ -7684,21 +8170,22 @@
         const mirror = offset.mirror ? " scale(-1 1)" : "";
         return `
           <g transform="translate(${offset.dx} ${offset.dy}) scale(0.28)${mirror}">
-            ${renderWorkerShape(complete, offset.type || (crewIndex % 2 ? "saw" : "hammer"), task.prioridad, task.id === state.recentlyCompletedTaskId && crewIndex === 0)}
+            ${renderWorkerShape(complete, offset.type || (crewIndex % 2 ? "saw" : "hammer"), priority, task.id === state.recentlyCompletedTaskId && crewIndex === 0)}
           </g>
         `;
       }).join("");
     }
 
     function renderWorker(task, castlePos, pos, complete, index) {
-      const scale = workerScale[task.prioridad];
+      const priority = normalizePriority(task.prioridad) || "p4";
+      const scale = workerScale[priority] || workerScale.p4;
       const x = castlePos.x + pos.dx;
       const y = castlePos.y + pos.dy;
       const mirror = pos.mirror ? " scale(-1 1)" : "";
       const pop = task.id === state.recentlyCompletedTaskId ? "worker-pop" : "";
       return `
         <g class="${pop}" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${scale})${mirror}">
-          ${renderWorkerShape(complete, pos.type || (index % 2 ? "saw" : "hammer"), task.prioridad, task.id === state.recentlyCompletedTaskId)}
+          ${renderWorkerShape(complete, pos.type || (index % 2 ? "saw" : "hammer"), priority, task.id === state.recentlyCompletedTaskId)}
         </g>
       `;
     }
@@ -7770,14 +8257,14 @@
       const tasks = pendingTasksForPopup(projectId, goalId);
       const shownTasks = tasks.slice(0, maxTasks);
       const rawLines = shownTasks.length
-        ? shownTasks.map((task) => [task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "", priorityLabels[task.prioridad], task.nombre].filter(Boolean).join(" - "))
+        ? shownTasks.map((task) => [task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "", priorityLabel(task.prioridad), task.nombre].filter(Boolean).join(" - "))
         : ["Sin tareas asociadas"];
       if (tasks.length > shownTasks.length) rawLines.push(`+ ${tasks.length - shownTasks.length} mas`);
       return rawLines.flatMap((line) => wrapSvgLines(line, maxChars));
     }
 
     function taskPopupLines(task, goal, width = 330, options = {}) {
-      const metaText = [task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "", priorityLabels[task.prioridad]].filter(Boolean).join(" - ");
+      const metaText = [task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "", priorityLabel(task.prioridad)].filter(Boolean).join(" - ");
       const titleChars = options.titleChars || Math.max(28, Math.floor((width - 44) / 9));
       const metaChars = options.metaChars || Math.max(34, Math.floor((width - 44) / 7.7));
       return {
@@ -7843,11 +8330,23 @@
             <div class="map-context-actions">
               <button type="button" class="small-btn map-new-project-btn" data-action="open-project" title="Crear proyecto">+ Proyecto</button>
               <button type="button" class="small-btn" data-action="open-project" data-project-id="${project.id}" title="Editar proyecto">Editar</button>
+              <button type="button" class="small-btn map-delete-project-btn" data-action="delete-project" data-project-id="${project.id}" title="Borrar proyecto">Borrar</button>
             </div>
           </div>
           <div class="progress-wrap"><div class="progress-bar" style="width:${Math.round(stats.progress * 100)}%"></div></div>
           <div class="map-project-list" aria-label="Cambiar proyecto">
-            ${projects.map((item) => `<button type="button" class="${item.id === project.id ? "is-active" : ""}" data-action="map-project-select" data-project-id="${item.id}"><span class="project-dot" style="background:${item.color}"></span><span>${escapeHtml(item.nombre)}</span></button>`).join("")}
+            ${projects.map((item, index) => `
+              <div class="map-project-row ${item.id === project.id ? "is-active" : ""}" data-project-id="${item.id}">
+                <button type="button" class="map-project-name-btn" data-action="map-project-select" data-project-id="${item.id}">
+                  <span class="project-dot" style="background:${item.color}"></span>
+                  <span>${escapeHtml(item.nombre)}</span>
+                </button>
+                <div class="map-project-order" aria-label="Reordenar ${escapeHtml(item.nombre)}">
+                  <button type="button" class="project-order-btn" data-action="move-project" data-direction="up" data-project-id="${item.id}" title="Subir proyecto" ${index === 0 ? "disabled" : ""}>↑</button>
+                  <button type="button" class="project-order-btn" data-action="move-project" data-direction="down" data-project-id="${item.id}" title="Bajar proyecto" ${index === projects.length - 1 ? "disabled" : ""}>↓</button>
+                </div>
+              </div>
+            `).join("")}
           </div>
         </aside>
       `;
@@ -7874,15 +8373,20 @@
               ${goals.map((item) => {
                 const itemStats = statsForGoal(project.id, item.id);
                 const isActive = goal && goalKey(project.id, item.id) === goalKey(project.id, goal.id);
-                const due = item.fechaVencimiento ? ` - ${formatDate(item.fechaVencimiento)}` : "";
+                const priority = goalPriority(item);
+                const goalMeta = [priorityLabel(priority), item.fechaVencimiento ? formatDate(item.fechaVencimiento) : ""].filter(Boolean).join(" - ");
+                const goalCounts = `${itemStats.completed}/${itemStats.total} tareas logradas`;
                 return `
                   <div class="project-chip goal-item ${isActive ? "is-active" : ""}">
-                    <button type="button" class="goal-select-main" data-action="select-goal" data-project-id="${project.id}" data-section-id="${item.id || ""}">
-                      <span class="project-dot" title="Prioridad ${priorityLabels[goalPriority(item)]}" style="background:${goalPriorityColor(item)}"></span>
-                      <span><strong>${escapeHtml(item.nombre)}</strong><small>${priorityLabels[goalPriority(item)]}${due} - ${itemStats.completed}/${itemStats.total} tareas logradas</small></span>
+                    <button type="button" class="goal-select-main ${priority ? "" : "has-no-priority"}" data-action="select-goal" data-project-id="${project.id}" data-section-id="${item.id || ""}">
+                      ${priority ? `<span class="project-dot" title="Prioridad ${priorityLabel(priority)}" style="background:${goalPriorityColor(item)}"></span>` : ""}
+                      <span><strong>${escapeHtml(item.nombre)}</strong><small>${escapeHtml(goalMeta ? `${goalMeta} - ${goalCounts}` : goalCounts)}</small></span>
                       <span>${Math.round(itemStats.progress * 100)}%</span>
                     </button>
-                    <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-section-id="${item.id}" title="Editar meta">Editar</button>
+                    <div class="goal-actions">
+                      <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-section-id="${item.id}" title="Editar meta">Editar</button>
+                      <button type="button" class="icon-btn goal-delete-btn" data-action="delete-section" data-section-id="${item.id}" title="Borrar meta">Borrar</button>
+                    </div>
                   </div>
                 `;
               }).join("")}
@@ -7917,12 +8421,67 @@
       `;
     }
 
+    function renderSubtasksPanel(task) {
+      const subtasks = sortedSubtasks(task.id);
+      const stats = statsForTask(task.id);
+      return `
+        <aside class="task-detail subtasks-panel">
+          <div class="panel-section panel-subtasks">
+            <div class="panel-block-head">
+              <div>
+                <strong>Jardín de la tarea</strong>
+                <small>${escapeHtml(task.nombre)} - ${stats.pending} pendientes</small>
+              </div>
+              <button type="button" class="icon-btn panel-close-btn" data-action="close-subtask-panel" title="Cerrar subtareas" aria-label="Cerrar subtareas">x</button>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:${Math.round(stats.progress * 100)}%"></div></div>
+            ${renderQuickAddSubtask(task.id)}
+            <div class="subtask-list">
+              ${subtasks.length ? subtasks.map(renderSubtaskRow).join("") : `<div class="empty-state">Esta tarea aun no tiene subtareas.</div>`}
+            </div>
+          </div>
+        </aside>
+      `;
+    }
+
+    function renderQuickAddSubtask(taskId) {
+      return `
+        <form class="quick-add is-subtask" data-action="quick-add-subtask" data-task-id="${taskId}">
+          <input type="text" name="nombre" placeholder="+ Nueva subtarea" autocomplete="off">
+          <select name="prioridad" aria-label="Prioridad de subtarea">
+            ${renderPriorityOptions()}
+          </select>
+          <input type="date" name="fechaVencimiento" aria-label="Fecha limite de la subtarea" title="Fecha limite">
+          <button class="primary-btn" type="submit">Crear subtarea</button>
+        </form>
+      `;
+    }
+
+    function renderSubtaskRow(subtask) {
+      const selected = subtask.id === state.selectedSubtaskId;
+      return `
+        <div class="subtask-row ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
+          <button type="button" class="check-btn ${subtask.completada ? "is-complete" : ""}" data-action="toggle-subtask" data-subtask-id="${subtask.id}" aria-label="${subtask.completada ? "Reabrir subtarea" : "Completar subtarea"}">${subtask.completada ? "✓" : ""}</button>
+          <button type="button" class="subtask-main" data-action="open-subtask" data-subtask-id="${subtask.id}" data-task-id="${subtask.taskId}">
+            <span class="subtask-name">${escapeHtml(subtask.nombre)}</span>
+            ${subtask.descripcion ? `<span class="subtask-description">${escapeHtml(subtask.descripcion)}</span>` : ""}
+          </button>
+          ${renderPriorityChip(subtask.prioridad) || `<span class="priority-placeholder" aria-hidden="true"></span>`}
+          <span class="due">${subtask.fechaVencimiento ? escapeHtml(formatDate(subtask.fechaVencimiento)) : ""}</span>
+          <span class="row-actions">
+            <button type="button" class="icon-btn" data-action="open-subtask" data-subtask-id="${subtask.id}" data-task-id="${subtask.taskId}" title="Editar subtarea">✎</button>
+            <button type="button" class="icon-btn" data-action="delete-subtask" data-subtask-id="${subtask.id}" title="Eliminar subtarea">🗑</button>
+          </span>
+        </div>
+      `;
+    }
+
     function renderQuickAddGoal(projectId) {
       return `
         <form class="quick-add is-goal" data-action="quick-add-goal" data-project-id="${projectId}">
           <input type="text" name="nombre" placeholder="+ Nueva meta" autocomplete="off">
           <select name="prioridad" aria-label="Prioridad de meta">
-            ${priorities.map((p) => `<option value="${p}" ${p === "p4" ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}
+            ${renderPriorityOptions()}
           </select>
           <input type="date" name="fechaVencimiento" aria-label="Fecha limite de la meta" title="Fecha limite">
           <button class="primary-btn" type="submit">Crear meta</button>
@@ -7993,7 +8552,7 @@
           <div class="section-title">
             <h3><span>${escapeHtml(section.nombre)}</span></h3>
             <div class="section-actions">
-              <span class="priority priority-${goalPriority(section)}" title="Prioridad ${priorityLabels[goalPriority(section)]}">${priorityLabels[goalPriority(section)]}</span>
+              ${renderPriorityChip(goalPriority(section))}
               ${section.fechaVencimiento ? `<span class="due">${escapeHtml(formatDate(section.fechaVencimiento))}</span>` : ""}
               <button type="button" class="icon-btn" data-action="open-section" data-section-id="${section.id}" title="Editar meta">Editar</button>
               <button type="button" class="icon-btn" data-action="delete-section" data-section-id="${section.id}" title="Eliminar meta">Eliminar</button>
@@ -8052,7 +8611,7 @@
               <div class="field">
                 <label>Prioridad de la meta</label>
                 <select name="prioridad">
-                  ${priorities.map((p) => `<option value="${p}" ${p === goalPriority(section) ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}
+                  ${renderPriorityOptions(goalPriority(section))}
                 </select>
               </div>
               <div class="field"><label>Fecha limite</label><input type="date" name="fechaVencimiento" value="${section?.fechaVencimiento || ""}"></div>
@@ -8217,11 +8776,13 @@
     }
 
     function renderPriorityPicker(task) {
+      const current = normalizePriority(task.prioridad);
       return `
         <div class="priority-picker">
-          <input type="hidden" name="prioridad" value="${task.prioridad}">
+          <input type="hidden" name="prioridad" value="${current}">
+          <button type="button" class="priority-button priority-empty ${current === "" ? "is-active" : ""}" data-action="set-priority" data-priority="" title="Quitar prioridad" aria-label="Quitar prioridad"></button>
           ${priorities.map((priority) => `
-            <button type="button" class="priority-button ${priority === task.prioridad ? "is-active" : ""}" data-action="set-priority" data-priority="${priority}">${priorityLabels[priority]}</button>
+            <button type="button" class="priority-button ${priority === current ? "is-active" : ""}" data-action="set-priority" data-priority="${priority}">${priorityLabels[priority]}</button>
           `).join("")}
         </div>
       `;
@@ -8304,6 +8865,63 @@
               <div class="task-editor-footer-actions">
                 <button type="button" class="ghost-btn" data-action="close-modal">Cancelar</button>
                 <button type="submit" class="primary-btn">Guardar tarea</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderSubtaskModal(subtaskId, taskId) {
+      const parentTask = state.tasks.find((task) => task.id === taskId) || state.tasks.find((task) => task.id === state.selectedTaskId);
+      if (!parentTask) return "";
+      const subtask = state.subtasks.find((item) => item.id === subtaskId) || {
+        id: "",
+        taskId: parentTask.id,
+        nombre: "",
+        descripcion: "",
+        prioridad: "",
+        completada: false,
+        fechaVencimiento: "",
+        tags: []
+      };
+      const goal = state.sections.find((section) => section.id === parentTask.sectionId);
+      return `
+        <div class="modal-backdrop task-editor-backdrop" data-action="close-modal">
+          <form class="modal task-editor-modal subtask-editor-modal" data-action="save-subtask">
+            <div class="modal-head">
+              <h2>${subtask.id ? "Editar subtarea" : "Nueva subtarea"}</h2>
+              <button type="button" class="icon-btn" data-action="close-modal">x</button>
+            </div>
+            <input type="hidden" name="id" value="${subtask.id}">
+            <input type="hidden" name="taskId" value="${parentTask.id}">
+            <input type="hidden" name="completada" value="${subtask.completada ? "true" : "false"}">
+            <div class="task-editor-grid">
+              <section class="task-editor-main">
+                <div class="task-editor-crumb" title="${escapeHtml(parentTask.nombre)}">
+                  <span class="task-editor-crumb-dot" aria-hidden="true"></span>
+                  <span>${escapeHtml(parentTask.nombre)}</span>
+                </div>
+                <div class="task-title-row">
+                  <button type="button" class="task-complete-toggle ${subtask.completada ? "is-done" : ""}" data-action="set-task-status" data-completed="${subtask.completada ? "false" : "true"}" aria-label="${subtask.completada ? "Reabrir subtarea" : "Completar subtarea"}">${subtask.completada ? "✓" : ""}</button>
+                  <input class="task-title-input" name="nombre" value="${escapeHtml(subtask.nombre)}" placeholder="Nombre de la subtarea" required autofocus>
+                </div>
+                <textarea class="task-description-input" name="descripcion" placeholder="Descripcion">${escapeHtml(subtask.descripcion || "")}</textarea>
+              </section>
+              <aside class="task-editor-sidebar">
+                ${renderTaskMetaField("Tarea", renderTaskStaticMeta("parentTask", parentTask.id, parentTask.nombre), "")}
+                ${renderTaskMetaField("Meta / castillo", renderTaskStaticMeta("parentGoal", parentTask.sectionId || "", goal?.nombre || "Tareas por clasificar"), "")}
+                ${renderTaskMetaField("Fecha", `<div class="task-select-shell is-date"><input class="task-meta-control" type="date" name="fechaVencimiento" value="${subtask.fechaVencimiento || ""}"><button type="button" class="task-select-caret" data-action="open-date-picker" aria-label="Abrir calendario"></button></div>`, "")}
+                ${renderTaskMetaField("Prioridad", renderPriorityPicker(subtask), "")}
+                ${renderTagCheckboxField(subtask.tags || [])}
+                ${renderTaskMetaField("Estado", renderStatusPicker(subtask), "")}
+              </aside>
+            </div>
+            <div class="task-editor-footer">
+              ${subtask.id ? `<button type="button" class="danger-btn" data-action="delete-subtask" data-subtask-id="${subtask.id}">Eliminar</button>` : `<span></span>`}
+              <div class="task-editor-footer-actions">
+                <button type="button" class="ghost-btn" data-action="close-modal">Cancelar</button>
+                <button type="submit" class="primary-btn">Guardar subtarea</button>
               </div>
             </div>
           </form>

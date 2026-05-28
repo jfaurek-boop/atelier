@@ -1095,6 +1095,54 @@
       background: rgba(31, 45, 58, 0.58);
     }
 
+    .panel-context-chain {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      margin: -4px 0 12px;
+      padding: 7px 10px;
+      border: 1px solid rgba(141, 162, 181, 0.22);
+      border-radius: 7px;
+      background: rgba(13, 20, 28, 0.5);
+      box-shadow: inset 3px 0 0 rgba(141, 162, 181, 0.78);
+    }
+
+    .panel-context-chain span {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .panel-context-chain strong {
+      min-width: 0;
+      overflow: hidden;
+      color: #f4f7fb;
+      font-size: 0.76rem;
+      line-height: 1.1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .panel-context-chain .context-separator {
+      color: rgba(193, 202, 214, 0.46);
+      font-size: 0.82rem;
+      text-transform: none;
+    }
+
+    .panel-subtasks .panel-context-chain {
+      border-color: rgba(91, 168, 120, 0.22);
+      background: rgba(10, 28, 18, 0.42);
+      box-shadow: inset 3px 0 0 rgba(91, 168, 120, 0.82);
+    }
+
+    .panel-subtasks .panel-context-chain strong {
+      color: #f2fff6;
+    }
+
     .panel-subtasks {
       height: auto;
       min-height: 0;
@@ -3944,7 +3992,7 @@
 
     function mapPopupScale() {
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      return clampNumber(box.w / 900, 0.36, 1);
+      return clampNumber(box.w / 900, 0.12, 1);
     }
 
     function mapPopupPlacement(anchorX, anchorY, width, height, options = {}) {
@@ -6353,9 +6401,10 @@
       event.preventDefault();
       const form = event.currentTarget;
       const action = form.dataset.action;
-      if (action === "quick-add") saveQuickTask(form, event);
-      if (action === "quick-add-goal") saveQuickGoal(form, event);
-      if (action === "quick-add-subtask") saveQuickSubtask(form, event);
+      if (["quick-add", "quick-add-goal", "quick-add-subtask"].includes(action)) {
+        submitQuickAddForm(form, event);
+        return;
+      }
       if (action === "save-project") saveProject(form);
       if (action === "save-section") saveSection(form);
       if (action === "save-task") saveTask(form);
@@ -6364,12 +6413,18 @@
       if (action === "save-settings") saveSettings(form);
     }
 
+    function submitQuickAddForm(form, event) {
+      const action = form?.dataset.action;
+      if (action === "quick-add") saveQuickTask(form, event);
+      if (action === "quick-add-goal") saveQuickGoal(form, event);
+      if (action === "quick-add-subtask") saveQuickSubtask(form, event);
+    }
+
     function handleQuickAddKeydown(event) {
-      if (event.key !== "Enter") return;
+      if (event.key !== "Enter" || event.isComposing) return;
       event.preventDefault();
       const form = event.currentTarget.closest("form");
-      if (form?.dataset.action === "quick-add-goal") saveQuickGoal(form, event);
-      else saveQuickTask(form, event);
+      submitQuickAddForm(form, event);
     }
 
     function handleCommentKeydown(event) {
@@ -8709,10 +8764,14 @@
           <div class="panel-section panel-tasks">
             <div class="panel-block-head">
               <div>
-                <strong>Tareas de la meta</strong>
-                <small>${escapeHtml(goal.nombre)} - ${goalStats.pending} pendientes</small>
+                <strong>Tareas</strong>
+                <small>Pertenecen a la meta seleccionada - ${goalStats.pending} pendientes</small>
               </div>
               <button type="button" class="icon-btn panel-close-btn" data-action="back-to-continent" title="Cerrar meta" aria-label="Cerrar meta">x</button>
+            </div>
+            <div class="panel-context-chain">
+              <span>Meta</span>
+              <strong>${escapeHtml(goal.nombre)}</strong>
             </div>
             <div class="progress-wrap"><div class="progress-bar" style="width:${Math.round(goalStats.progress * 100)}%"></div></div>
             ${renderQuickAdd(project.id, goal.id, "Nueva tarea para esta meta")}
@@ -8725,15 +8784,23 @@
     function renderSubtasksPanel(task) {
       const subtasks = sortedSubtasks(task.id);
       const stats = statsForTask(task.id);
+      const goal = state.sections.find((item) => item.id === task.sectionId);
       return `
         <aside class="task-detail subtasks-panel">
           <div class="panel-section panel-subtasks">
             <div class="panel-block-head">
               <div>
-                <strong>Subtareas de la tarea</strong>
-                <small>${escapeHtml(task.nombre)} - ${stats.pending} pendientes</small>
+                <strong>Subtareas</strong>
+                <small>Pertenecen a la tarea seleccionada - ${stats.pending} pendientes</small>
               </div>
               <button type="button" class="icon-btn panel-close-btn" data-action="close-subtask-panel" title="Cerrar subtareas" aria-label="Cerrar subtareas">x</button>
+            </div>
+            <div class="panel-context-chain">
+              <span>Meta</span>
+              <strong>${escapeHtml(goal?.nombre || "Sin meta")}</strong>
+              <span class="context-separator">&rsaquo;</span>
+              <span>Tarea</span>
+              <strong>${escapeHtml(task.nombre)}</strong>
             </div>
             <div class="progress-wrap"><div class="progress-bar" style="width:${Math.round(stats.progress * 100)}%"></div></div>
             ${renderQuickAddSubtask(task.id)}

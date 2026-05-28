@@ -949,11 +949,10 @@
 
     .project-panel > .panel-section.panel-goals,
     .project-panel > .panel-section.panel-tasks {
-      margin: 18px;
+      margin: 0;
       padding: 15px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 6px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      border: 0;
+      border-radius: 0;
       overflow: hidden;
     }
 
@@ -1375,6 +1374,19 @@
       min-width: 0;
     }
 
+    select[name="prioridad"] {
+      padding-left: 8px;
+      padding-right: 24px;
+      text-align: center;
+      text-align-last: center;
+      font-weight: 760;
+      line-height: 1;
+    }
+
+    .quick-add select[name="prioridad"] {
+      font-size: 0.88rem;
+    }
+
     .map-view.has-task .project-panel,
     .map-view.has-task .goal-tasks-panel,
     .map-view.has-task .task-detail {
@@ -1388,7 +1400,7 @@
     .map-view.has-task .project-panel > .panel-section.panel-goals,
     .map-view.has-task .project-panel > .panel-section.panel-tasks,
     .map-view.has-task .project-panel > .panel-section.panel-subtasks {
-      margin: 10px;
+      margin: 0;
       padding: 10px;
       border-left-width: 4px !important;
     }
@@ -3490,7 +3502,7 @@
     }
     function renderPriorityOptions(selected = "") {
       const current = normalizePriority(selected);
-      return `<option value="" ${current === "" ? "selected" : ""}>Prioridad</option>${priorities.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}`;
+      return `<option value="" ${current === "" ? "selected" : ""}>-</option>${priorities.map((p) => `<option value="${p}" ${p === current ? "selected" : ""}>${priorityLabels[p]}</option>`).join("")}`;
     }
     function renderPriorityChip(value, extraClass = "") {
       const priority = normalizePriority(value);
@@ -3919,7 +3931,7 @@
           return normalized;
         }
       } catch (error) {
-        console.warn("No se pudo cargar el reino guardado", error);
+        console.warn("No se pudieron cargar los datos guardados", error);
       }
       return normalizeState(emptyState());
     }
@@ -4598,7 +4610,7 @@
             <div class="global-actions">
               <div class="counter" aria-label="Contadores globales">
                 <span>🔨 ${stats.pending} pendientes</span>
-                <span>🏰 ${stats.completed}/${stats.total} construidas</span>
+                <span>${stats.completed}/${stats.total} completadas</span>
               </div>
               <button type="button" class="icon-btn" data-action="open-settings" title="Configuración" aria-label="Configuración">⚙</button>
             </div>
@@ -4643,7 +4655,7 @@
       const labels = projects.map(renderCastleLabel).join("");
       const celebration = state.celebratingProjectId ? renderFullCelebration(state.projects.find((p) => p.id === state.celebratingProjectId)) : "";
       return `
-        <svg class="kingdom-map" viewBox="0 0 900 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa del reino en construcción">
+        <svg class="kingdom-map" viewBox="0 0 900 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa de proyectos, metas y tareas">
           <defs>
             <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stop-color="#1a0f2e"/>
@@ -4686,7 +4698,7 @@
           </g>
           <g>
             <rect x="0" y="760" width="900" height="40" fill="rgba(0,0,0,0.48)"/>
-            <text class="footer-ribbon" x="450" y="786" text-anchor="middle">🔨 Click en un castillo • Las torres crecen con tu progreso 🏰</text>
+            <text class="footer-ribbon" x="450" y="786" text-anchor="middle">Doble click en un proyecto para abrir sus metas y tareas</text>
           </g>
         </svg>
       `;
@@ -5130,7 +5142,7 @@
       if (!project) {
         return `
           <aside class="project-panel">
-            <div class="empty-state">Crea un proyecto para levantar el primer castillo.</div>
+            <div class="empty-state">Crea un proyecto para organizar tus metas.</div>
           </aside>
         `;
       }
@@ -5142,17 +5154,17 @@
             <div class="panel-head">
               <div>
                 <h2 class="panel-title">${escapeHtml(project.nombre)}</h2>
-                <div class="muted">${stats.pending} pendientes · ${stats.completed}/${stats.total} construidas</div>
+                <div class="muted">${stats.pending} pendientes · ${stats.completed}/${stats.total} completadas</div>
               </div>
               <button type="button" class="icon-btn" data-action="open-project" data-project-id="${project.id}" title="Editar proyecto">✎</button>
             </div>
             <div class="progress-wrap"><div class="progress-bar" style="width:${Math.round(stats.progress * 100)}%"></div></div>
           </div>
           <div class="panel-section">
-            ${renderQuickAdd(project.id, null, "Nueva tarea para este castillo")}
+            ${renderQuickAdd(project.id, null, "Nueva tarea para este proyecto")}
           </div>
           <div class="task-list">
-            ${tasks.length ? tasks.map((task) => renderTaskRow(task, true)).join("") : `<div class="empty-state">Este castillo aún no tiene tareas.</div>`}
+            ${tasks.length ? tasks.map((task) => renderTaskRow(task, true)).join("") : `<div class="empty-state">Este proyecto aun no tiene tareas.</div>`}
           </div>
         </aside>
       `;
@@ -5652,7 +5664,7 @@
       return `
         <aside class="sidebar">
           <div class="sidebar-head">
-            <h2>Castillos</h2>
+            <h2>Proyectos</h2>
             <button type="button" class="icon-btn" data-action="open-project" title="Nuevo proyecto">＋</button>
           </div>
           <div class="project-list">
@@ -5682,7 +5694,7 @@
         <div class="content-head">
           <div>
             <h2>${escapeHtml(project.nombre)}</h2>
-            <div class="muted">${stats.pending} tareas pendientes · ${Math.round(stats.progress * 100)}% construido</div>
+            <div class="muted">${stats.pending} tareas pendientes · ${Math.round(stats.progress * 100)}% completado</div>
           </div>
           <div class="content-actions">
             <button type="button" class="small-btn" data-action="open-section" data-project-id="${project.id}">＋ Sección</button>
@@ -5815,7 +5827,7 @@
                 <input name="nombre" value="${escapeHtml(project?.nombre || "")}" placeholder="Nombre del proyecto" required autofocus>
               </div>
               <div class="field">
-                <label>Color del castillo</label>
+                <label>Color del proyecto</label>
                 <div class="color-grid">
                   ${palette.map((color) => `<button type="button" class="color-choice ${color === editingColor ? "is-active" : ""}" style="background:${color}" data-action="pick-color" data-color="${color}" aria-label="Color ${color}"></button>`).join("")}
                 </div>
@@ -5945,7 +5957,7 @@
             </div>
             <div class="modal-body">
               <div class="field">
-                <label>Nombre del reino</label>
+                <label>Nombre de la app</label>
                 <input name="kingdomName" value="${escapeHtml(state.kingdomName)}" required autofocus>
               </div>
               <div class="detail-card">
@@ -6770,7 +6782,7 @@
         const statsAfter = projectStats(task.projectId);
         state.celebratingProjectId = task.completada && !wasComplete && statsAfter.total > 0 && statsAfter.pending === 0 ? task.projectId : null;
       });
-      showToast(task.completada ? "✓ Tarea construida" : "Tarea reabierta");
+      showToast(task.completada ? "✓ Tarea completada" : "Tarea reabierta");
       setTimeout(() => {
         if (state.recentlyCompletedTaskId === taskId || state.celebratingProjectId === task.projectId) {
           mutate(() => {
@@ -6808,7 +6820,7 @@
           state.selectedTaskId = task.id;
         }
       });
-      showToast(subtask.completada ? "Subtarea construida" : "Subtarea reabierta");
+      showToast(subtask.completada ? "Subtarea completada" : "Subtarea reabierta");
     }
 
     function deleteSubtask(subtaskId) {
@@ -8303,7 +8315,7 @@
         { x: 23, y: 31 }, { x: 36, y: 23 }, { x: -38, y: 18 }, { x: 38, y: 12 }
       ];
       return `
-        <g class="subtask-garden" aria-label="Jardin de subtareas">
+        <g class="subtask-garden" aria-label="Subtareas">
           ${subtasks.map((subtask, index) => {
             const pos = positions[index % positions.length];
             const color = subtask.completada ? "#5ba878" : priorityAccent[normalizePriority(subtask.prioridad)] || "#9a7f52";
@@ -8579,7 +8591,7 @@
             <div class="panel-block-head">
               <div>
                 <strong>Metas</strong>
-                <small>Castillos del proyecto</small>
+                <small>Metas del proyecto</small>
               </div>
             </div>
             ${renderQuickAddGoal(project.id)}
@@ -8643,7 +8655,7 @@
           <div class="panel-section panel-subtasks">
             <div class="panel-block-head">
               <div>
-                <strong>Jardín de la tarea</strong>
+                <strong>Subtareas de la tarea</strong>
                 <small>${escapeHtml(task.nombre)} - ${stats.pending} pendientes</small>
               </div>
               <button type="button" class="icon-btn panel-close-btn" data-action="close-subtask-panel" title="Cerrar subtareas" aria-label="Cerrar subtareas">x</button>
@@ -8753,7 +8765,7 @@
         <div class="task-area">
           ${sections.map((section) => renderSectionBlock(section)).join("")}
           ${looseTasks.length ? `<section class="section-block" data-section-id=""><div class="section-title"><h3><span>Tareas por clasificar</span></h3></div><div class="task-list" data-drop-section="">${looseTasks.map((task) => renderTaskRow(task, false)).join("")}</div><div class="panel-section">${renderQuickAdd(project.id, null, "Nueva tarea por clasificar")}</div></section>` : ""}
-          ${sections.length ? "" : `<div class="empty-state">Este proyecto aun no tiene metas. Crea una meta para levantar el primer castillo.</div>`}
+          ${sections.length ? "" : `<div class="empty-state">Este proyecto aun no tiene metas. Crea una meta para comenzar.</div>`}
         </div>
       `;
     }
@@ -8913,7 +8925,7 @@
         <section class="task-editor-main">
           <input type="hidden" name="completada" value="${task.completada ? "true" : "false"}">
           <div class="task-title-row">
-            <button type="button" class="task-complete-toggle ${task.completada ? "is-done" : ""}" data-action="set-task-status" data-completed="${task.completada ? "false" : "true"}" aria-label="${task.completada ? "Marcar pendiente" : "Marcar construida"}">${task.completada ? "&#10003;" : ""}</button>
+            <button type="button" class="task-complete-toggle ${task.completada ? "is-done" : ""}" data-action="set-task-status" data-completed="${task.completada ? "false" : "true"}" aria-label="${task.completada ? "Marcar pendiente" : "Marcar completada"}">${task.completada ? "&#10003;" : ""}</button>
             <input class="task-title-input" name="nombre" value="${escapeHtml(task.nombre)}" required autofocus aria-label="Nombre de la tarea">
           </div>
           <textarea class="task-description-input" name="descripcion" placeholder="Descripcion">${escapeHtml(task.descripcion)}</textarea>
@@ -9006,7 +9018,7 @@
       return `
         <div class="task-status-picker">
           <button type="button" class="task-status-option ${!task.completada ? "is-active" : ""}" data-action="set-task-status" data-completed="false">Pendiente</button>
-          <button type="button" class="task-status-option ${task.completada ? "is-active" : ""}" data-action="set-task-status" data-completed="true">Construida</button>
+          <button type="button" class="task-status-option ${task.completada ? "is-active" : ""}" data-action="set-task-status" data-completed="true">Completada</button>
         </div>
       `;
     }
@@ -9024,7 +9036,7 @@
         <aside class="task-editor-sidebar">
           ${renderTaskMetaField("Proyecto", renderTaskStaticMeta("projectId", task.projectId, project?.nombre || "Sin proyecto"), "")}
           ${renderTaskMetaField("Proyecto asociado", secondaryProjectControl, "")}
-          ${renderTaskMetaField("Meta / castillo", renderTaskStaticMeta("sectionId", task.sectionId || "", goal?.nombre || "Tareas por clasificar"), "")}
+          ${renderTaskMetaField("Meta", renderTaskStaticMeta("sectionId", task.sectionId || "", goal?.nombre || "Tareas por clasificar"), "")}
           ${renderTaskMetaField("Fecha", renderTaskDateControl(task), "")}
           ${renderTaskMetaField("Prioridad", renderPriorityPicker(task), "")}
           ${renderTagCheckboxField(task.tags || [])}
@@ -9124,7 +9136,7 @@
               </section>
               <aside class="task-editor-sidebar">
                 ${renderTaskMetaField("Tarea", renderTaskStaticMeta("parentTask", parentTask.id, parentTask.nombre), "")}
-                ${renderTaskMetaField("Meta / castillo", renderTaskStaticMeta("parentGoal", parentTask.sectionId || "", goal?.nombre || "Tareas por clasificar"), "")}
+                ${renderTaskMetaField("Meta", renderTaskStaticMeta("parentGoal", parentTask.sectionId || "", goal?.nombre || "Tareas por clasificar"), "")}
                 ${renderTaskMetaField("Fecha", `<div class="task-select-shell is-date"><input class="task-meta-control" type="date" name="fechaVencimiento" value="${subtask.fechaVencimiento || ""}"><button type="button" class="task-select-caret" data-action="open-date-picker" aria-label="Abrir calendario"></button></div>`, "")}
                 ${renderTaskMetaField("Prioridad", renderPriorityPicker(subtask), "")}
                 ${renderTagCheckboxField(subtask.tags || [])}
@@ -9343,7 +9355,7 @@
         const statsAfter = statsForGoal(task.projectId, task.sectionId);
         state.celebratingGoalId = task.completada && !wasComplete && statsAfter.total > 0 && statsAfter.pending === 0 ? goalKey(task.projectId, task.sectionId) : null;
       });
-      showToast(task.completada ? "Tarea construida" : "Tarea reabierta");
+      showToast(task.completada ? "Tarea completada" : "Tarea reabierta");
       setTimeout(() => {
         if (state.recentlyCompletedTaskId === taskId || state.celebratingGoalId === goalKey(task.projectId, task.sectionId)) {
           mutate(() => {

@@ -404,16 +404,10 @@
       overflow-y: hidden;
     }
 
-    .map-view.has-project.no-goal {
-      grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
-    }
-
-    .map-view.has-project.has-goal.no-task {
-      grid-template-columns: minmax(300px, 360px) minmax(390px, 1fr) minmax(430px, 1fr);
-    }
-
+    .map-view.has-project.no-goal,
+    .map-view.has-project.has-goal.no-task,
     .map-view.has-task {
-      grid-template-columns: minmax(230px, 300px) minmax(300px, 0.9fr) minmax(330px, 1fr) minmax(330px, 1fr);
+      grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
       align-items: start;
       gap: 6px;
       padding: 10px;
@@ -458,8 +452,10 @@
 
     .map-view.has-project .project-panel,
     .map-view.has-project .goal-tasks-panel,
+    .map-view.has-project .project-tree-panel,
     .map-view.has-task .project-panel,
     .map-view.has-task .goal-tasks-panel,
+    .map-view.has-task .project-tree-panel,
     .map-view.has-task .task-detail {
       height: 100%;
       max-height: 100%;
@@ -3435,16 +3431,10 @@
         overflow-x: auto;
       }
 
-      .map-view.has-project.no-goal {
-        grid-template-columns: minmax(300px, 380px) minmax(520px, 1fr);
-      }
-
-      .map-view.has-project.has-goal.no-task {
-        grid-template-columns: minmax(280px, 340px) minmax(360px, 1fr) minmax(380px, 1fr);
-      }
-
+      .map-view.has-project.no-goal,
+      .map-view.has-project.has-goal.no-task,
       .map-view.has-task {
-        grid-template-columns: minmax(220px, 280px) minmax(290px, 1fr) minmax(310px, 1fr) minmax(310px, 1fr);
+        grid-template-columns: minmax(220px, 300px) minmax(520px, 1fr);
       }
 
       .map-panel-resizer {
@@ -3574,6 +3564,245 @@
       .map-view {
         padding: 10px;
       }
+    }
+
+    .project-tree-panel {
+      min-width: 0;
+    }
+
+    .project-tree-panel > .panel-tree {
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      overflow: hidden;
+      border-left: 6px solid rgba(212, 165, 116, 0.86);
+      background:
+        linear-gradient(90deg, rgba(212, 165, 116, 0.12), rgba(58, 84, 108, 0.08) 45%, rgba(91, 168, 120, 0.08)),
+        rgba(255, 255, 255, 0.025);
+      box-shadow: 0 12px 28px rgba(7, 12, 18, 0.28), inset 0 0 0 1px rgba(212, 165, 116, 0.14);
+    }
+
+    .project-tree-panel .panel-block-head {
+      flex: 0 0 auto;
+      margin: -12px -12px 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(90deg, rgba(75, 51, 20, 0.5), rgba(31, 45, 58, 0.34), rgba(22, 55, 35, 0.28));
+    }
+
+    .project-tree-panel .quick-add {
+      flex: 0 0 auto;
+      grid-template-columns: minmax(150px, 1fr) 74px 128px auto;
+      gap: 7px;
+      margin: 0 0 8px;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .project-tree-panel .quick-add input[name="nombre"] {
+      grid-column: 1 / -1;
+      min-width: 0;
+    }
+
+    .project-tree-panel .quick-add .primary-btn,
+    .project-tree-panel .quick-add .quick-add-card-btn {
+      min-width: 96px;
+      white-space: nowrap;
+    }
+
+    .map-view.has-task .project-tree-panel .quick-add,
+    .map-view.has-task .project-tree-panel .quick-add.is-goal,
+    .map-view.has-task .project-tree-panel .quick-add.is-subtask {
+      grid-template-columns: minmax(150px, 1fr) 74px 128px auto;
+    }
+
+    .map-view.has-task .project-tree-panel .quick-add .primary-btn,
+    .map-view.has-task .project-tree-panel .quick-add.is-goal .primary-btn,
+    .map-view.has-task .project-tree-panel .quick-add.is-subtask .primary-btn {
+      grid-column: auto;
+      min-height: 32px;
+    }
+
+    .map-view.has-task .project-tree-panel .quick-add .quick-add-card-btn {
+      grid-column: auto;
+    }
+
+    .tree-add {
+      margin: 6px 0 8px;
+    }
+
+    .tree-add.is-task {
+      margin-left: 28px;
+    }
+
+    .tree-add.is-subtask {
+      margin-left: 56px;
+    }
+
+    .tree-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .tree-row {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 7px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.035);
+      transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .tree-row.is-meta {
+      margin-left: 0;
+      border-color: rgba(212, 165, 116, 0.3);
+      background: rgba(212, 165, 116, 0.08);
+      box-shadow: inset 4px 0 0 rgba(212, 165, 116, 0.8);
+    }
+
+    .tree-row.is-task {
+      margin-left: 28px;
+      border-color: rgba(141, 162, 181, 0.28);
+      background: rgba(58, 84, 108, 0.11);
+      box-shadow: inset 4px 0 0 rgba(141, 162, 181, 0.84);
+    }
+
+    .tree-row.is-subtask {
+      margin-left: 56px;
+      border-color: rgba(91, 168, 120, 0.28);
+      background: rgba(91, 168, 120, 0.1);
+      box-shadow: inset 4px 0 0 rgba(91, 168, 120, 0.84);
+    }
+
+    .tree-row.is-selected.is-meta {
+      border-color: rgba(232, 190, 121, 0.82);
+      background: linear-gradient(90deg, rgba(212, 165, 116, 0.34), rgba(212, 165, 116, 0.2) 62%, rgba(212, 165, 116, 0.1));
+    }
+
+    .tree-row.is-selected.is-task {
+      border-color: rgba(166, 191, 214, 0.82);
+      background: linear-gradient(90deg, rgba(91, 128, 163, 0.36), rgba(49, 75, 101, 0.24) 62%, rgba(49, 75, 101, 0.1));
+    }
+
+    .tree-row.is-selected.is-subtask {
+      border-color: rgba(124, 203, 154, 0.82);
+      background: linear-gradient(90deg, rgba(91, 168, 120, 0.36), rgba(44, 96, 64, 0.24) 62%, rgba(44, 96, 64, 0.1));
+    }
+
+    .tree-row.is-complete .tree-title {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .tree-level-label {
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .tree-level-label.is-meta {
+      background: rgba(212, 165, 116, 0.22);
+      color: #f4d8a4;
+    }
+
+    .tree-level-label.is-task {
+      background: rgba(141, 162, 181, 0.2);
+      color: #dbe8f4;
+    }
+
+    .tree-level-label.is-subtask {
+      background: rgba(91, 168, 120, 0.2);
+      color: #d9f4df;
+    }
+
+    .tree-main {
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+    }
+
+    .tree-title {
+      display: block;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 0.86rem;
+      font-weight: 800;
+      line-height: 1.18;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-meta {
+      display: block;
+      min-height: 0.85rem;
+      margin-top: 2px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.7rem;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .tree-actions .icon-btn {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      min-height: 30px;
+      padding: 0;
+      font-size: 0.72rem;
+    }
+
+    .tree-percent {
+      min-width: 34px;
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 850;
+      text-align: right;
+    }
+
+    .tree-empty {
+      margin: 4px 0 0 28px;
+      padding: 9px 10px;
+      border: 1px dashed rgba(141, 162, 181, 0.24);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-style: italic;
+    }
+
+    .tree-row .check-btn {
+      width: 24px;
+      height: 24px;
+      font-size: 0.78rem;
     }
   </style>
 </head>
@@ -4742,11 +4971,7 @@
           </div>
           ${showProjectPanel ? renderMapContextPanel(project) : ""}
           </div>
-          ${showProjectPanel ? `
-            ${renderProjectPanel()}
-            ${showGoalTasks ? renderGoalTasksPanel(project) : ""}
-          ` : ""}
-          ${showTaskDetail ? renderTaskDetail() : ""}
+          ${showProjectPanel ? renderProjectTreePanel(project) : ""}
         </section>
       `;
     }
@@ -7407,11 +7632,7 @@
           </div>
           ${showProjectPanel ? renderMapContextPanel(project) : ""}
           </div>
-          ${showProjectPanel ? `
-            ${renderProjectPanel()}
-            ${showGoalTasks ? renderGoalTasksPanel(project) : ""}
-            ${showTaskDetail ? renderSubtasksPanel(selectedTask) : ""}
-          ` : ""}
+          ${showProjectPanel ? renderProjectTreePanel(project) : ""}
         </section>
       `;
     }
@@ -8749,6 +8970,107 @@
             </div>
           </div>
         </aside>
+      `;
+    }
+
+    function renderProjectTreePanel(project) {
+      if (!project) {
+        return `<aside class="project-panel project-tree-panel"><div class="empty-state">Crea un proyecto para organizar tus metas.</div></aside>`;
+      }
+      const goals = goalsForProject(project.id);
+      const activeGoal = selectedGoalForPanel(project.id);
+      return `
+        <aside class="project-panel project-tree-panel" aria-label="Arbol de metas, tareas y subtareas">
+          <div class="panel-section panel-tree">
+            <div class="panel-block-head">
+              <div>
+                <strong>Árbol del proyecto</strong>
+                <small>Metas, tareas y subtareas en orden jerárquico</small>
+              </div>
+            </div>
+            ${renderQuickAddGoal(project.id)}
+            <div class="tree-list">
+              ${goals.length ? goals.map((goal, index) => renderTreeGoal(project, goal, index, goals.length, activeGoal)).join("") : `<div class="tree-empty">Crea una meta para comenzar este proyecto.</div>`}
+            </div>
+          </div>
+        </aside>
+      `;
+    }
+
+    function renderTreeGoal(project, goal, index, totalGoals, activeGoal) {
+      const stats = statsForGoal(project.id, goal.id);
+      const isActive = activeGoal && goalKey(project.id, goal.id) === goalKey(project.id, activeGoal.id);
+      const priority = goalPriority(goal);
+      const metaParts = [
+        priorityLabel(priority),
+        goal.fechaVencimiento ? formatDate(goal.fechaVencimiento) : "",
+        `${stats.completed}/${stats.total} tareas logradas`
+      ].filter(Boolean);
+      const tasks = sortedTasks(project.id, goal.id);
+      return `
+        <div class="tree-row is-meta ${isActive ? "is-selected" : ""}">
+          <span class="tree-level-label is-meta">M</span>
+          <button type="button" class="tree-main" data-action="select-goal" data-project-id="${project.id}" data-section-id="${goal.id || ""}">
+            <span class="tree-title">${escapeHtml(goal.nombre)}</span>
+            <span class="tree-meta">${escapeHtml(metaParts.join(" - "))}</span>
+          </button>
+          <div class="tree-actions">
+            <span class="tree-percent">${Math.round(stats.progress * 100)}%</span>
+            <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="up" data-section-id="${goal.id}" title="Subir meta" aria-label="Subir meta" ${index === 0 ? "disabled" : ""}>&#8593;</button>
+            <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="down" data-section-id="${goal.id}" title="Bajar meta" aria-label="Bajar meta" ${index === totalGoals - 1 ? "disabled" : ""}>&#8595;</button>
+            <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-section-id="${goal.id}" title="Editar meta" aria-label="Editar meta">&#9998;</button>
+            <button type="button" class="icon-btn goal-delete-btn" data-action="delete-section" data-section-id="${goal.id}" title="Borrar meta" aria-label="Borrar meta">&#128465;</button>
+          </div>
+        </div>
+        ${isActive ? `<div class="tree-add is-task">${renderQuickAdd(project.id, goal.id, "Nueva tarea para esta meta")}</div>` : ""}
+        ${tasks.length ? tasks.map((task) => renderTreeTask(project, goal, task)).join("") : isActive ? `<div class="tree-empty">Esta meta aun no tiene tareas.</div>` : ""}
+      `;
+    }
+
+    function renderTreeTask(project, goal, task) {
+      const subtasks = sortedSubtasks(task.id);
+      const stats = statsForTask(task.id);
+      const selected = task.id === state.selectedTaskId;
+      const metaParts = [
+        priorityLabel(task.prioridad),
+        task.fechaVencimiento ? formatDate(task.fechaVencimiento) : "",
+        subtasks.length ? `${stats.completed}/${stats.total} subtareas logradas` : ""
+      ].filter(Boolean);
+      return `
+        <div class="tree-row is-task ${task.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
+          <button type="button" class="check-btn ${task.completada ? "is-complete" : ""}" data-action="toggle-task" data-task-id="${task.id}" aria-label="${task.completada ? "Reabrir tarea" : "Completar tarea"}">${task.completada ? "✓" : ""}</button>
+          <button type="button" class="tree-main" data-action="select-task" data-task-id="${task.id}">
+            <span class="tree-title">${escapeHtml(task.nombre)}</span>
+            <span class="tree-meta">${escapeHtml(metaParts.join(" - "))}</span>
+          </button>
+          <div class="tree-actions">
+            <button type="button" class="icon-btn" data-action="open-task" data-task-id="${task.id}" title="Editar tarea" aria-label="Editar tarea">&#9998;</button>
+            <button type="button" class="icon-btn" data-action="delete-task" data-task-id="${task.id}" title="Eliminar tarea" aria-label="Eliminar tarea">&#128465;</button>
+          </div>
+        </div>
+        ${selected ? `<div class="tree-add is-subtask">${renderQuickAddSubtask(task.id)}</div>` : ""}
+        ${subtasks.map((subtask) => renderTreeSubtask(task, subtask)).join("")}
+      `;
+    }
+
+    function renderTreeSubtask(task, subtask) {
+      const selected = subtask.id === state.selectedSubtaskId;
+      const metaParts = [
+        priorityLabel(subtask.prioridad),
+        subtask.fechaVencimiento ? formatDate(subtask.fechaVencimiento) : ""
+      ].filter(Boolean);
+      return `
+        <div class="tree-row is-subtask ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
+          <button type="button" class="check-btn ${subtask.completada ? "is-complete" : ""}" data-action="toggle-subtask" data-subtask-id="${subtask.id}" aria-label="${subtask.completada ? "Reabrir subtarea" : "Completar subtarea"}">${subtask.completada ? "✓" : ""}</button>
+          <button type="button" class="tree-main" data-action="open-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}">
+            <span class="tree-title">${escapeHtml(subtask.nombre)}</span>
+            <span class="tree-meta">${escapeHtml(metaParts.join(" - "))}</span>
+          </button>
+          <div class="tree-actions">
+            <button type="button" class="icon-btn" data-action="open-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}" title="Editar subtarea" aria-label="Editar subtarea">&#9998;</button>
+            <button type="button" class="icon-btn" data-action="delete-subtask" data-subtask-id="${subtask.id}" title="Eliminar subtarea" aria-label="Eliminar subtarea">&#128465;</button>
+          </div>
+        </div>
       `;
     }
 

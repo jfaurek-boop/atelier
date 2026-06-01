@@ -3030,6 +3030,11 @@
       background: linear-gradient(135deg, rgba(47, 83, 61, 0.94), rgba(34, 48, 39, 0.96));
     }
 
+    .task-select-shell.is-recurrence {
+      border-color: rgba(141, 162, 181, 0.5);
+      background: linear-gradient(135deg, rgba(44, 56, 68, 0.94), rgba(28, 36, 45, 0.96));
+    }
+
     .task-select-caret {
       grid-column: 2;
       grid-row: 1;
@@ -3063,6 +3068,53 @@
       background: linear-gradient(135deg, rgba(46, 92, 64, 0.85), rgba(33, 49, 39, 0.94));
       text-align: left;
       cursor: pointer;
+    }
+
+    .recurrence-control {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 8px;
+    }
+
+    .recurrence-grid {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .recurrence-mini-field {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .recurrence-mini-field input {
+      width: 100%;
+      min-height: 34px;
+      padding: 0 10px;
+      border: 1px solid rgba(141, 162, 181, 0.36);
+      border-radius: 8px;
+      background: #111820;
+      color: #f5f7fa;
+      font: inherit;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .recurrence-note,
+    .tree-recurrence {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-style: italic;
+    }
+
+    .tree-recurrence {
+      display: block;
+      margin-top: 2px;
     }
 
     .task-meta-icon {
@@ -4304,6 +4356,32 @@
       return priority ? `<span class="priority priority-${priority} ${extraClass}">${priorityLabels[priority]}</span>` : "";
     }
     const projectIcons = ["◆", "◈", "✦", "✧", "☉", "◎", "▲", "■"];
+    const recurrenceFrequencies = ["daily", "weekly", "monthly"];
+    const recurrenceLabels = {
+      daily: "Diaria",
+      weekly: "Semanal",
+      monthly: "Mensual"
+    };
+    function normalizeRecurrence(value, task = {}) {
+      if (!value || !value.activa || !recurrenceFrequencies.includes(value.frecuencia)) return null;
+      const interval = Math.max(1, Math.min(99, Number(value.intervalo) || 1));
+      const seriesId = value.serieId || task.recurrenceSeriesId || task.id || uid("recurrence");
+      return {
+        activa: true,
+        frecuencia: value.frecuencia,
+        intervalo: interval,
+        fechaFin: value.fechaFin || null,
+        serieId: seriesId,
+        lastGeneratedDate: value.lastGeneratedDate || null
+      };
+    }
+    function recurrenceLabel(recurrencia) {
+      const recurrence = normalizeRecurrence(recurrencia);
+      if (!recurrence) return "";
+      const base = recurrenceLabels[recurrence.frecuencia] || "Recurrente";
+      return recurrence.intervalo > 1 ? `${base} cada ${recurrence.intervalo}` : base;
+    }
+
     const taskPlotPositions = [
       { dx: -52, dy: 14, scale: 0.78, mirror: false },
       { dx: 52, dy: 15, scale: 0.78, mirror: true },
@@ -4587,19 +4665,83 @@
       return radii;
     }
 
-    function expandedGoalPositions(project, index) {
-      const layout = continentLayouts[index % continentLayouts.length];
+    function normalizeMapSlot(value, fallback = 0) {
+      const slot = Math.trunc(Number(value));
+      return Number.isFinite(slot) ? slot : fallback;
+    }
+
+    function layoutForSlot(slot) {
+      const safe = normalizeMapSlot(slot, 0);
+      const index = ((safe % continentLayouts.length) + continentLayouts.length) % continentLayouts.length;
+      return continentLayouts[index];
+    }
+
+    function nearestMapSlot(pos) {
+      if (!pos || !Number.isFinite(Number(pos.x)) || !Number.isFinite(Number(pos.y))) return null;
+      let bestIndex = 0;
+      let bestDistance = Infinity;
+      continentLayouts.forEach((layout, index) => {
+        const distance = Math.hypot(Number(pos.x) - layout.label.x, Number(pos.y) - layout.label.y);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      });
+      return bestIndex;
+    }
+
+    function nextAvailableMapSlot(candidate, used) {
+      let slot = normalizeMapSlot(candidate, used.size);
+      let attempts = 0;
+      while (used.has(slot) && attempts < continentLayouts.length) {
+        slot = (slot + 1) % continentLayouts.length;
+        attempts += 1;
+      }
+      return used.has(slot) ? used.size : slot;
+    }
+
+    function resolveProjectMapSlots(projects) {
+      const used = new Set();
+      const slots = new Map();
+      projects.forEach((project, index) => {
+        const explicit = Number.isFinite(Number(project.mapSlot)) ? Number(project.mapSlot) : null;
+        const inferred = explicit ?? nearestMapSlot(project.posicion) ?? (Number.isFinite(Number(project.orden)) ? Number(project.orden) : index);
+        const slot = nextAvailableMapSlot(inferred, used);
+        used.add(slot);
+        if (project.id) slots.set(project.id, slot);
+      });
+      return slots;
+    }
+
+    function goalPositionForSlot(slot, index) {
+      const layout = layoutForSlot(slot);
+      return layout.goalAnchors[index % layout.goalAnchors.length];
+    }
+
+    function isLikelyMapOrderDrift(pos, slot) {
+      if (!pos || !Number.isFinite(Number(pos.x)) || !Number.isFinite(Number(pos.y))) return false;
+      const layout = layoutForSlot(slot);
+      const center = polygonCenter(baseCoastPoints(layout, slot));
+      const distance = Math.hypot(Number(pos.x) - center.x, Number(pos.y) - center.y);
+      const nearest = nearestMapSlot(pos);
+      const normalizedSlot = ((normalizeMapSlot(slot, 0) % continentLayouts.length) + continentLayouts.length) % continentLayouts.length;
+      return nearest !== null && nearest !== normalizedSlot && distance > 250;
+    }
+
+    function expandedGoalPositions(project, index = projectMapIndex(project.id)) {
+      const layout = layoutForSlot(index);
       const base = baseCoastPoints(layout, index);
       return goalsForProject(project.id)
         .map((goal, goalIndex) => goalPosition(goal, project, goalIndex))
         .filter((pos) => !pointInPolygon(base, pos));
     }
 
-    function continentPathForProject(project, index = projectIndex(project.id)) {
-      const layout = continentLayouts[index % continentLayouts.length];
-      const expansionPoints = expandedGoalPositions(project, index);
-      if (!expansionPoints.length) return continentPath(layout, index);
-      return expandedContinentPath(layout, index, expansionPoints);
+    function continentPathForProject(project, index = projectMapIndex(project.id)) {
+      const mapIndex = normalizeMapSlot(project?.mapSlot, index);
+      const layout = layoutForSlot(mapIndex);
+      const expansionPoints = expandedGoalPositions(project, mapIndex);
+      if (!expansionPoints.length) return continentPath(layout, mapIndex);
+      return expandedContinentPath(layout, mapIndex, expansionPoints);
     }
 
     function expandedContinentPath(layout, index, expansionPoints) {
@@ -4761,14 +4903,16 @@
       const subtasks = Array.isArray(data.subtasks) ? data.subtasks : [];
       const tags = Array.isArray(data.tags) ? data.tags : [];
       const completedLog = Array.isArray(data.completedLog) ? data.completedLog : [];
+      const projectMapSlots = resolveProjectMapSlots(projects);
       const allowedViews = ["map", "list", "calendar", "tags", "built"];
       const normalizedView = allowedViews.includes(data.view)
         ? (data.view === "map" ? "list" : data.view)
         : "list";
       const repositionGoals = !data.schemaVersion || data.schemaVersion < 13;
+      const repairMapOrderDrift = !data.schemaVersion || data.schemaVersion < 16;
       const defaultBox = { x: 0, y: 0, w: 900, h: 800 };
       return {
-        schemaVersion: 14,
+        schemaVersion: 16,
         mapFitVersion: 1,
         kingdomName: (!data.kingdomName || data.kingdomName === "Reino en Construcción" || data.kingdomName === "Atlas de Construccion") ? "Atelier" : data.kingdomName,
         userName: data.userName || "Usuario",
@@ -4809,35 +4953,54 @@
           icono: project.icono || project.icon || projectIcons[index % projectIcons.length],
           colorAccent: project.colorAccent || accentMap[project.color] || shadeColor(project.color || "#4A90E2", -30),
           orden: Number.isFinite(project.orden) ? project.orden : index,
-          posicion: project.posicion || autoPosition(index)
+          mapSlot: projectMapSlots.get(project.id) ?? index,
+          posicion: project.posicion || autoPosition(projectMapSlots.get(project.id) ?? index)
         })),
-        sections: sections.map((section, index) => ({
-          ...section,
-          descripcion: section.descripcion || "",
-          prioridad: normalizePriority(section.prioridad),
-          fechaVencimiento: section.fechaVencimiento || null,
-          completedAt: section.completedAt || null,
-          secondaryProjectId: section.secondaryProjectId && projects.some((project) => project.id === section.secondaryProjectId) && section.secondaryProjectId !== section.projectId ? section.secondaryProjectId : null,
-          tags: Array.isArray(section.tags) ? section.tags.filter(Boolean) : [],
-          orden: Number.isFinite(section.orden) ? section.orden : index,
-          linkedGoalIds: Array.isArray(section.linkedGoalIds) ? section.linkedGoalIds.filter(Boolean) : [],
-          posicion: !repositionGoals && section.posicion
-            ? section.posicion
-            : initialGoalPosition(projects, section.projectId, sections.filter((item) => item.projectId === section.projectId).sort((a, b) => (a.orden || 0) - (b.orden || 0)).findIndex((item) => item.id === section.id))
-        })),
-        tasks: tasks.map((task, index) => ({
-          ...task,
-          descripcion: task.descripcion || "",
-          prioridad: normalizePriority(task.prioridad),
-          completada: Boolean(task.completada),
-          fechaVencimiento: task.fechaVencimiento || null,
-          secondaryProjectId: task.secondaryProjectId && projects.some((project) => project.id === task.secondaryProjectId) && task.secondaryProjectId !== task.projectId ? task.secondaryProjectId : null,
-          tags: Array.isArray(task.tags) ? task.tags.filter(Boolean) : [],
-          sectionId: task.sectionId || null,
-          orden: Number.isFinite(task.orden) ? task.orden : index,
-          comentarios: Array.isArray(task.comentarios) ? task.comentarios : [],
-          completedAt: task.completada ? task.completedAt || nowISO() : null
-        })),
+        sections: sections.map((section, index) => {
+          const projectGoals = sections
+            .filter((item) => item.projectId === section.projectId)
+            .sort((a, b) => (a.orden || 0) - (b.orden || 0));
+          const goalIndex = projectGoals.findIndex((item) => item.id === section.id);
+          const mapSlot = projectMapSlots.get(section.projectId) ?? projects.findIndex((project) => project.id === section.projectId);
+          const storedPosition = section.posicion || null;
+          const repairedPosition = repairMapOrderDrift && isLikelyMapOrderDrift(storedPosition, mapSlot)
+            ? goalPositionForSlot(mapSlot, Math.max(0, goalIndex))
+            : storedPosition;
+          return {
+            ...section,
+            descripcion: section.descripcion || "",
+            prioridad: normalizePriority(section.prioridad),
+            fechaVencimiento: section.fechaVencimiento || null,
+            completedAt: section.completedAt || null,
+            secondaryProjectId: section.secondaryProjectId && projects.some((project) => project.id === section.secondaryProjectId) && section.secondaryProjectId !== section.projectId ? section.secondaryProjectId : null,
+            tags: Array.isArray(section.tags) ? section.tags.filter(Boolean) : [],
+            orden: Number.isFinite(section.orden) ? section.orden : index,
+            linkedGoalIds: Array.isArray(section.linkedGoalIds) ? section.linkedGoalIds.filter(Boolean) : [],
+            posicion: !repositionGoals && repairedPosition
+              ? repairedPosition
+              : initialGoalPosition(projects, section.projectId, Math.max(0, goalIndex), projectMapSlots)
+          };
+        }),
+        tasks: tasks.map((task, index) => {
+          const recurrence = normalizeRecurrence(task.recurrencia || task.recurrence, task);
+          return {
+            ...task,
+            descripcion: task.descripcion || "",
+            prioridad: normalizePriority(task.prioridad),
+            completada: Boolean(task.completada),
+            fechaVencimiento: task.fechaVencimiento || null,
+            secondaryProjectId: task.secondaryProjectId && projects.some((project) => project.id === task.secondaryProjectId) && task.secondaryProjectId !== task.projectId ? task.secondaryProjectId : null,
+            tags: Array.isArray(task.tags) ? task.tags.filter(Boolean) : [],
+            sectionId: task.sectionId || null,
+            orden: Number.isFinite(task.orden) ? task.orden : index,
+            comentarios: Array.isArray(task.comentarios) ? task.comentarios : [],
+            recurrencia: recurrence,
+            recurrenceSeriesId: recurrence?.serieId || task.recurrenceSeriesId || null,
+            recurrenceGeneratedFor: task.recurrenceGeneratedFor || task.fechaVencimiento || null,
+            generatedFromTaskId: task.generatedFromTaskId || null,
+            completedAt: task.completada ? task.completedAt || nowISO() : null
+          };
+        }),
         subtasks: subtasks.map((subtask, index) => ({
           ...subtask,
           taskId: subtask.taskId || null,
@@ -4890,6 +5053,7 @@
     }
 
     function saveState(options = {}) {
+      ensureRecurringInstances();
       syncCompletionState();
       const persistable = buildPersistableState();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
@@ -5225,6 +5389,7 @@
       const client = await getSupabaseClient();
       const workspaceId = await ensureSupabaseWorkspace();
       if (!workspaceId) throw new Error("No hay espacios de trabajo disponibles.");
+      ensureRecurringInstances();
       syncCompletionState();
       const payload = buildPersistableState();
       const { error } = await client
@@ -5267,26 +5432,40 @@
     }
 
     function autoPosition(index) {
-      return continentLayouts[index % continentLayouts.length].label;
+      return layoutForSlot(index).label;
     }
 
-    function initialGoalPosition(projects, projectId, index) {
+    function initialGoalPosition(projects, projectId, index, projectMapSlots = null) {
       const projectIndex = Math.max(0, projects.findIndex((project) => project.id === projectId));
-      const layout = continentLayouts[projectIndex % continentLayouts.length];
-      return layout.goalAnchors[index % layout.goalAnchors.length];
+      const slot = projectMapSlots?.get(projectId) ?? normalizeMapSlot(projects[projectIndex]?.mapSlot, projectIndex);
+      return goalPositionForSlot(slot, index);
     }
 
     function projectIndex(projectId) {
       return Math.max(0, sortedProjects().findIndex((project) => project.id === projectId));
     }
 
+    function projectMapIndex(projectId) {
+      const fallback = projectIndex(projectId);
+      const project = state.projects.find((item) => item.id === projectId);
+      return normalizeMapSlot(project?.mapSlot, fallback);
+    }
+
     function projectLayout(projectId) {
-      return continentLayouts[projectIndex(projectId) % continentLayouts.length];
+      return layoutForSlot(projectMapIndex(projectId));
     }
 
     function goalPositionFor(projectId, index) {
-      const layout = projectLayout(projectId);
-      return layout.goalAnchors[index % layout.goalAnchors.length];
+      return goalPositionForSlot(projectMapIndex(projectId), index);
+    }
+
+    function repairDistantGoalPositions(projectId) {
+      const mapSlot = projectMapIndex(projectId);
+      sortedSections(projectId).forEach((goal, index) => {
+        if (isLikelyMapOrderDrift(goal.posicion, mapSlot)) {
+          goal.posicion = goalPositionForSlot(mapSlot, index);
+        }
+      });
     }
 
     function goalKey(projectId, sectionId) {
@@ -5626,6 +5805,102 @@
       }).format(date);
     }
 
+    function dateStringFromDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function todayString() {
+      return dateStringFromDate(new Date());
+    }
+
+    function parseDateString(value) {
+      const source = value || todayString();
+      const date = new Date(`${source}T12:00:00`);
+      return Number.isNaN(date.getTime()) ? new Date(`${todayString()}T12:00:00`) : date;
+    }
+
+    function addRecurrenceInterval(date, recurrence) {
+      const next = new Date(date.getTime());
+      const interval = Math.max(1, Number(recurrence?.intervalo) || 1);
+      if (recurrence?.frecuencia === "daily") next.setDate(next.getDate() + interval);
+      if (recurrence?.frecuencia === "weekly") next.setDate(next.getDate() + interval * 7);
+      if (recurrence?.frecuencia === "monthly") next.setMonth(next.getMonth() + interval);
+      return next;
+    }
+
+    function nextRecurrenceDate(baseDate, recurrence) {
+      const normalized = normalizeRecurrence(recurrence);
+      if (!normalized) return null;
+      return dateStringFromDate(addRecurrenceInterval(parseDateString(baseDate), normalized));
+    }
+
+    function recurrenceOccurrenceDate(task) {
+      return task.recurrenceGeneratedFor || task.fechaVencimiento || (task.completedAt ? task.completedAt.slice(0, 10) : "") || (task.createdAt ? task.createdAt.slice(0, 10) : "");
+    }
+
+    function compareRecurringTasks(a, b) {
+      return recurrenceOccurrenceDate(a).localeCompare(recurrenceOccurrenceDate(b))
+        || String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
+        || a.nombre.localeCompare(b.nombre);
+    }
+
+    function buildRecurringTaskFrom(baseTask, recurrence, nextDate) {
+      const nextOrder = state.tasks.filter((task) => task.projectId === baseTask.projectId && task.sectionId === baseTask.sectionId).length;
+      return {
+        ...baseTask,
+        id: uid("task"),
+        nombre: baseTask.nombre,
+        descripcion: baseTask.descripcion || "",
+        completada: false,
+        completedAt: null,
+        fechaVencimiento: nextDate,
+        createdAt: nowISO(),
+        orden: nextOrder,
+        comentarios: [],
+        recurrenceSeriesId: recurrence.serieId,
+        recurrenceGeneratedFor: nextDate,
+        generatedFromTaskId: baseTask.id,
+        recurrencia: { ...recurrence, lastGeneratedDate: nextDate }
+      };
+    }
+
+    function ensureRecurringInstances() {
+      if (!state || !Array.isArray(state.tasks)) return 0;
+      const groups = new Map();
+      state.tasks.forEach((task) => {
+        const recurrence = normalizeRecurrence(task.recurrencia, task);
+        if (!recurrence) return;
+        task.recurrencia = recurrence;
+        task.recurrenceSeriesId = recurrence.serieId;
+        if (!groups.has(recurrence.serieId)) groups.set(recurrence.serieId, []);
+        groups.get(recurrence.serieId).push(task);
+      });
+
+      let created = 0;
+      groups.forEach((tasks, seriesId) => {
+        const ordered = tasks.slice().sort(compareRecurringTasks);
+        const hasPendingInstance = ordered.some((task) => !task.completada);
+        if (hasPendingInstance) return;
+        const baseTask = ordered[ordered.length - 1];
+        if (!baseTask || !baseTask.completada) return;
+        const recurrence = normalizeRecurrence(baseTask.recurrencia, baseTask);
+        if (!recurrence) return;
+        const baseDate = recurrenceOccurrenceDate(baseTask) || todayString();
+        const nextDate = nextRecurrenceDate(baseDate, recurrence);
+        if (!nextDate) return;
+        if (recurrence.fechaFin && nextDate > recurrence.fechaFin) return;
+        const alreadyExists = state.tasks.some((task) => task.recurrenceSeriesId === seriesId && recurrenceOccurrenceDate(task) === nextDate);
+        if (alreadyExists) return;
+        state.tasks.push(buildRecurringTaskFrom(baseTask, recurrence, nextDate));
+        baseTask.recurrencia = { ...recurrence, lastGeneratedDate: nextDate };
+        created += 1;
+      });
+      return created;
+    }
+
     function getSelectedProject() {
       return state.projects.find((project) => project.id === state.selectedProjectId) || state.projects[0] || null;
     }
@@ -5636,6 +5911,7 @@
 
     function setState(patch, persist = true) {
       state = normalizeState({ ...state, ...patch });
+      ensureRecurringInstances();
       syncCompletionState();
       if (persist) saveState();
       render();
@@ -5644,6 +5920,7 @@
     function mutate(mutator, options = {}) {
       mutator();
       state = normalizeState(state);
+      ensureRecurringInstances();
       syncCompletionState();
       if (options.persist !== false) saveState();
       render();
@@ -6823,6 +7100,7 @@
           <button type="button" class="task-main" data-action="select-task" data-task-id="${task.id}">
             <span class="task-name">${escapeHtml(task.nombre)}</span>
             ${task.descripcion && !compact ? `<span class="task-description">${escapeHtml(task.descripcion)}</span>` : ""}
+            ${task.recurrencia ? `<span class="tree-recurrence">${escapeHtml(recurrenceLabel(task.recurrencia))}</span>` : ""}
           </button>
           ${renderPriorityChip(task.prioridad) || `<span class="priority-placeholder" aria-hidden="true"></span>`}
           <span class="due ${task.fechaVencimiento ? "" : "is-undefined"}">${task.fechaVencimiento ? escapeHtml(formatDate(task.fechaVencimiento)) : "Por definir"}</span>
@@ -7751,13 +8029,15 @@
             project.colorAccent = accentMap[color] || shadeColor(color, -30);
           }
         } else {
+          const mapSlot = nextAvailableMapSlot(state.projects.length, new Set(state.projects.map((project) => normalizeMapSlot(project.mapSlot, project.orden))));
           const project = {
             id: uid("project"),
             nombre,
             color,
             icono,
             colorAccent: accentMap[color] || shadeColor(color, -30),
-            posicion: autoPosition(state.projects.length),
+            mapSlot,
+            posicion: autoPosition(mapSlot),
             orden: state.projects.length,
             createdAt: nowISO()
           };
@@ -7858,6 +8138,9 @@
         task.projectId = form.elements.projectId.value;
         task.sectionId = form.elements.sectionId.value || null;
         task.fechaVencimiento = form.elements.fechaVencimiento.value || null;
+        task.recurrencia = recurrenceFromTaskForm(form, task);
+        task.recurrenceSeriesId = task.recurrencia?.serieId || null;
+        task.recurrenceGeneratedFor = task.recurrencia ? task.recurrenceGeneratedFor || task.fechaVencimiento || todayString() : null;
         task.secondaryProjectId = form.elements.secondaryProjectId?.value && form.elements.secondaryProjectId.value !== task.projectId ? form.elements.secondaryProjectId.value : null;
         task.tags = selectedTagIds(form);
         task.completada = nextComplete;
@@ -8240,6 +8523,7 @@
         const [project] = ordered.splice(currentIndex, 1);
         ordered.splice(nextIndex, 0, project);
         ordered.forEach((item, index) => item.orden = index);
+        repairDistantGoalPositions(projectId);
         state.selectedProjectId = projectId;
         state.mapViewBox = mapBoxForContinent(projectId);
         state.selectedTaskId = null;
@@ -8275,8 +8559,18 @@
         const targetIndex = ordered.findIndex((project) => project.id === targetProjectId);
         ordered.splice(targetIndex, 0, source);
         ordered.forEach((project, index) => project.orden = index);
+        repairDistantGoalPositions(draggedProjectId);
+        state.selectedProjectId = draggedProjectId;
+        state.selectedGoalId = null;
+        state.selectedTaskId = null;
+        state.selectedSubtaskId = null;
+        state.mapGoalPopupId = null;
+        state.mapTaskPopupId = null;
+        state.continentPopupId = null;
+        state.mapViewBox = mapBoxForContinent(draggedProjectId);
       });
       draggedProjectId = null;
+      showToast("Proyectos reordenados");
     }
 
     function handleSectionDragStart(event) {
@@ -8641,11 +8935,10 @@
     }
 
     function mapBoxForContinent(projectId) {
-      const projects = sortedProjects();
-      const index = projects.findIndex((project) => project.id === projectId);
-      if (index < 0) return { x: 0, y: 0, w: 900, h: 800 };
-      const project = projects[index];
-      return mapBoxForBounds(pathBounds(continentPathForProject(project, index)), 42);
+      const project = state.projects.find((item) => item.id === projectId);
+      if (!project) return { x: 0, y: 0, w: 900, h: 800 };
+      const mapIndex = projectMapIndex(projectId);
+      return mapBoxForBounds(pathBounds(continentPathForProject(project, mapIndex)), 42);
     }
 
     function focusContinent(projectId) {
@@ -8666,11 +8959,10 @@
     }
 
     function centerProjectOnMap(projectId) {
-      const projects = sortedProjects();
-      const index = projects.findIndex((project) => project.id === projectId);
-      if (index < 0) return;
-      const project = projects[index];
-      const bounds = pathBounds(continentPathForProject(project, index));
+      const project = state.projects.find((item) => item.id === projectId);
+      if (!project) return;
+      const mapIndex = projectMapIndex(projectId);
+      const bounds = pathBounds(continentPathForProject(project, mapIndex));
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
       const targetW = Math.min(box.w, 700);
       const targetH = targetW / (900 / 800);
@@ -9191,8 +9483,9 @@
 
     function renderContinents(projects) {
       return projects.map((project, index) => {
-        const layout = continentLayouts[index % continentLayouts.length];
-        const coast = continentPathForProject(project, index);
+        const mapIndex = projectMapIndex(project.id);
+        const layout = layoutForSlot(mapIndex);
+        const coast = continentPathForProject(project, mapIndex);
         const selected = project.id === state.selectedProjectId;
         const clipId = `landClip-${index}`;
         return `
@@ -9205,9 +9498,9 @@
             <path data-coast-project-id="${project.id}" d="${coast}" fill="url(#continentShade)" stroke="#56645a" stroke-width="${selected ? 1.9 : 1.1}" stroke-linejoin="round"/>
             <path data-coast-project-id="${project.id}" d="${coast}" fill="${project.color}" opacity="${selected ? 0.24 : 0.16}"/>
             <path data-coast-project-id="${project.id}" d="${coast}" fill="url(#landGrain)" opacity="0.62"/>
-            ${renderLandTexture(project, layout, index, clipId, coast)}
+            ${renderLandTexture(project, layout, mapIndex, clipId, coast)}
             <path data-coast-project-id="${project.id}" d="${coast}" fill="none" stroke="${selected ? project.color : "#56645a"}" stroke-width="${selected ? 1.45 : 0.75}" opacity="${selected ? 0.78 : 0.34}" stroke-linejoin="round"/>
-            ${renderContinentMarks(layout, index)}
+            ${renderContinentMarks(layout, mapIndex)}
           </g>
         `;
       }).join("");
@@ -9215,7 +9508,8 @@
 
     function renderContinentLabels(projects) {
       return projects.map((project, index) => {
-        const coast = continentPathForProject(project, index);
+        const mapIndex = projectMapIndex(project.id);
+        const coast = continentPathForProject(project, mapIndex);
         const bounds = pathBounds(coast);
         const x = (bounds.minX + bounds.maxX) / 2;
         const y = Math.max(24, bounds.minY - 10);
@@ -10011,6 +10305,7 @@
             <span class="tree-title">${escapeHtml(task.nombre)}</span>
             ${task.descripcion ? `<span class="tree-description">${escapeHtml(task.descripcion)}</span>` : ""}
             <span class="tree-meta">${escapeHtml(metaText)}</span>
+            ${task.recurrencia ? `<span class="tree-recurrence">${escapeHtml(recurrenceLabel(task.recurrencia))}</span>` : ""}
           </button>
           <span class="tree-priority">${task.prioridad ? escapeHtml(priorityLabel(task.prioridad)) : ""}</span>
           <span class="tree-date">${task.fechaVencimiento ? escapeHtml(formatDate(task.fechaVencimiento)) : ""}</span>
@@ -10457,6 +10752,47 @@
       `;
     }
 
+    function renderRecurrenceControl(task) {
+      const recurrence = normalizeRecurrence(task.recurrencia, task);
+      const frequency = recurrence?.frecuencia || "";
+      const interval = recurrence?.intervalo || 1;
+      const endDate = recurrence?.fechaFin || "";
+      return `
+        <div class="recurrence-control">
+          <div class="task-select-shell is-recurrence">
+            <select class="task-meta-control" name="recurrenceFrequency" aria-label="Frecuencia de repeticion">
+              <option value="" ${!frequency ? "selected" : ""}>No repetir</option>
+              <option value="daily" ${frequency === "daily" ? "selected" : ""}>Cada dia</option>
+              <option value="weekly" ${frequency === "weekly" ? "selected" : ""}>Cada semana</option>
+              <option value="monthly" ${frequency === "monthly" ? "selected" : ""}>Cada mes</option>
+            </select>
+            <span class="task-select-caret" aria-hidden="true">v</span>
+          </div>
+          <div class="recurrence-grid">
+            <label class="recurrence-mini-field">Cada
+              <input type="number" name="recurrenceInterval" min="1" max="99" value="${interval}">
+            </label>
+            <label class="recurrence-mini-field">Hasta
+              <input type="date" name="recurrenceEndDate" value="${endDate}">
+            </label>
+          </div>
+          <span class="recurrence-note">${recurrence ? "Al completarla se creara la siguiente tarea pendiente." : "Sin repeticion automatica."}</span>
+        </div>
+      `;
+    }
+
+    function recurrenceFromTaskForm(form, task) {
+      const frequency = form.elements.recurrenceFrequency?.value || "";
+      if (!frequency) return null;
+      return normalizeRecurrence({
+        activa: true,
+        frecuencia: frequency,
+        intervalo: form.elements.recurrenceInterval?.value || 1,
+        fechaFin: form.elements.recurrenceEndDate?.value || null,
+        serieId: task?.recurrencia?.serieId || task?.recurrenceSeriesId || task?.id || uid("recurrence")
+      }, task);
+    }
+
     function renderPriorityPicker(task) {
       const current = normalizePriority(task.prioridad);
       return `
@@ -10494,6 +10830,7 @@
           ${renderTaskMetaField("Proyecto asociado", secondaryProjectControl, "")}
           ${renderTaskMetaField("Meta", renderTaskStaticMeta("sectionId", task.sectionId || "", goal?.nombre || "Tareas por clasificar"), "")}
           ${renderTaskMetaField("Fecha", renderTaskDateControl(task), "")}
+          ${renderTaskMetaField("Repetir", renderRecurrenceControl(task), "")}
           ${renderTaskMetaField("Prioridad", renderPriorityPicker(task), "")}
           ${renderTagCheckboxField(task.tags || [])}
           ${renderTaskMetaField("Estado", renderStatusPicker(task), "")}
@@ -10725,11 +11062,10 @@
     }
 
     function updateContinentCoast(projectId) {
-      const projects = sortedProjects();
-      const index = projects.findIndex((project) => project.id === projectId);
-      if (index < 0) return;
-      const project = projects[index];
-      const coast = continentPathForProject(project, index);
+      const project = state.projects.find((item) => item.id === projectId);
+      if (!project) return;
+      const mapIndex = projectMapIndex(projectId);
+      const coast = continentPathForProject(project, mapIndex);
       document.querySelectorAll("[data-coast-project-id]").forEach((path) => {
         if (path.dataset.coastProjectId === projectId) path.setAttribute("d", coast);
       });
@@ -10825,6 +11161,7 @@
       }, 1900);
     }
 
+    ensureRecurringInstances();
     syncCompletionState();
     render();
     initSupabaseFromConfig({ mode: "pull", silent: true });

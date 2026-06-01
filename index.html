@@ -4718,14 +4718,33 @@
       return layout.goalAnchors[index % layout.goalAnchors.length];
     }
 
-    function isLikelyMapOrderDrift(pos, slot) {
+    function baseRadiusForSlot(slot) {
+      const layout = layoutForSlot(slot);
+      const points = baseCoastPoints(layout, slot);
+      const center = polygonCenter(points);
+      return points.reduce((max, point) => Math.max(max, Math.hypot(point.x - center.x, point.y - center.y)), 0);
+    }
+
+    function distanceFromSlotCenter(pos, slot) {
       if (!pos || !Number.isFinite(Number(pos.x)) || !Number.isFinite(Number(pos.y))) return false;
       const layout = layoutForSlot(slot);
       const center = polygonCenter(baseCoastPoints(layout, slot));
-      const distance = Math.hypot(Number(pos.x) - center.x, Number(pos.y) - center.y);
+      return Math.hypot(Number(pos.x) - center.x, Number(pos.y) - center.y);
+    }
+
+    function isTooFarForContinentExpansion(pos, slot) {
+      const distance = distanceFromSlotCenter(pos, slot);
+      if (!Number.isFinite(distance)) return false;
+      return distance > baseRadiusForSlot(slot) + 135;
+    }
+
+    function isLikelyMapOrderDrift(pos, slot) {
+      if (!pos || !Number.isFinite(Number(pos.x)) || !Number.isFinite(Number(pos.y))) return false;
+      const distance = distanceFromSlotCenter(pos, slot);
       const nearest = nearestMapSlot(pos);
       const normalizedSlot = ((normalizeMapSlot(slot, 0) % continentLayouts.length) + continentLayouts.length) % continentLayouts.length;
-      return nearest !== null && nearest !== normalizedSlot && distance > 250;
+      return isTooFarForContinentExpansion(pos, slot)
+        || (nearest !== null && nearest !== normalizedSlot && distance > baseRadiusForSlot(slot) + 70);
     }
 
     function expandedGoalPositions(project, index = projectMapIndex(project.id)) {
@@ -4733,7 +4752,7 @@
       const base = baseCoastPoints(layout, index);
       return goalsForProject(project.id)
         .map((goal, goalIndex) => goalPosition(goal, project, goalIndex))
-        .filter((pos) => !pointInPolygon(base, pos));
+        .filter((pos) => !pointInPolygon(base, pos) && !isTooFarForContinentExpansion(pos, index));
     }
 
     function continentPathForProject(project, index = projectMapIndex(project.id)) {
@@ -4909,10 +4928,10 @@
         ? (data.view === "map" ? "list" : data.view)
         : "list";
       const repositionGoals = !data.schemaVersion || data.schemaVersion < 13;
-      const repairMapOrderDrift = !data.schemaVersion || data.schemaVersion < 16;
+      const repairMapOrderDrift = !data.schemaVersion || data.schemaVersion < 17;
       const defaultBox = { x: 0, y: 0, w: 900, h: 800 };
       return {
-        schemaVersion: 16,
+        schemaVersion: 17,
         mapFitVersion: 1,
         kingdomName: (!data.kingdomName || data.kingdomName === "Reino en Construcción" || data.kingdomName === "Atlas de Construccion") ? "Atelier" : data.kingdomName,
         userName: data.userName || "Usuario",
@@ -5055,6 +5074,7 @@
     function saveState(options = {}) {
       ensureRecurringInstances();
       syncCompletionState();
+      repairAllDistantGoalPositions();
       const persistable = buildPersistableState();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
       if (!options.skipRemote) queueSupabaseSave();
@@ -5391,6 +5411,7 @@
       if (!workspaceId) throw new Error("No hay espacios de trabajo disponibles.");
       ensureRecurringInstances();
       syncCompletionState();
+      repairAllDistantGoalPositions();
       const payload = buildPersistableState();
       const { error } = await client
         .from(SUPABASE_WORKSPACES_TABLE)
@@ -5466,6 +5487,10 @@
           goal.posicion = goalPositionForSlot(mapSlot, index);
         }
       });
+    }
+
+    function repairAllDistantGoalPositions() {
+      state.projects.forEach((project) => repairDistantGoalPositions(project.id));
     }
 
     function goalKey(projectId, sectionId) {
@@ -5913,6 +5938,7 @@
       state = normalizeState({ ...state, ...patch });
       ensureRecurringInstances();
       syncCompletionState();
+      repairAllDistantGoalPositions();
       if (persist) saveState();
       render();
     }
@@ -5922,6 +5948,7 @@
       state = normalizeState(state);
       ensureRecurringInstances();
       syncCompletionState();
+      repairAllDistantGoalPositions();
       if (options.persist !== false) saveState();
       render();
     }

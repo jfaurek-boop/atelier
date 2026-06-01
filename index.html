@@ -418,7 +418,7 @@
     .map-column {
       min-height: 0;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       gap: 8px;
       align-self: stretch;
     }
@@ -440,7 +440,7 @@
     .map-view.has-project .map-column,
     .map-view.has-task .map-column {
       align-self: stretch;
-      grid-template-rows: minmax(220px, 32vh) minmax(0, 1fr);
+      grid-template-rows: auto minmax(220px, 32vh) minmax(0, 1fr);
     }
 
     .map-view.has-project .map-shell,
@@ -647,14 +647,15 @@
     }
 
     .map-toolbar {
-      position: absolute;
-      top: 12px;
-      left: 12px;
+      position: relative;
       z-index: 5;
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
+      justify-self: start;
       gap: 6px;
-      max-width: calc(100% - 24px);
+      max-width: 100%;
+      width: fit-content;
       padding: 6px;
       border: 1px solid rgba(231, 219, 191, 0.18);
       border-radius: 8px;
@@ -1740,6 +1741,119 @@
     .calendar-mode-toggle button.is-active {
       color: #071014;
       background: linear-gradient(135deg, #c8d2dc, #8da2b5);
+    }
+
+    .built-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .built-summary-card,
+    .built-timeline,
+    .built-entry {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(18, 24, 33, 0.84);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    .built-summary-card {
+      padding: 12px;
+      border-left: 4px solid var(--built-color, var(--gold));
+    }
+
+    .built-summary-card strong {
+      display: block;
+      font-size: 1.45rem;
+      line-height: 1;
+    }
+
+    .built-summary-card span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .built-timeline {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .built-date-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .built-date-group h3 {
+      margin: 8px 0 2px;
+      color: var(--gold-light);
+      font-size: 1rem;
+    }
+
+    .built-entry {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-left: 5px solid var(--built-color, var(--gold));
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--built-color, var(--gold)) 16%, transparent), rgba(18, 24, 33, 0.84) 42%),
+        rgba(18, 24, 33, 0.84);
+    }
+
+    .built-type {
+      color: var(--built-color, var(--gold));
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .built-main {
+      min-width: 0;
+    }
+
+    .built-main strong,
+    .built-main span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .built-main span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .built-time {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .built-entry.is-reopened {
+      opacity: 0.58;
+      filter: grayscale(0.25);
+    }
+
+    .built-status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border: 1px solid rgba(193, 202, 214, 0.18);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 800;
     }
 
     .calendar-week {
@@ -4634,7 +4748,8 @@
         sections: [],
         tasks: [],
         subtasks: [],
-        tags: []
+        tags: [],
+        completedLog: []
       };
     }
 
@@ -4645,14 +4760,15 @@
       const tasks = Array.isArray(data.tasks) ? data.tasks : [];
       const subtasks = Array.isArray(data.subtasks) ? data.subtasks : [];
       const tags = Array.isArray(data.tags) ? data.tags : [];
-      const allowedViews = ["map", "list", "calendar", "tags"];
+      const completedLog = Array.isArray(data.completedLog) ? data.completedLog : [];
+      const allowedViews = ["map", "list", "calendar", "tags", "built"];
       const normalizedView = allowedViews.includes(data.view)
         ? (data.view === "map" ? "list" : data.view)
         : "list";
-      const repositionGoals = data.schemaVersion !== 13;
+      const repositionGoals = !data.schemaVersion || data.schemaVersion < 13;
       const defaultBox = { x: 0, y: 0, w: 900, h: 800 };
       return {
-        schemaVersion: 13,
+        schemaVersion: 14,
         mapFitVersion: 1,
         kingdomName: (!data.kingdomName || data.kingdomName === "Reino en Construcción" || data.kingdomName === "Atlas de Construccion") ? "Atelier" : data.kingdomName,
         userName: data.userName || "Usuario",
@@ -4700,6 +4816,7 @@
           descripcion: section.descripcion || "",
           prioridad: normalizePriority(section.prioridad),
           fechaVencimiento: section.fechaVencimiento || null,
+          completedAt: section.completedAt || null,
           secondaryProjectId: section.secondaryProjectId && projects.some((project) => project.id === section.secondaryProjectId) && section.secondaryProjectId !== section.projectId ? section.secondaryProjectId : null,
           tags: Array.isArray(section.tags) ? section.tags.filter(Boolean) : [],
           orden: Number.isFinite(section.orden) ? section.orden : index,
@@ -4734,7 +4851,23 @@
           orden: Number.isFinite(subtask.orden) ? subtask.orden : index,
           createdAt: subtask.createdAt || nowISO(),
           completedAt: subtask.completada ? subtask.completedAt || nowISO() : null
-        }))
+        })),
+        completedLog: completedLog.map((entry) => ({
+          id: entry.id || uid("completion"),
+          itemType: ["goal", "task", "subtask"].includes(entry.itemType) ? entry.itemType : "task",
+          itemId: entry.itemId || "",
+          projectId: entry.projectId || null,
+          goalId: entry.goalId || null,
+          taskId: entry.taskId || null,
+          nombre: entry.nombre || "Elemento construido",
+          descripcion: entry.descripcion || "",
+          prioridad: normalizePriority(entry.prioridad),
+          fechaVencimiento: entry.fechaVencimiento || null,
+          completedAt: entry.completedAt || nowISO(),
+          currentStatus: entry.currentStatus !== false,
+          reopenedAt: entry.reopenedAt || null,
+          snapshot: entry.snapshot || {}
+        })).filter((entry) => entry.itemId)
       };
     }
 
@@ -4757,6 +4890,7 @@
     }
 
     function saveState(options = {}) {
+      syncCompletionState();
       const persistable = buildPersistableState();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
       if (!options.skipRemote) queueSupabaseSave();
@@ -5091,6 +5225,7 @@
       const client = await getSupabaseClient();
       const workspaceId = await ensureSupabaseWorkspace();
       if (!workspaceId) throw new Error("No hay espacios de trabajo disponibles.");
+      syncCompletionState();
       const payload = buildPersistableState();
       const { error } = await client
         .from(SUPABASE_WORKSPACES_TABLE)
@@ -5301,6 +5436,196 @@
       return { total, completed, pending: total - completed };
     }
 
+    function completionKey(itemType, itemId) {
+      return `${itemType}:${itemId}`;
+    }
+
+    function projectById(projectId) {
+      return state.projects.find((project) => project.id === projectId) || null;
+    }
+
+    function goalById(goalId) {
+      return state.sections.find((goal) => goal.id === goalId) || null;
+    }
+
+    function taskById(taskId) {
+      return state.tasks.find((task) => task.id === taskId) || null;
+    }
+
+    function latestCompletedAt(items) {
+      const dates = items
+        .map((item) => item.completedAt)
+        .filter(Boolean)
+        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      return dates[dates.length - 1] || nowISO();
+    }
+
+    function completionBaseRecord(itemType, item, extra = {}) {
+      const project = projectById(extra.projectId || item.projectId);
+      const goal = goalById(extra.goalId || item.sectionId || item.goalId);
+      const task = taskById(extra.taskId || item.taskId);
+      return {
+        itemType,
+        itemId: item.id,
+        projectId: extra.projectId || item.projectId || task?.projectId || null,
+        goalId: extra.goalId || item.sectionId || item.goalId || task?.sectionId || null,
+        taskId: extra.taskId || (itemType === "task" ? item.id : item.taskId) || null,
+        nombre: item.nombre || "Elemento construido",
+        descripcion: item.descripcion || "",
+        prioridad: normalizePriority(item.prioridad),
+        fechaVencimiento: item.fechaVencimiento || null,
+        completedAt: extra.completedAt || item.completedAt || nowISO(),
+        currentStatus: true,
+        reopenedAt: null,
+        snapshot: {
+          projectName: project?.nombre || "",
+          goalName: goal?.nombre || "",
+          taskName: task?.nombre || "",
+          ...extra.snapshot
+        }
+      };
+    }
+
+    function completionRecordForGoal(goal) {
+      const goalTasks = state.tasks.filter((task) => task.sectionId === goal.id);
+      const stats = statsForGoal(goal.projectId, goal.id);
+      return completionBaseRecord("goal", goal, {
+        projectId: goal.projectId,
+        goalId: goal.id,
+        completedAt: goal.completedAt || latestCompletedAt(goalTasks.filter((task) => task.completada)),
+        snapshot: {
+          progressText: `${stats.completed}/${stats.total} tareas logradas`
+        }
+      });
+    }
+
+    function completionRecordForTask(task) {
+      return completionBaseRecord("task", task, {
+        projectId: task.projectId,
+        goalId: task.sectionId || null,
+        taskId: task.id
+      });
+    }
+
+    function completionRecordForSubtask(subtask) {
+      const task = taskById(subtask.taskId);
+      return completionBaseRecord("subtask", subtask, {
+        projectId: task?.projectId || null,
+        goalId: task?.sectionId || null,
+        taskId: subtask.taskId
+      });
+    }
+
+    function syncCompletionState() {
+      if (!state || !Array.isArray(state.completedLog)) state.completedLog = [];
+      const records = new Map(state.completedLog.map((entry) => [completionKey(entry.itemType, entry.itemId), { ...entry }]));
+
+      const activate = (record) => {
+        const key = completionKey(record.itemType, record.itemId);
+        const previous = records.get(key) || {};
+        records.set(key, {
+          ...previous,
+          ...record,
+          id: previous.id || record.id || uid("completion"),
+          completedAt: previous.completedAt || record.completedAt || nowISO(),
+          currentStatus: true,
+          reopenedAt: null,
+          snapshot: {
+            ...(previous.snapshot || {}),
+            ...(record.snapshot || {})
+          }
+        });
+      };
+
+      const deactivate = (itemType, itemId) => {
+        const key = completionKey(itemType, itemId);
+        const previous = records.get(key);
+        if (previous && previous.currentStatus !== false) {
+          records.set(key, { ...previous, currentStatus: false, reopenedAt: nowISO() });
+        }
+      };
+
+      state.tasks.forEach((task) => {
+        if (task.completada) activate(completionRecordForTask(task));
+        else deactivate("task", task.id);
+      });
+
+      state.subtasks.forEach((subtask) => {
+        if (subtask.completada) activate(completionRecordForSubtask(subtask));
+        else deactivate("subtask", subtask.id);
+      });
+
+      state.sections.forEach((goal) => {
+        const stats = statsForGoal(goal.projectId, goal.id);
+        const achieved = stats.total > 0 && stats.pending === 0;
+        if (achieved) {
+          if (!goal.completedAt) goal.completedAt = latestCompletedAt(state.tasks.filter((task) => task.sectionId === goal.id && task.completada));
+          activate(completionRecordForGoal(goal));
+        } else {
+          deactivate("goal", goal.id);
+        }
+      });
+
+      const liveGoalIds = new Set(state.sections.map((goal) => goal.id));
+      const liveTaskIds = new Set(state.tasks.map((task) => task.id));
+      const liveSubtaskIds = new Set(state.subtasks.map((subtask) => subtask.id));
+      records.forEach((record) => {
+        const exists = record.itemType === "goal"
+          ? liveGoalIds.has(record.itemId)
+          : record.itemType === "subtask"
+            ? liveSubtaskIds.has(record.itemId)
+            : liveTaskIds.has(record.itemId);
+        if (!exists && record.currentStatus !== false) {
+          records.set(completionKey(record.itemType, record.itemId), { ...record, currentStatus: false, reopenedAt: record.reopenedAt || nowISO() });
+        }
+      });
+
+      state.completedLog = Array.from(records.values())
+        .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
+    }
+
+    function builtRecords({ includeReopened = true } = {}) {
+      const records = Array.isArray(state.completedLog) ? state.completedLog : [];
+      return records
+        .filter((record) => includeReopened || record.currentStatus !== false)
+        .slice()
+        .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
+    }
+
+    function builtTypeLabel(type) {
+      if (type === "goal") return "Meta";
+      if (type === "subtask") return "Subtarea";
+      return "Tarea";
+    }
+
+    function builtTypeColor(type) {
+      if (type === "goal") return "#d8b66e";
+      if (type === "subtask") return "#c36b64";
+      return "#78ad85";
+    }
+
+    function builtContext(record) {
+      const parts = [
+        record.snapshot?.projectName || projectById(record.projectId)?.nombre,
+        record.snapshot?.goalName || goalById(record.goalId)?.nombre,
+        record.itemType === "subtask" ? (record.snapshot?.taskName || taskById(record.taskId)?.nombre) : ""
+      ].filter(Boolean);
+      return parts.join(" - ");
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("es-CL", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(date);
+    }
+
     function getSelectedProject() {
       return state.projects.find((project) => project.id === state.selectedProjectId) || state.projects[0] || null;
     }
@@ -5311,6 +5636,7 @@
 
     function setState(patch, persist = true) {
       state = normalizeState({ ...state, ...patch });
+      syncCompletionState();
       if (persist) saveState();
       render();
     }
@@ -5318,6 +5644,7 @@
     function mutate(mutator, options = {}) {
       mutator();
       state = normalizeState(state);
+      syncCompletionState();
       if (options.persist !== false) saveState();
       render();
     }
@@ -8056,6 +8383,7 @@
             <nav class="view-toggle" aria-label="Alternar vista">
               <button type="button" data-action="set-view" data-view="list" class="${state.view === "list" ? "is-active" : ""}">Atlas</button>
               <button type="button" data-action="set-view" data-view="calendar" class="${state.view === "calendar" ? "is-active" : ""}">Calendario</button>
+              <button type="button" data-action="set-view" data-view="built" class="${state.view === "built" ? "is-active" : ""}">Construido</button>
               <button type="button" data-action="set-view" data-view="tags" class="${state.view === "tags" ? "is-active" : ""}">Etiquetas</button>
             </nav>
             <div class="global-actions">
@@ -8090,6 +8418,7 @@
     function renderMainView() {
       if (state.view === "list" || state.view === "map") return renderMapView();
       if (state.view === "calendar") return renderCalendarView();
+      if (state.view === "built") return renderBuiltView();
       if (state.view === "tags") return renderTagsView();
       return renderMapView();
     }
@@ -8106,6 +8435,96 @@
           }).join("")}
         </div>
       `;
+    }
+
+    function renderBuiltView() {
+      syncCompletionState();
+      const records = builtRecords({ includeReopened: true });
+      const active = records.filter((record) => record.currentStatus !== false);
+      const summary = {
+        goals: active.filter((record) => record.itemType === "goal").length,
+        tasks: active.filter((record) => record.itemType === "task").length,
+        subtasks: active.filter((record) => record.itemType === "subtask").length,
+        history: records.length
+      };
+      const groups = records.reduce((acc, record) => {
+        const key = record.completedAt ? record.completedAt.slice(0, 10) : "sin-fecha";
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(record);
+        return acc;
+      }, {});
+      const groupKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+      return `
+        <section class="workspace-view">
+          <div class="workspace-inner">
+            <div class="workspace-head">
+              <div>
+                <h2>Construido</h2>
+                <p>Historial de metas logradas, tareas completadas y subtareas terminadas. Lo construido queda registrado aunque luego se reabra.</p>
+              </div>
+            </div>
+            <div class="built-summary-grid">
+              ${renderBuiltSummaryCard("Metas logradas", summary.goals, "#d8b66e")}
+              ${renderBuiltSummaryCard("Tareas completadas", summary.tasks, "#78ad85")}
+              ${renderBuiltSummaryCard("Subtareas terminadas", summary.subtasks, "#c36b64")}
+              ${renderBuiltSummaryCard("Registros historicos", summary.history, "#8da2b5")}
+            </div>
+            <div class="built-timeline">
+              ${records.length
+                ? groupKeys.map((key) => `
+                    <div class="built-date-group">
+                      <h3>${escapeHtml(formatBuiltGroupDate(key))}</h3>
+                      ${groups[key].map(renderBuiltEntry).join("")}
+                    </div>
+                  `).join("")
+                : `<div class="empty-state">Aun no hay elementos construidos. Completa una tarea o una subtarea para inaugurar el registro.</div>`}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderBuiltSummaryCard(label, value, color) {
+      return `
+        <div class="built-summary-card" style="--built-color:${color}">
+          <strong>${value}</strong>
+          <span>${escapeHtml(label)}</span>
+        </div>
+      `;
+    }
+
+    function renderBuiltEntry(record) {
+      const color = builtTypeColor(record.itemType);
+      const context = builtContext(record);
+      const priority = priorityLabel(record.prioridad);
+      const due = formatDate(record.fechaVencimiento);
+      const detail = [context, due, priority].filter(Boolean).join(" - ");
+      return `
+        <article class="built-entry ${record.currentStatus === false ? "is-reopened" : ""}" style="--built-color:${color}">
+          <div class="built-type">${builtTypeLabel(record.itemType)}</div>
+          <div class="built-main">
+            <strong>${escapeHtml(record.nombre)}</strong>
+            <span>${escapeHtml(detail || record.descripcion || "Sin detalle adicional")}</span>
+          </div>
+          <div>
+            <div class="built-time">${escapeHtml(formatDateTime(record.completedAt))}</div>
+            ${record.currentStatus === false ? `<span class="built-status">Reabierto</span>` : `<span class="built-status">Construido</span>`}
+          </div>
+        </article>
+      `;
+    }
+
+    function formatBuiltGroupDate(key) {
+      if (!key || key === "sin-fecha") return "Sin fecha";
+      const date = new Date(`${key}T12:00:00`);
+      if (Number.isNaN(date.getTime())) return key;
+      return new Intl.DateTimeFormat("es-CL", {
+        weekday: "short",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      }).format(date);
     }
 
     function totalStatsForProject(projectId) {
@@ -8152,13 +8571,13 @@
       return `
         <section class="map-view ${showProjectPanel ? "has-project" : "no-project"} ${showGoalTasks ? "has-goal" : "no-goal"} ${showTaskDetail ? "has-task" : "no-task"}" style="--map-panel-width:${panelWidth}px">
           <div class="map-column">
-          <div class="map-shell">
             <div class="map-toolbar" aria-label="Zoom del mapa">
               <button type="button" data-action="map-zoom-out" title="Alejar" aria-label="Alejar">−</button>
               <button type="button" data-action="map-zoom-in" title="Acercar" aria-label="Acercar">+</button>
               <button type="button" data-action="map-reset" title="Centrar atlas">Centrar</button>
               <button type="button" class="map-create-project-control" data-action="open-project" title="Crear proyecto">Crear proyecto</button>
             </div>
+          <div class="map-shell">
             ${renderMapSvg()}
             ${hasProjects ? "" : `<button type="button" class="empty-atlas-create-btn" data-action="open-project">Crear proyecto</button>`}
             ${showProjectPanel ? `<button type="button" class="small-btn map-focus-project-btn" data-action="focus-project-map" data-project-id="${project.id}" title="Ver solo este proyecto">Vista proyecto</button>` : ""}
@@ -10406,6 +10825,7 @@
       }, 1900);
     }
 
+    syncCompletionState();
     render();
     initSupabaseFromConfig({ mode: "pull", silent: true });
   </script>

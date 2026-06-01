@@ -3906,33 +3906,43 @@
     .map-view.has-task .project-tree-panel .quick-add,
     .map-view.has-task .project-tree-panel .quick-add.is-goal,
     .map-view.has-task .project-tree-panel .quick-add.is-subtask {
-      grid-template-columns: 62px minmax(170px, 1fr) minmax(76px, max-content) minmax(92px, max-content);
+      grid-template-columns: minmax(120px, 1.15fr) minmax(120px, 0.95fr) 52px 112px minmax(64px, max-content) minmax(86px, max-content);
       gap: 5px;
-      padding: 6px;
+      padding: 5px;
+      align-items: stretch;
     }
 
     .project-tree-panel .quick-add input[name="nombre"] {
-      grid-column: 1 / -1;
-      min-height: 29px;
-      padding: 0 10px;
+      grid-column: 1;
+      min-height: 28px;
+      padding: 0 9px;
       font-size: 0.72rem;
     }
 
-    .project-tree-panel .quick-add select {
-      grid-column: 1;
-      width: 62px;
+    .project-tree-panel .quick-add input[name="descripcion"] {
+      grid-column: 2;
       min-width: 0;
-      padding-left: 6px;
-      padding-right: 20px;
+      min-height: 28px;
+      padding: 0 9px;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .project-tree-panel .quick-add select {
+      grid-column: 3;
+      width: 52px;
+      min-width: 0;
+      padding-left: 5px;
+      padding-right: 18px;
       text-align: center;
       text-align-last: center;
     }
 
     .project-tree-panel .quick-add input[type="date"] {
-      grid-column: 2;
+      grid-column: 4;
       width: 100%;
       min-width: 0;
-      padding: 0 9px;
+      padding: 0 7px;
     }
 
     .project-tree-panel .quick-add .primary-btn,
@@ -3946,29 +3956,30 @@
     }
 
     .project-tree-panel .quick-add .primary-btn {
-      grid-column: 3;
-      min-width: 76px;
+      grid-column: 5;
+      min-width: 64px;
     }
 
     .project-tree-panel .quick-add .quick-add-card-btn {
-      grid-column: 4;
-      min-width: 92px;
+      grid-column: 6;
+      min-width: 86px;
     }
 
     .project-tree-panel .quick-add.is-goal,
     .project-tree-panel .quick-add.is-subtask,
     .map-view.has-task .project-tree-panel .quick-add.is-goal,
     .map-view.has-task .project-tree-panel .quick-add.is-subtask {
-      grid-template-columns: 62px minmax(170px, 1fr) minmax(104px, max-content);
+      grid-template-columns: minmax(120px, 1.15fr) minmax(120px, 0.95fr) 52px 112px minmax(64px, max-content) minmax(86px, max-content);
     }
 
     .project-tree-panel .quick-add.is-goal .primary-btn,
     .project-tree-panel .quick-add.is-subtask .primary-btn {
-      grid-column: 3;
-      min-width: 104px;
+      grid-column: 5;
+      min-width: 64px;
     }
 
-    .tree-add.is-goal .primary-btn {
+    .tree-add.is-goal .primary-btn,
+    .tree-add.is-goal .quick-add-card-btn {
       background: linear-gradient(90deg, #d5ad65, #ead69a);
       color: #1b1610;
     }
@@ -4008,7 +4019,7 @@
     }
 
     .tree-row {
-      grid-template-columns: 28px minmax(0, 1fr) 42px minmax(116px, 142px) auto;
+      grid-template-columns: 28px minmax(0, 1fr) 34px 72px auto;
       gap: 6px;
       min-height: 42px;
       padding: 6px 7px;
@@ -6466,6 +6477,7 @@
       return `
         <form class="quick-add is-task" data-action="quick-add" data-project-id="${projectId}" data-section-id="${sectionId || ""}">
           <input type="text" name="nombre" placeholder="+ ${escapeHtml(placeholder)}" autocomplete="off">
+          <input type="text" name="descripcion" placeholder="+ Descripcion breve" autocomplete="off">
           <select name="prioridad" aria-label="Prioridad">
             ${renderPriorityOptions()}
           </select>
@@ -6913,7 +6925,21 @@
           mapViewBox: mapBoxForContinent(projectId)
         });
       }
-      if (action === "select-goal") setState({ view: "list", selectedProjectId: projectId, selectedGoalId: goalKey(projectId, sectionId || null), selectedTaskId: null, selectedSubtaskId: null, mapGoalPopupId: null, mapTaskPopupId: null, continentPopupId: null, listProjectOpen: true });
+      if (action === "select-goal") {
+        const nextGoalId = goalKey(projectId, sectionId || null);
+        const closeAccordion = Boolean(actionTarget.closest(".project-tree-panel")) && state.selectedProjectId === projectId && state.selectedGoalId === nextGoalId;
+        setState({
+          view: "list",
+          selectedProjectId: projectId,
+          selectedGoalId: closeAccordion ? null : nextGoalId,
+          selectedTaskId: null,
+          selectedSubtaskId: null,
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null,
+          listProjectOpen: true
+        });
+      }
       if (action === "set-calendar-mode") setState({ calendarMode: actionTarget.dataset.mode || "agenda" });
       if (action === "open-calendar-item") openCalendarItem(actionTarget);
       if (action === "open-project") {
@@ -6938,10 +6964,11 @@
       }
       if (action === "select-task") {
         const task = state.tasks.find((item) => item.id === taskId);
+        const closeAccordion = Boolean(actionTarget.closest(".project-tree-panel")) && state.selectedTaskId === taskId;
         setState({
           selectedProjectId: task?.projectId || state.selectedProjectId,
           selectedGoalId: task ? goalKey(task.projectId, task.sectionId) : state.selectedGoalId,
-          selectedTaskId: taskId,
+          selectedTaskId: closeAccordion ? null : taskId,
           selectedSubtaskId: null,
           mapGoalPopupId: null,
           mapTaskPopupId: null,
@@ -6956,7 +6983,9 @@
       if (action === "open-date-picker") openTaskDatePicker(actionTarget);
       if (action === "quick-add-card") {
         const form = actionTarget.closest("form");
-        if (form) saveQuickTaskCard(form);
+        if (form?.dataset.action === "quick-add-goal") saveQuickGoalCard(form);
+        else if (form?.dataset.action === "quick-add-subtask") saveQuickSubtaskCard(form);
+        else if (form) saveQuickTaskCard(form);
       }
       if (action === "open-subtask") {
         const subtaskId = actionTarget.dataset.subtaskId || null;
@@ -6967,11 +6996,12 @@
         const subtask = state.subtasks.find((item) => item.id === subtaskId);
         const task = subtask ? state.tasks.find((item) => item.id === subtask.taskId) : null;
         if (subtask && task) {
+          const closeAccordion = Boolean(actionTarget.closest(".project-tree-panel")) && state.selectedSubtaskId === subtask.id;
           setState({
             selectedProjectId: task.projectId,
             selectedGoalId: goalKey(task.projectId, task.sectionId),
             selectedTaskId: task.id,
-            selectedSubtaskId: subtask.id,
+            selectedSubtaskId: closeAccordion ? null : subtask.id,
             modal: null
           }, false);
         }
@@ -7174,13 +7204,14 @@
       if (!name) return;
       const projectId = form.dataset.projectId;
       const sectionId = form.dataset.sectionId || null;
+      const descripcion = form.elements.descripcion?.value.trim() || "";
       mutate(() => {
         state.tasks.push({
           id: uid("task"),
           projectId,
           sectionId,
           nombre: name,
-          descripcion: "",
+          descripcion,
           prioridad: normalizePriority(form.elements.prioridad.value),
           completada: false,
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
@@ -7205,6 +7236,7 @@
       const sectionId = form.dataset.sectionId || null;
       if (!projectId) return;
       const name = form.elements.nombre.value.trim() || "Nueva tarea";
+      const descripcion = form.elements.descripcion?.value.trim() || "";
       let taskId = null;
       mutate(() => {
         const task = {
@@ -7212,7 +7244,7 @@
           projectId,
           sectionId,
           nombre: name,
-          descripcion: "",
+          descripcion,
           prioridad: normalizePriority(form.elements.prioridad.value),
           completada: false,
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
@@ -7231,10 +7263,43 @@
       showToast("Tarjeta creada");
     }
 
+    function saveQuickGoalCard(form) {
+      const projectId = form.dataset.projectId;
+      if (!projectId) return;
+      const name = form.elements.nombre.value.trim() || "Nueva meta";
+      const descripcion = form.elements.descripcion?.value.trim() || "";
+      let sectionId = null;
+      mutate(() => {
+        const goalIndex = state.sections.filter((section) => section.projectId === projectId).length;
+        sectionId = uid("section");
+        state.sections.push({
+          id: sectionId,
+          projectId,
+          nombre: name,
+          descripcion,
+          prioridad: normalizePriority(form.elements.prioridad?.value),
+          fechaVencimiento: form.elements.fechaVencimiento?.value || null,
+          tags: [],
+          orden: goalIndex,
+          posicion: goalPositionFor(projectId, goalIndex),
+          linkedGoalIds: [],
+          createdAt: nowISO()
+        });
+        state.selectedProjectId = projectId;
+        state.selectedGoalId = goalKey(projectId, sectionId);
+        state.selectedTaskId = null;
+        state.selectedSubtaskId = null;
+        state.continentPopupId = null;
+        state.modal = { type: "section", id: sectionId, projectId };
+      }, { persist: true });
+      showToast("Tarjeta creada");
+    }
+
     function saveQuickGoal(form, event) {
       const name = form.elements.nombre.value.trim();
       const projectId = form.dataset.projectId;
       if (!name || !projectId) return;
+      const descripcion = form.elements.descripcion?.value.trim() || "";
       mutate(() => {
         const goalIndex = state.sections.filter((section) => section.projectId === projectId).length;
         const sectionId = uid("section");
@@ -7242,7 +7307,7 @@
           id: sectionId,
           projectId,
           nombre: name,
-          descripcion: "",
+          descripcion,
           prioridad: normalizePriority(form.elements.prioridad?.value),
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           tags: [],
@@ -7272,6 +7337,7 @@
       const task = state.tasks.find((item) => item.id === taskId);
       const name = form.elements.nombre.value.trim();
       if (!task || !name) return;
+      const descripcion = form.elements.descripcion?.value.trim() || "";
       if (parentSubtask && subtaskDepth(parentSubtask.id) >= MAX_SUBTASK_DEPTH) {
         showToast("Ya alcanzaste el maximo de niveles de subtareas");
         return;
@@ -7283,7 +7349,7 @@
           taskId,
           parentSubtaskId,
           nombre: name,
-          descripcion: "",
+          descripcion,
           prioridad: normalizePriority(form.elements.prioridad?.value),
           completada: false,
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
@@ -7302,6 +7368,44 @@
         const sameForm = document.querySelector(`form[data-action="quick-add-subtask"][data-task-id="${taskId}"][data-parent-subtask-id="${parentSubtaskId || ""}"]`);
         if (sameForm) sameForm.elements.nombre.focus();
       }
+    }
+
+    function saveQuickSubtaskCard(form) {
+      const parentSubtaskId = form.dataset.parentSubtaskId || null;
+      const parentSubtask = parentSubtaskId ? state.subtasks.find((item) => item.id === parentSubtaskId) : null;
+      const taskId = parentSubtask?.taskId || form.dataset.taskId;
+      const task = state.tasks.find((item) => item.id === taskId);
+      if (!task) return;
+      if (parentSubtask && subtaskDepth(parentSubtask.id) >= MAX_SUBTASK_DEPTH) {
+        showToast("Ya alcanzaste el maximo de niveles de subtareas");
+        return;
+      }
+      const name = form.elements.nombre.value.trim() || "Nueva subtarea";
+      const descripcion = form.elements.descripcion?.value.trim() || "";
+      let subtaskId = null;
+      mutate(() => {
+        subtaskId = uid("subtask");
+        state.subtasks.push({
+          id: subtaskId,
+          taskId,
+          parentSubtaskId,
+          nombre: name,
+          descripcion,
+          prioridad: normalizePriority(form.elements.prioridad?.value),
+          completada: false,
+          fechaVencimiento: form.elements.fechaVencimiento?.value || null,
+          tags: [],
+          orden: sortedSubtaskChildren(taskId, parentSubtaskId).length,
+          createdAt: nowISO(),
+          completedAt: null
+        });
+        state.selectedProjectId = task.projectId;
+        state.selectedGoalId = goalKey(task.projectId, task.sectionId);
+        state.selectedTaskId = taskId;
+        state.selectedSubtaskId = subtaskId;
+        state.modal = { type: "subtask", id: subtaskId, taskId };
+      }, { persist: true });
+      showToast("Tarjeta creada");
     }
 
     function saveProject(form) {
@@ -9602,11 +9706,13 @@
       return `
         <form class="quick-add is-subtask" data-action="quick-add-subtask" data-task-id="${taskId}" data-parent-subtask-id="${parentSubtaskId || ""}">
           <input type="text" name="nombre" placeholder="${escapeHtml(placeholder)}" autocomplete="off">
+          <input type="text" name="descripcion" placeholder="+ Descripcion breve" autocomplete="off">
           <select name="prioridad" aria-label="Prioridad de subtarea">
             ${renderPriorityOptions()}
           </select>
           <input type="date" name="fechaVencimiento" aria-label="Fecha limite de la subtarea" title="Fecha limite">
-          <button class="primary-btn" type="submit">Crear subtarea</button>
+          <button class="primary-btn" type="submit">Crear</button>
+          <button class="ghost-btn quick-add-card-btn" type="button" data-action="quick-add-card">Crear tarjeta</button>
         </form>
       `;
     }
@@ -9634,11 +9740,13 @@
       return `
         <form class="quick-add is-goal" data-action="quick-add-goal" data-project-id="${projectId}">
           <input type="text" name="nombre" placeholder="+ Nueva meta" autocomplete="off">
+          <input type="text" name="descripcion" placeholder="+ Descripcion breve" autocomplete="off">
           <select name="prioridad" aria-label="Prioridad de meta">
             ${renderPriorityOptions()}
           </select>
           <input type="date" name="fechaVencimiento" aria-label="Fecha limite de la meta" title="Fecha limite">
-          <button class="primary-btn" type="submit">Crear meta</button>
+          <button class="primary-btn" type="submit">Crear</button>
+          <button class="ghost-btn quick-add-card-btn" type="button" data-action="quick-add-card">Crear tarjeta</button>
         </form>
       `;
     }

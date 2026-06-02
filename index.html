@@ -1708,6 +1708,145 @@
       font-weight: 800;
     }
 
+    .overview-head {
+      align-items: center;
+    }
+
+    .overview-summary {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .overview-summary span,
+    .overview-filters,
+    .overview-project {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(18, 24, 33, 0.84);
+    }
+
+    .overview-summary span {
+      padding: 6px 9px;
+    }
+
+    .overview-summary strong {
+      color: var(--text);
+    }
+
+    .overview-filters {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr)) auto;
+      gap: 8px;
+      padding: 10px;
+      align-items: end;
+    }
+
+    .overview-filters label {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 850;
+    }
+
+    .overview-filters select {
+      min-height: 34px;
+      padding: 0 28px 0 10px;
+      font-size: 0.78rem;
+    }
+
+    .overview-filters .small-btn {
+      min-height: 34px;
+      white-space: nowrap;
+    }
+
+    .overview-tree {
+      display: grid;
+      gap: 12px;
+    }
+
+    .overview-project {
+      overflow: hidden;
+      border-left: 5px solid var(--project-color, var(--blue));
+      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.2);
+    }
+
+    .overview-project-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(90deg, rgba(94, 133, 170, 0.18), rgba(255, 255, 255, 0.03));
+      color: var(--text);
+    }
+
+    .overview-project-head > div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .overview-project-head strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .overview-project-head span:last-child {
+      color: var(--muted);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .overview-project-body {
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+    }
+
+    .overview-group.is-context > .tree-row:first-child {
+      opacity: 0.78;
+    }
+
+    .overview-empty {
+      padding: 24px;
+      border: 1px dashed rgba(141, 162, 181, 0.28);
+      border-radius: 6px;
+      color: var(--muted);
+      font-style: italic;
+      text-align: center;
+      background: rgba(18, 24, 33, 0.62);
+    }
+
+    @media (max-width: 1200px) {
+      .overview-filters {
+        grid-template-columns: repeat(3, minmax(150px, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .overview-head,
+      .overview-project-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .overview-summary {
+        justify-content: flex-start;
+      }
+
+      .overview-filters {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .calendar-grid,
     .tag-dashboard-grid {
       display: grid;
@@ -4923,7 +5062,7 @@
       const tags = Array.isArray(data.tags) ? data.tags : [];
       const completedLog = Array.isArray(data.completedLog) ? data.completedLog : [];
       const projectMapSlots = resolveProjectMapSlots(projects);
-      const allowedViews = ["map", "list", "calendar", "tags", "built"];
+      const allowedViews = ["map", "list", "overview", "calendar", "tags", "built"];
       const normalizedView = allowedViews.includes(data.view)
         ? (data.view === "map" ? "list" : data.view)
         : "list";
@@ -4945,6 +5084,14 @@
           projectId: data.calendarFilters?.projectId || "all",
           type: data.calendarFilters?.type || "all",
           tagId: data.calendarFilters?.tagId || "all"
+        },
+        overviewFilters: {
+          projectId: data.overviewFilters?.projectId || "all",
+          type: ["all", "goals", "tasks", "subtasks"].includes(data.overviewFilters?.type) ? data.overviewFilters.type : "all",
+          status: ["pending", "all", "completed"].includes(data.overviewFilters?.status) ? data.overviewFilters.status : "pending",
+          priority: ["all", "none", ...priorities].includes(data.overviewFilters?.priority) ? data.overviewFilters.priority : "all",
+          tagId: data.overviewFilters?.tagId || "all",
+          sortBy: ["project", "date", "priority", "name", "type"].includes(data.overviewFilters?.sortBy) ? data.overviewFilters.sortBy : "project"
         },
         selectedProjectId: data.selectedProjectId && projects.some((p) => p.id === data.selectedProjectId)
           ? data.selectedProjectId
@@ -7421,7 +7568,7 @@
       if (!actionTarget) return;
       const action = actionTarget.dataset.action;
       if (action === "close-modal" && event.target !== actionTarget && actionTarget.classList.contains("modal-backdrop")) return;
-      if (action !== "quick-add" && action !== "task-project-select") event.preventDefault();
+      if (!["quick-add", "task-project-select", "calendar-filter", "overview-filter"].includes(action)) event.preventDefault();
       if (!["toggle-combo", "choose-combo"].includes(action)) closeTaskCombos();
       if (suppressNextMapClick) {
         suppressNextMapClick = false;
@@ -7441,6 +7588,18 @@
       if (action === "set-tree-mode") {
         const nextMode = actionTarget.dataset.treeMode || "all";
         if (["goals", "tasks", "all"].includes(nextMode)) setState({ treeMode: nextMode });
+      }
+      if (action === "overview-clear-filters") {
+        setState({
+          overviewFilters: {
+            projectId: "all",
+            type: "all",
+            status: "pending",
+            priority: "all",
+            tagId: "all",
+            sortBy: "project"
+          }
+        });
       }
       if (action === "map-reset") resetMapView();
       if (action === "map-zoom-in") zoomMapAtCenter(0.78);
@@ -8666,6 +8825,16 @@
         });
         return;
       }
+      const overviewFilter = event.target.closest("[data-action='overview-filter']");
+      if (overviewFilter) {
+        setState({
+          overviewFilters: {
+            ...(state.overviewFilters || {}),
+            [overviewFilter.dataset.filter]: overviewFilter.value
+          }
+        });
+        return;
+      }
       const mapProjectSelect = event.target.closest("select[data-action='map-project-select']");
       if (mapProjectSelect) {
         const projectId = mapProjectSelect.value;
@@ -8703,6 +8872,7 @@
             </div>
             <nav class="view-toggle" aria-label="Alternar vista">
               <button type="button" data-action="set-view" data-view="list" class="${state.view === "list" ? "is-active" : ""}">Atlas</button>
+              <button type="button" data-action="set-view" data-view="overview" class="${state.view === "overview" ? "is-active" : ""}">General</button>
               <button type="button" data-action="set-view" data-view="calendar" class="${state.view === "calendar" ? "is-active" : ""}">Calendario</button>
               <button type="button" data-action="set-view" data-view="built" class="${state.view === "built" ? "is-active" : ""}">Construido</button>
               <button type="button" data-action="set-view" data-view="tags" class="${state.view === "tags" ? "is-active" : ""}">Etiquetas</button>
@@ -8738,6 +8908,7 @@
 
     function renderMainView() {
       if (state.view === "list" || state.view === "map") return renderMapView();
+      if (state.view === "overview") return renderOverviewView();
       if (state.view === "calendar") return renderCalendarView();
       if (state.view === "built") return renderBuiltView();
       if (state.view === "tags") return renderTagsView();
@@ -8756,6 +8927,267 @@
           }).join("")}
         </div>
       `;
+    }
+
+    function renderOverviewView() {
+      const filters = state.overviewFilters || {};
+      const projects = sortedProjects().filter((project) => filters.projectId === "all" || project.id === filters.projectId);
+      const counts = overviewCounts(filters);
+      const projectOptions = sortedProjects().map((project) => `<option value="${project.id}" ${filters.projectId === project.id ? "selected" : ""}>${escapeHtml(project.nombre)}</option>`).join("");
+      const tagOptions = (state.tags || []).map((tag) => `<option value="${tag.id}" ${filters.tagId === tag.id ? "selected" : ""}>${escapeHtml(tag.nombre)}</option>`).join("");
+      const content = projects
+        .map((project) => renderOverviewProject(project, filters))
+        .filter(Boolean)
+        .join("");
+
+      return `
+        <section class="workspace-view overview-view">
+          <div class="workspace-inner">
+            <div class="workspace-head overview-head">
+              <div>
+                <h2>Vista general</h2>
+                <p>Revise pendientes de todos los proyectos, filtre por nivel y ordene sin perder la jerarquía.</p>
+              </div>
+              <div class="overview-summary">
+                <span><strong>${counts.goals}</strong> metas</span>
+                <span><strong>${counts.tasks}</strong> tareas</span>
+                <span><strong>${counts.subtasks}</strong> subtareas</span>
+              </div>
+            </div>
+            <div class="overview-filters" aria-label="Filtros de vista general">
+              <label>Proyecto
+                <select data-action="overview-filter" data-filter="projectId">
+                  <option value="all" ${filters.projectId === "all" ? "selected" : ""}>Todos</option>
+                  ${projectOptions}
+                </select>
+              </label>
+              <label>Nivel
+                <select data-action="overview-filter" data-filter="type">
+                  <option value="all" ${filters.type === "all" ? "selected" : ""}>Todo</option>
+                  <option value="goals" ${filters.type === "goals" ? "selected" : ""}>Metas</option>
+                  <option value="tasks" ${filters.type === "tasks" ? "selected" : ""}>Tareas</option>
+                  <option value="subtasks" ${filters.type === "subtasks" ? "selected" : ""}>Subtareas</option>
+                </select>
+              </label>
+              <label>Estado
+                <select data-action="overview-filter" data-filter="status">
+                  <option value="pending" ${filters.status === "pending" ? "selected" : ""}>Pendientes</option>
+                  <option value="completed" ${filters.status === "completed" ? "selected" : ""}>Completados</option>
+                  <option value="all" ${filters.status === "all" ? "selected" : ""}>Todos</option>
+                </select>
+              </label>
+              <label>Prioridad
+                <select data-action="overview-filter" data-filter="priority">
+                  <option value="all" ${filters.priority === "all" ? "selected" : ""}>Todas</option>
+                  <option value="none" ${filters.priority === "none" ? "selected" : ""}>-</option>
+                  ${priorities.map((priority) => `<option value="${priority}" ${filters.priority === priority ? "selected" : ""}>${priorityLabels[priority]}</option>`).join("")}
+                </select>
+              </label>
+              <label>Etiqueta
+                <select data-action="overview-filter" data-filter="tagId">
+                  <option value="all" ${filters.tagId === "all" ? "selected" : ""}>Todas</option>
+                  ${tagOptions}
+                </select>
+              </label>
+              <label>Orden
+                <select data-action="overview-filter" data-filter="sortBy">
+                  <option value="project" ${filters.sortBy === "project" ? "selected" : ""}>Proyecto</option>
+                  <option value="date" ${filters.sortBy === "date" ? "selected" : ""}>Fecha</option>
+                  <option value="priority" ${filters.sortBy === "priority" ? "selected" : ""}>Prioridad</option>
+                  <option value="name" ${filters.sortBy === "name" ? "selected" : ""}>Nombre</option>
+                  <option value="type" ${filters.sortBy === "type" ? "selected" : ""}>Nivel</option>
+                </select>
+              </label>
+              <button type="button" class="small-btn" data-action="overview-clear-filters">Limpiar</button>
+            </div>
+            <div class="overview-tree">
+              ${content || `<div class="overview-empty">No hay elementos que coincidan con los filtros actuales.</div>`}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function overviewCounts(filters) {
+      return sortedProjects().reduce((acc, project) => {
+        if (filters.projectId !== "all" && filters.projectId !== project.id) return acc;
+        goalsForProject(project.id).forEach((goal) => {
+          if (overviewMatchesItem("goal", goal, { project }, filters)) acc.goals += 1;
+          sortedTasks(project.id, goal.id).forEach((task) => {
+            if (overviewMatchesItem("task", task, { project, goal }, filters)) acc.tasks += 1;
+            visitOverviewSubtasks(task, null, (subtask, depth) => {
+              if (overviewMatchesItem("subtask", subtask, { project, goal, task, depth }, filters)) acc.subtasks += 1;
+            });
+          });
+        });
+        return acc;
+      }, { goals: 0, tasks: 0, subtasks: 0 });
+    }
+
+    function renderOverviewProject(project, filters) {
+      const goals = overviewSortItems(goalsForProject(project.id), "goal", filters)
+        .map((goal, index) => renderOverviewGoal(project, goal, index, goalsForProject(project.id).length, filters))
+        .filter(Boolean)
+        .join("");
+      if (!goals) return "";
+      const stats = totalStatsForProject(project.id);
+      return `
+        <section class="overview-project" style="--project-color:${project.color}">
+          <header class="overview-project-head">
+            <div>
+              <span class="project-icon" style="color:${project.color}">${escapeHtml(project.icono || "◆")}</span>
+              <strong>${escapeHtml(project.nombre)}</strong>
+            </div>
+            <span>${stats.pending} ${stats.pending === 1 ? "pendiente" : "pendientes"}</span>
+          </header>
+          <div class="overview-project-body">${goals}</div>
+        </section>
+      `;
+    }
+
+    function renderOverviewGoal(project, goal, index, totalGoals, filters) {
+      const tasks = overviewSortItems(sortedTasks(project.id, goal.id), "task", filters)
+        .map((task) => renderOverviewTask(project, goal, task, filters))
+        .filter(Boolean)
+        .join("");
+      const isDirect = overviewMatchesItem("goal", goal, { project }, filters);
+      if (!isDirect && !tasks) return "";
+      const stats = statsForGoal(project.id, goal.id);
+      const priority = goalPriority(goal);
+      const selected = goalKey(project.id, goal.id) === state.selectedGoalId;
+      return `
+        <div class="overview-group ${isDirect ? "" : "is-context"}">
+          <div class="tree-row is-meta ${selected ? "is-selected" : ""}">
+            <span class="tree-level-label is-meta">M</span>
+            <button type="button" class="tree-main" data-action="select-goal" data-project-id="${project.id}" data-section-id="${goal.id || ""}">
+              <span class="tree-title">${escapeHtml(goal.nombre)}</span>
+              ${goal.descripcion ? `<span class="tree-description">${escapeHtml(goal.descripcion)}</span>` : ""}
+              <span class="tree-meta">${stats.completed}/${stats.total} tareas logradas</span>
+            </button>
+            <span class="tree-priority">${priority ? escapeHtml(priorityLabel(priority)) : ""}</span>
+            <span class="tree-date">${goal.fechaVencimiento ? escapeHtml(formatDate(goal.fechaVencimiento)) : ""}</span>
+            <div class="tree-actions">
+              <span class="tree-percent">${Math.round(stats.progress * 100)}%</span>
+              <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="up" data-section-id="${goal.id}" title="Subir meta" aria-label="Subir meta" ${index === 0 ? "disabled" : ""}>&#8593;</button>
+              <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="down" data-section-id="${goal.id}" title="Bajar meta" aria-label="Bajar meta" ${index === totalGoals - 1 ? "disabled" : ""}>&#8595;</button>
+              <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-section-id="${goal.id}" title="Editar meta" aria-label="Editar meta">&#9998;</button>
+              <button type="button" class="icon-btn goal-delete-btn" data-action="delete-section" data-section-id="${goal.id}" title="Borrar meta" aria-label="Borrar meta">&#128465;</button>
+            </div>
+          </div>
+          ${tasks}
+        </div>
+      `;
+    }
+
+    function renderOverviewTask(project, goal, task, filters) {
+      const children = overviewSortItems(sortedSubtaskChildren(task.id, null), "subtask", filters)
+        .map((subtask) => renderOverviewSubtask(project, goal, task, subtask, 1, filters))
+        .filter(Boolean)
+        .join("");
+      const isDirect = overviewMatchesItem("task", task, { project, goal }, filters);
+      if (!isDirect && !children) return "";
+      const selected = task.id === state.selectedTaskId;
+      const stats = statsForTask(task.id);
+      return `
+        <div class="tree-row is-task ${task.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
+          <button type="button" class="check-btn ${task.completada ? "is-complete" : ""}" data-action="toggle-task" data-task-id="${task.id}" aria-label="${task.completada ? "Reabrir tarea" : "Completar tarea"}">${task.completada ? "✓" : ""}</button>
+          <button type="button" class="tree-main" data-action="select-task" data-task-id="${task.id}">
+            <span class="tree-title">${escapeHtml(task.nombre)}</span>
+            ${task.descripcion ? `<span class="tree-description">${escapeHtml(task.descripcion)}</span>` : ""}
+            <span class="tree-meta">${escapeHtml(goal.nombre)}${stats.total ? ` - ${stats.completed}/${stats.total} subtareas logradas` : ""}</span>
+          </button>
+          <span class="tree-priority">${task.prioridad ? escapeHtml(priorityLabel(task.prioridad)) : ""}</span>
+          <span class="tree-date">${task.fechaVencimiento ? escapeHtml(formatDate(task.fechaVencimiento)) : ""}</span>
+          <div class="tree-actions">
+            <span class="tree-percent">${percentForTask(task)}%</span>
+            <button type="button" class="icon-btn" data-action="open-task" data-task-id="${task.id}" title="Editar tarea" aria-label="Editar tarea">&#9998;</button>
+            <button type="button" class="icon-btn" data-action="delete-task" data-task-id="${task.id}" title="Eliminar tarea" aria-label="Eliminar tarea">&#128465;</button>
+          </div>
+        </div>
+        ${children}
+      `;
+    }
+
+    function renderOverviewSubtask(project, goal, task, subtask, depth, filters) {
+      const safeDepth = Math.max(1, Math.min(MAX_SUBTASK_DEPTH, depth));
+      const children = overviewSortItems(sortedSubtaskChildren(task.id, subtask.id), "subtask", filters)
+        .map((child) => renderOverviewSubtask(project, goal, task, child, safeDepth + 1, filters))
+        .filter(Boolean)
+        .join("");
+      const isDirect = overviewMatchesItem("subtask", subtask, { project, goal, task, depth: safeDepth }, filters);
+      if (!isDirect && !children) return "";
+      const selected = subtask.id === state.selectedSubtaskId;
+      const indent = 56 + (safeDepth - 1) * 28;
+      const stats = statsForSubtask(subtask.id);
+      return `
+        <div class="tree-row is-subtask depth-${safeDepth} ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" style="--tree-indent:${indent}px">
+          <button type="button" class="check-btn ${subtask.completada ? "is-complete" : ""}" data-action="toggle-subtask" data-subtask-id="${subtask.id}" aria-label="${subtask.completada ? "Reabrir subtarea" : "Completar subtarea"}">${subtask.completada ? "✓" : ""}</button>
+          <button type="button" class="tree-main" data-action="select-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}">
+            <span class="tree-title">${escapeHtml(subtask.nombre)}</span>
+            ${subtask.descripcion ? `<span class="tree-description">${escapeHtml(subtask.descripcion)}</span>` : ""}
+            <span class="tree-meta">${escapeHtml(task.nombre)}${stats.total ? ` - ${stats.completed}/${stats.total} subtareas logradas` : ""}</span>
+          </button>
+          <span class="tree-priority">${subtask.prioridad ? escapeHtml(priorityLabel(subtask.prioridad)) : ""}</span>
+          <span class="tree-date">${subtask.fechaVencimiento ? escapeHtml(formatDate(subtask.fechaVencimiento)) : ""}</span>
+          <div class="tree-actions">
+            <span class="tree-percent">${percentForSubtask(subtask)}%</span>
+            <button type="button" class="icon-btn" data-action="open-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}" title="Editar subtarea" aria-label="Editar subtarea">&#9998;</button>
+            <button type="button" class="icon-btn" data-action="delete-subtask" data-subtask-id="${subtask.id}" title="Eliminar subtarea" aria-label="Eliminar subtarea">&#128465;</button>
+          </div>
+        </div>
+        ${children}
+      `;
+    }
+
+    function overviewMatchesItem(type, item, context, filters = state.overviewFilters || {}) {
+      if (filters.type !== "all" && filters.type !== `${type}s`) return false;
+      const completed = overviewItemCompleted(type, item, context);
+      if (filters.status === "pending" && completed) return false;
+      if (filters.status === "completed" && !completed) return false;
+      const priority = type === "goal" ? goalPriority(item) : normalizePriority(item.prioridad);
+      if (filters.priority === "none" && priority) return false;
+      if (filters.priority !== "all" && filters.priority !== "none" && filters.priority !== priority) return false;
+      if (filters.tagId !== "all" && !(Array.isArray(item.tags) && item.tags.includes(filters.tagId))) return false;
+      return true;
+    }
+
+    function overviewItemCompleted(type, item, context) {
+      if (type === "goal") {
+        const stats = statsForGoal(context.project.id, item.id);
+        return Boolean(item.completedAt) || (stats.total > 0 && stats.pending === 0);
+      }
+      return Boolean(item.completada);
+    }
+
+    function overviewSortItems(items, type, filters = state.overviewFilters || {}) {
+      const sortBy = filters.sortBy || "project";
+      if (sortBy === "project") return [...items];
+      return [...items].sort((a, b) => {
+        if (sortBy === "date") return overviewDateValue(a).localeCompare(overviewDateValue(b)) || overviewNameValue(a).localeCompare(overviewNameValue(b));
+        if (sortBy === "priority") return priorityRank(type === "goal" ? goalPriority(a) : normalizePriority(a.prioridad)) - priorityRank(type === "goal" ? goalPriority(b) : normalizePriority(b.prioridad)) || overviewNameValue(a).localeCompare(overviewNameValue(b));
+        if (sortBy === "name") return overviewNameValue(a).localeCompare(overviewNameValue(b));
+        if (sortBy === "type") return overviewTypeRank(type) || overviewNameValue(a).localeCompare(overviewNameValue(b));
+        return 0;
+      });
+    }
+
+    function overviewDateValue(item) {
+      return item.fechaVencimiento || "9999-12-31";
+    }
+
+    function overviewNameValue(item) {
+      return (item.nombre || "").toLocaleLowerCase("es-CL");
+    }
+
+    function overviewTypeRank(type) {
+      return { goal: 0, task: 1, subtask: 2 }[type] || 9;
+    }
+
+    function visitOverviewSubtasks(task, parentSubtaskId, visitor, depth = 1) {
+      sortedSubtaskChildren(task.id, parentSubtaskId).forEach((subtask) => {
+        visitor(subtask, depth);
+        visitOverviewSubtasks(task, subtask.id, visitor, depth + 1);
+      });
     }
 
     function renderBuiltView() {

@@ -101,9 +101,9 @@
       top: 0;
       z-index: 20;
       display: grid;
-      grid-template-columns: minmax(560px, 0.95fr) auto minmax(500px, 1fr);
+      grid-template-columns: minmax(360px, 1fr) auto minmax(300px, 1fr);
       align-items: center;
-      gap: clamp(12px, 1.6vw, 24px);
+      gap: clamp(10px, 1.2vw, 18px);
       padding: 16px 22px;
       border-bottom: 1px solid var(--line);
       background: rgba(12, 10, 18, 0.88);
@@ -118,7 +118,7 @@
     }
 
     .brand-copy {
-      flex: 0 0 auto;
+      flex: 1 1 auto;
       min-width: 0;
     }
 
@@ -137,6 +137,8 @@
       font-size: 0.82rem;
       font-style: italic;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .user-badge {
@@ -207,11 +209,12 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      min-height: 38px;
-      padding: 0 14px;
+      min-height: 34px;
+      padding: 0 11px;
       border-radius: 999px;
       background: transparent;
       color: var(--muted);
+      font-size: 0.78rem;
       white-space: nowrap;
     }
 
@@ -225,7 +228,7 @@
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
       justify-self: end;
       width: 100%;
@@ -242,10 +245,11 @@
 
     .pending-breakdown {
       flex: 0 1 auto;
-      min-width: 0;
-      max-width: min(56vw, 760px);
+      min-width: 150px;
+      max-width: min(40vw, 560px);
       overflow-x: hidden;
       overflow-y: hidden;
+      justify-content: flex-start;
       padding-bottom: 1px;
       scrollbar-width: thin;
     }
@@ -272,6 +276,7 @@
     }
 
     .pending-label {
+      flex: 0 0 auto;
       color: var(--muted);
       font-size: 0.78rem;
       white-space: nowrap;
@@ -286,6 +291,7 @@
     .pending-chip {
       position: relative;
       justify-content: center;
+      flex: 0 0 34px;
       min-width: 34px;
       width: 34px;
       padding: 0;
@@ -1786,6 +1792,18 @@
       color: var(--text);
     }
 
+    .overview-project-main {
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+    }
+
     .overview-project-head > div {
       display: flex;
       align-items: center;
@@ -1809,6 +1827,26 @@
       display: grid;
       gap: 7px;
       padding: 12px;
+    }
+
+    .overview-caret,
+    .tree-caret {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      border: 1px solid rgba(193, 202, 214, 0.22);
+      border-radius: 4px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      line-height: 1;
+    }
+
+    .tree-title .tree-caret {
+      margin-right: 6px;
+      vertical-align: 1px;
     }
 
     .overview-group.is-context > .tree-row:first-child {
@@ -5049,7 +5087,11 @@
         tasks: [],
         subtasks: [],
         tags: [],
-        completedLog: []
+        completedLog: [],
+        overviewOpenProjectIds: [],
+        overviewOpenGoalIds: [],
+        overviewOpenTaskIds: [],
+        overviewOpenSubtaskIds: []
       };
     }
 
@@ -5070,7 +5112,7 @@
       const repairMapOrderDrift = !data.schemaVersion || data.schemaVersion < 17;
       const defaultBox = { x: 0, y: 0, w: 900, h: 800 };
       return {
-        schemaVersion: 17,
+        schemaVersion: 18,
         mapFitVersion: 1,
         kingdomName: (!data.kingdomName || data.kingdomName === "Reino en Construcción" || data.kingdomName === "Atlas de Construccion") ? "Atelier" : data.kingdomName,
         userName: data.userName || "Usuario",
@@ -5093,6 +5135,18 @@
           tagId: data.overviewFilters?.tagId || "all",
           sortBy: ["project", "date", "priority", "name", "type"].includes(data.overviewFilters?.sortBy) ? data.overviewFilters.sortBy : "project"
         },
+        overviewOpenProjectIds: Array.isArray(data.overviewOpenProjectIds)
+          ? data.overviewOpenProjectIds.filter((id) => projects.some((project) => project.id === id))
+          : projects.map((project) => project.id),
+        overviewOpenGoalIds: Array.isArray(data.overviewOpenGoalIds)
+          ? data.overviewOpenGoalIds.filter((id) => sections.some((section) => section.id === id))
+          : [],
+        overviewOpenTaskIds: Array.isArray(data.overviewOpenTaskIds)
+          ? data.overviewOpenTaskIds.filter((id) => tasks.some((task) => task.id === id))
+          : [],
+        overviewOpenSubtaskIds: Array.isArray(data.overviewOpenSubtaskIds)
+          ? data.overviewOpenSubtaskIds.filter((id) => subtasks.some((subtask) => subtask.id === id))
+          : [],
         selectedProjectId: data.selectedProjectId && projects.some((p) => p.id === data.selectedProjectId)
           ? data.selectedProjectId
           : projects[0]?.id || null,
@@ -5136,6 +5190,7 @@
             ...section,
             descripcion: section.descripcion || "",
             prioridad: normalizePriority(section.prioridad),
+            completada: Boolean(section.completada),
             fechaVencimiento: section.fechaVencimiento || null,
             completedAt: section.completedAt || null,
             secondaryProjectId: section.secondaryProjectId && projects.some((project) => project.id === section.secondaryProjectId) && section.secondaryProjectId !== section.projectId ? section.secondaryProjectId : null,
@@ -5908,9 +5963,13 @@
 
       state.sections.forEach((goal) => {
         const stats = statsForGoal(goal.projectId, goal.id);
-        const achieved = stats.total > 0 && stats.pending === 0;
+        const achieved = Boolean(goal.completada) || (stats.total > 0 && stats.pending === 0);
         if (achieved) {
-          if (!goal.completedAt) goal.completedAt = latestCompletedAt(state.tasks.filter((task) => task.sectionId === goal.id && task.completada));
+          if (!goal.completedAt) {
+            goal.completedAt = goal.completada
+              ? nowISO()
+              : latestCompletedAt(state.tasks.filter((task) => task.sectionId === goal.id && task.completada)) || nowISO();
+          }
           activate(completionRecordForGoal(goal));
         } else {
           deactivate("goal", goal.id);
@@ -7508,6 +7567,9 @@
       document.querySelectorAll("form[data-action]").forEach((form) => {
         form.addEventListener("submit", handleSubmit);
       });
+      document.querySelectorAll("[data-overview-dbl]").forEach((element) => {
+        element.addEventListener("dblclick", handleOverviewDoubleClick);
+      });
       document.querySelectorAll(".quick-add input[name='nombre']").forEach((input) => {
         input.addEventListener("keydown", handleQuickAddKeydown);
       });
@@ -7563,9 +7625,18 @@
       };
     }
 
+    function handleOverviewDoubleClick(event) {
+      const element = event.currentTarget;
+      if (!element || event.target.closest(".tree-actions, .check-btn, .icon-btn, select, input")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openOverviewTarget(element);
+    }
+
     function handleActionClick(event) {
       const actionTarget = event.target.closest("[data-action]:not(form)");
       if (!actionTarget) return;
+      if (event.currentTarget && event.currentTarget !== actionTarget) return;
       const action = actionTarget.dataset.action;
       if (action === "close-modal" && event.target !== actionTarget && actionTarget.classList.contains("modal-backdrop")) return;
       if (!["quick-add", "task-project-select", "calendar-filter", "overview-filter"].includes(action)) event.preventDefault();
@@ -7601,6 +7672,10 @@
           }
         });
       }
+      if (action === "toggle-overview-project") toggleOverviewOpen("overviewOpenProjectIds", projectId);
+      if (action === "toggle-overview-goal") toggleOverviewOpen("overviewOpenGoalIds", sectionId);
+      if (action === "toggle-overview-task") toggleOverviewOpen("overviewOpenTaskIds", taskId);
+      if (action === "toggle-overview-subtask") toggleOverviewOpen("overviewOpenSubtaskIds", actionTarget.dataset.subtaskId);
       if (action === "map-reset") resetMapView();
       if (action === "map-zoom-in") zoomMapAtCenter(0.78);
       if (action === "map-zoom-out") zoomMapAtCenter(1.24);
@@ -7768,6 +7843,7 @@
         }, false);
       }
       if (action === "close-subtask-panel") setState({ selectedTaskId: null, selectedSubtaskId: null }, false);
+      if (action === "toggle-goal") toggleGoal(sectionId);
       if (action === "toggle-task") toggleTask(taskId);
       if (action === "toggle-combo") toggleTaskCombo(actionTarget);
       if (action === "choose-combo") chooseTaskCombo(actionTarget);
@@ -8433,6 +8509,32 @@
       showToast("Etiqueta creada");
     }
 
+    function toggleGoal(sectionId) {
+      const goal = state.sections.find((item) => item.id === sectionId);
+      if (!goal) return;
+      const stats = statsForGoal(goal.projectId, goal.id);
+      const isComplete = Boolean(goal.completada) || Boolean(goal.completedAt) || (stats.total > 0 && stats.pending === 0);
+      mutate(() => {
+        goal.completada = !isComplete;
+        goal.completedAt = goal.completada ? nowISO() : null;
+        state.selectedProjectId = goal.projectId;
+        state.selectedGoalId = goalKey(goal.projectId, goal.id);
+        state.selectedTaskId = null;
+        state.selectedSubtaskId = null;
+        state.celebratingGoalId = goal.completada ? goalKey(goal.projectId, goal.id) : null;
+      });
+      showToast(goal.completada ? "Meta lograda" : "Meta reabierta");
+      if (goal.completada) {
+        setTimeout(() => {
+          if (state.celebratingGoalId === goalKey(goal.projectId, goal.id)) {
+            mutate(() => {
+              state.celebratingGoalId = null;
+            }, { persist: false });
+          }
+        }, 1900);
+      }
+    }
+
     function toggleTask(taskId) {
       const task = state.tasks.find((item) => item.id === taskId);
       if (!task) return;
@@ -9024,6 +9126,71 @@
       }, { goals: 0, tasks: 0, subtasks: 0 });
     }
 
+    function overviewIsOpen(key, id) {
+      return Boolean(id) && Array.isArray(state[key]) && state[key].includes(id);
+    }
+
+    function toggleOverviewOpen(key, id) {
+      if (!id) return;
+      const current = new Set(Array.isArray(state[key]) ? state[key] : []);
+      if (current.has(id)) current.delete(id);
+      else current.add(id);
+      setState({ [key]: Array.from(current) });
+    }
+
+    function overviewForceOpen(type, filters = state.overviewFilters || {}) {
+      if (filters.type === "all") return false;
+      if (type === "project") return filters.type !== "goals";
+      if (type === "goal") return filters.type === "tasks" || filters.type === "subtasks";
+      if (type === "task") return filters.type === "subtasks";
+      return false;
+    }
+
+    function openOverviewTarget(element) {
+      const type = element.dataset.overviewDbl;
+      let projectId = element.dataset.projectId || null;
+      let selectedGoalId = null;
+      let selectedTaskId = null;
+      let selectedSubtaskId = null;
+
+      if (type === "goal") {
+        const sectionId = element.dataset.sectionId || null;
+        selectedGoalId = goalKey(projectId, sectionId);
+      }
+
+      if (type === "task") {
+        const task = state.tasks.find((item) => item.id === element.dataset.taskId);
+        if (!task) return;
+        projectId = task.projectId;
+        selectedGoalId = goalKey(task.projectId, task.sectionId);
+        selectedTaskId = task.id;
+      }
+
+      if (type === "subtask") {
+        const subtask = state.subtasks.find((item) => item.id === element.dataset.subtaskId);
+        const task = subtask ? state.tasks.find((item) => item.id === subtask.taskId) : null;
+        if (!subtask || !task) return;
+        projectId = task.projectId;
+        selectedGoalId = goalKey(task.projectId, task.sectionId);
+        selectedTaskId = task.id;
+        selectedSubtaskId = subtask.id;
+      }
+
+      if (!projectId) return;
+      setState({
+        view: "list",
+        selectedProjectId: projectId,
+        selectedGoalId,
+        selectedTaskId,
+        selectedSubtaskId,
+        listProjectOpen: true,
+        mapGoalPopupId: null,
+        mapTaskPopupId: null,
+        continentPopupId: null,
+        mapViewBox: mapBoxForContinent(projectId)
+      });
+    }
+
     function renderOverviewProject(project, filters) {
       const goals = overviewSortItems(goalsForProject(project.id), "goal", filters)
         .map((goal, index) => renderOverviewGoal(project, goal, index, goalsForProject(project.id).length, filters))
@@ -9031,16 +9198,18 @@
         .join("");
       if (!goals) return "";
       const stats = totalStatsForProject(project.id);
+      const isOpen = overviewIsOpen("overviewOpenProjectIds", project.id) || overviewForceOpen("project", filters);
       return `
         <section class="overview-project" style="--project-color:${project.color}">
-          <header class="overview-project-head">
-            <div>
+          <header class="overview-project-head" data-action="toggle-overview-project" data-overview-dbl="project" data-project-id="${project.id}">
+            <button type="button" class="overview-project-main" data-action="toggle-overview-project" data-project-id="${project.id}" aria-expanded="${isOpen}">
+              <span class="overview-caret">${isOpen ? "-" : "+"}</span>
               <span class="project-icon" style="color:${project.color}">${escapeHtml(project.icono || "◆")}</span>
               <strong>${escapeHtml(project.nombre)}</strong>
-            </div>
+            </button>
             <span>${stats.pending} ${stats.pending === 1 ? "pendiente" : "pendientes"}</span>
           </header>
-          <div class="overview-project-body">${goals}</div>
+          ${isOpen ? `<div class="overview-project-body">${goals}</div>` : ""}
         </section>
       `;
     }
@@ -9050,31 +9219,33 @@
         .map((task) => renderOverviewTask(project, goal, task, filters))
         .filter(Boolean)
         .join("");
+      const isOpen = overviewIsOpen("overviewOpenGoalIds", goal.id) || overviewForceOpen("goal", filters);
       const isDirect = overviewMatchesItem("goal", goal, { project }, filters);
       if (!isDirect && !tasks) return "";
       const stats = statsForGoal(project.id, goal.id);
       const priority = goalPriority(goal);
       const selected = goalKey(project.id, goal.id) === state.selectedGoalId;
+      const goalDone = overviewItemCompleted("goal", goal, { project });
       return `
         <div class="overview-group ${isDirect ? "" : "is-context"}">
-          <div class="tree-row is-meta ${selected ? "is-selected" : ""}">
-            <span class="tree-level-label is-meta">M</span>
-            <button type="button" class="tree-main" data-action="select-goal" data-project-id="${project.id}" data-section-id="${goal.id || ""}">
-              <span class="tree-title">${escapeHtml(goal.nombre)}</span>
+          <div class="tree-row is-meta ${goalDone ? "is-complete" : ""} ${selected ? "is-selected" : ""}" data-action="toggle-overview-goal" data-overview-dbl="goal" data-project-id="${project.id}" data-section-id="${goal.id || ""}">
+            <button type="button" class="check-btn ${goalDone ? "is-complete" : ""}" data-action="toggle-goal" data-section-id="${goal.id}" aria-label="${goalDone ? "Reabrir meta" : "Completar meta"}">${goalDone ? "✓" : ""}</button>
+            <button type="button" class="tree-main" data-action="toggle-overview-goal" data-section-id="${goal.id}" aria-expanded="${isOpen}">
+              <span class="tree-title"><span class="tree-caret">${isOpen ? "-" : "+"}</span>${escapeHtml(goal.nombre)}</span>
               ${goal.descripcion ? `<span class="tree-description">${escapeHtml(goal.descripcion)}</span>` : ""}
               <span class="tree-meta">${stats.completed}/${stats.total} tareas logradas</span>
             </button>
             <span class="tree-priority">${priority ? escapeHtml(priorityLabel(priority)) : ""}</span>
             <span class="tree-date">${goal.fechaVencimiento ? escapeHtml(formatDate(goal.fechaVencimiento)) : ""}</span>
             <div class="tree-actions">
-              <span class="tree-percent">${Math.round(stats.progress * 100)}%</span>
+              <span class="tree-percent">${goalDone ? 100 : Math.round(stats.progress * 100)}%</span>
               <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="up" data-section-id="${goal.id}" title="Subir meta" aria-label="Subir meta" ${index === 0 ? "disabled" : ""}>&#8593;</button>
               <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="down" data-section-id="${goal.id}" title="Bajar meta" aria-label="Bajar meta" ${index === totalGoals - 1 ? "disabled" : ""}>&#8595;</button>
               <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-section-id="${goal.id}" title="Editar meta" aria-label="Editar meta">&#9998;</button>
               <button type="button" class="icon-btn goal-delete-btn" data-action="delete-section" data-section-id="${goal.id}" title="Borrar meta" aria-label="Borrar meta">&#128465;</button>
             </div>
           </div>
-          ${tasks}
+          ${isOpen ? tasks : ""}
         </div>
       `;
     }
@@ -9084,15 +9255,16 @@
         .map((subtask) => renderOverviewSubtask(project, goal, task, subtask, 1, filters))
         .filter(Boolean)
         .join("");
+      const isOpen = overviewIsOpen("overviewOpenTaskIds", task.id) || overviewForceOpen("task", filters);
       const isDirect = overviewMatchesItem("task", task, { project, goal }, filters);
       if (!isDirect && !children) return "";
       const selected = task.id === state.selectedTaskId;
       const stats = statsForTask(task.id);
       return `
-        <div class="tree-row is-task ${task.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
+        <div class="tree-row is-task ${task.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" data-action="toggle-overview-task" data-overview-dbl="task" data-task-id="${task.id}">
           <button type="button" class="check-btn ${task.completada ? "is-complete" : ""}" data-action="toggle-task" data-task-id="${task.id}" aria-label="${task.completada ? "Reabrir tarea" : "Completar tarea"}">${task.completada ? "✓" : ""}</button>
-          <button type="button" class="tree-main" data-action="select-task" data-task-id="${task.id}">
-            <span class="tree-title">${escapeHtml(task.nombre)}</span>
+          <button type="button" class="tree-main" data-action="toggle-overview-task" data-task-id="${task.id}" aria-expanded="${isOpen}">
+            <span class="tree-title"><span class="tree-caret">${isOpen ? "-" : "+"}</span>${escapeHtml(task.nombre)}</span>
             ${task.descripcion ? `<span class="tree-description">${escapeHtml(task.descripcion)}</span>` : ""}
             <span class="tree-meta">${escapeHtml(goal.nombre)}${stats.total ? ` - ${stats.completed}/${stats.total} subtareas logradas` : ""}</span>
           </button>
@@ -9104,7 +9276,7 @@
             <button type="button" class="icon-btn" data-action="delete-task" data-task-id="${task.id}" title="Eliminar tarea" aria-label="Eliminar tarea">&#128465;</button>
           </div>
         </div>
-        ${children}
+        ${isOpen ? children : ""}
       `;
     }
 
@@ -9114,16 +9286,17 @@
         .map((child) => renderOverviewSubtask(project, goal, task, child, safeDepth + 1, filters))
         .filter(Boolean)
         .join("");
+      const isOpen = overviewIsOpen("overviewOpenSubtaskIds", subtask.id) || filters.type === "subtasks";
       const isDirect = overviewMatchesItem("subtask", subtask, { project, goal, task, depth: safeDepth }, filters);
       if (!isDirect && !children) return "";
       const selected = subtask.id === state.selectedSubtaskId;
       const indent = 56 + (safeDepth - 1) * 28;
       const stats = statsForSubtask(subtask.id);
       return `
-        <div class="tree-row is-subtask depth-${safeDepth} ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" style="--tree-indent:${indent}px">
+        <div class="tree-row is-subtask depth-${safeDepth} ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" style="--tree-indent:${indent}px" data-action="toggle-overview-subtask" data-overview-dbl="subtask" data-subtask-id="${subtask.id}">
           <button type="button" class="check-btn ${subtask.completada ? "is-complete" : ""}" data-action="toggle-subtask" data-subtask-id="${subtask.id}" aria-label="${subtask.completada ? "Reabrir subtarea" : "Completar subtarea"}">${subtask.completada ? "✓" : ""}</button>
-          <button type="button" class="tree-main" data-action="select-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}">
-            <span class="tree-title">${escapeHtml(subtask.nombre)}</span>
+          <button type="button" class="tree-main" data-action="toggle-overview-subtask" data-subtask-id="${subtask.id}" aria-expanded="${isOpen}">
+            <span class="tree-title"><span class="tree-caret">${isOpen ? "-" : "+"}</span>${escapeHtml(subtask.nombre)}</span>
             ${subtask.descripcion ? `<span class="tree-description">${escapeHtml(subtask.descripcion)}</span>` : ""}
             <span class="tree-meta">${escapeHtml(task.nombre)}${stats.total ? ` - ${stats.completed}/${stats.total} subtareas logradas` : ""}</span>
           </button>
@@ -9135,7 +9308,7 @@
             <button type="button" class="icon-btn" data-action="delete-subtask" data-subtask-id="${subtask.id}" title="Eliminar subtarea" aria-label="Eliminar subtarea">&#128465;</button>
           </div>
         </div>
-        ${children}
+        ${isOpen ? children : ""}
       `;
     }
 
@@ -9154,7 +9327,7 @@
     function overviewItemCompleted(type, item, context) {
       if (type === "goal") {
         const stats = statsForGoal(context.project.id, item.id);
-        return Boolean(item.completedAt) || (stats.total > 0 && stats.pending === 0);
+        return Boolean(item.completada) || Boolean(item.completedAt) || (stats.total > 0 && stats.pending === 0);
       }
       return Boolean(item.completada);
     }

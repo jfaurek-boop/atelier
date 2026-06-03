@@ -4560,30 +4560,30 @@
     }
 
     const taskPlotBasePositions = [
-      { dx: -164, dy: 100, scale: 0.42, mirror: false },
-      { dx: 164, dy: 100, scale: 0.42, mirror: true },
-      { dx: -126, dy: 132, scale: 0.39, mirror: false },
-      { dx: 126, dy: 132, scale: 0.39, mirror: true },
-      { dx: -204, dy: 156, scale: 0.36, mirror: false },
-      { dx: 204, dy: 156, scale: 0.36, mirror: true },
-      { dx: -82, dy: 174, scale: 0.34, mirror: false },
-      { dx: 82, dy: 174, scale: 0.34, mirror: true },
-      { dx: -158, dy: 206, scale: 0.31, mirror: false },
-      { dx: 158, dy: 206, scale: 0.31, mirror: true },
-      { dx: -238, dy: 220, scale: 0.29, mirror: false },
-      { dx: 238, dy: 220, scale: 0.29, mirror: true },
-      { dx: -54, dy: 238, scale: 0.28, mirror: false },
-      { dx: 54, dy: 238, scale: 0.28, mirror: true },
-      { dx: -192, dy: 270, scale: 0.25, mirror: false },
-      { dx: 192, dy: 270, scale: 0.25, mirror: true },
-      { dx: -116, dy: 292, scale: 0.23, mirror: false },
-      { dx: 116, dy: 292, scale: 0.23, mirror: true },
-      { dx: -32, dy: 312, scale: 0.22, mirror: false },
-      { dx: 32, dy: 312, scale: 0.22, mirror: true }
+      { dx: -116, dy: 58, scale: 0.5, mirror: false },
+      { dx: 116, dy: 58, scale: 0.5, mirror: true },
+      { dx: -92, dy: 92, scale: 0.47, mirror: false },
+      { dx: 92, dy: 92, scale: 0.47, mirror: true },
+      { dx: -148, dy: 96, scale: 0.45, mirror: false },
+      { dx: 148, dy: 96, scale: 0.45, mirror: true },
+      { dx: -54, dy: 122, scale: 0.43, mirror: false },
+      { dx: 54, dy: 122, scale: 0.43, mirror: true },
+      { dx: -120, dy: 136, scale: 0.41, mirror: false },
+      { dx: 120, dy: 136, scale: 0.41, mirror: true },
+      { dx: -176, dy: 140, scale: 0.38, mirror: false },
+      { dx: 176, dy: 140, scale: 0.38, mirror: true },
+      { dx: -28, dy: 158, scale: 0.37, mirror: false },
+      { dx: 28, dy: 158, scale: 0.37, mirror: true },
+      { dx: -84, dy: 176, scale: 0.35, mirror: false },
+      { dx: 84, dy: 176, scale: 0.35, mirror: true },
+      { dx: -142, dy: 186, scale: 0.32, mirror: false },
+      { dx: 142, dy: 186, scale: 0.32, mirror: true },
+      { dx: -42, dy: 204, scale: 0.3, mirror: false },
+      { dx: 42, dy: 204, scale: 0.3, mirror: true }
     ];
 
     function taskPlotLayout(total = 0) {
-      const densityScale = total > 18 ? 0.62 : total > 12 ? 0.72 : total > 8 ? 0.84 : 1;
+      const densityScale = total > 18 ? 0.72 : total > 12 ? 0.8 : total > 8 ? 0.9 : 1;
       const layout = taskPlotBasePositions.slice(0, Math.max(0, total)).map((plot) => ({
         ...plot,
         scale: plot.scale * densityScale
@@ -4592,12 +4592,12 @@
         const extraIndex = index - taskPlotBasePositions.length;
         const ring = Math.floor(extraIndex / 12);
         const angle = ((extraIndex * 137.5 + 35) % 360) * Math.PI / 180;
-        const rx = 220 + ring * 24;
-        const ry = 128 + ring * 18;
+        const rx = 158 + ring * 18;
+        const ry = 92 + ring * 14;
         layout.push({
           dx: Math.cos(angle) * rx,
-          dy: 236 + Math.sin(angle) * ry,
-          scale: Math.max(0.16, 0.22 - ring * 0.025),
+          dy: 164 + Math.sin(angle) * ry,
+          scale: Math.max(0.22, 0.3 - ring * 0.025),
           mirror: Math.cos(angle) > 0
         });
       }
@@ -4623,9 +4623,9 @@
 
     function taskPlotAvoidsCastle(plot) {
       if (Number.isFinite(plot.localDepth) && Number.isFinite(plot.localSide)) {
-        const protectedEllipse = (plot.localSide * plot.localSide) / (172 * 172) + ((plot.localDepth - 36) * (plot.localDepth - 36)) / (132 * 132);
-        const protectedBox = Math.abs(plot.localSide) < 152 && plot.localDepth > -78 && plot.localDepth < 128;
-        return protectedEllipse > 1.05 && !protectedBox;
+        const protectedEllipse = (plot.localSide * plot.localSide) / (106 * 106) + ((plot.localDepth - 24) * (plot.localDepth - 24)) / (80 * 80);
+        const protectedBox = Math.abs(plot.localSide) < 92 && plot.localDepth > -70 && plot.localDepth < 84;
+        return protectedEllipse > 1.02 && !protectedBox;
       }
       const protectedEllipse = (plot.dx * plot.dx) / (108 * 108) + ((plot.dy - 18) * (plot.dy - 18)) / (88 * 88);
       const protectedBox = Math.abs(plot.dx) < 94 && plot.dy > -58 && plot.dy < 96;
@@ -4636,8 +4636,8 @@
       return placed.every((other) => {
         const dx = plot.dx - other.dx;
         const dy = plot.dy - other.dy;
-        const minX = 58 * (plot.scale + other.scale) + 12;
-        const minY = 52 * (plot.scale + other.scale) + 12;
+        const minX = 42 * (plot.scale + other.scale) + 8;
+        const minY = 40 * (plot.scale + other.scale) + 8;
         return (dx * dx) / (minX * minX) + (dy * dy) / (minY * minY) >= 1;
       });
     }
@@ -4662,12 +4662,12 @@
       const side = plot.dx >= 0 ? 1 : -1;
       return [
         plot,
-        { ...plot, dx: plot.dx * 1.1, dy: plot.dy + 18, scale: plot.scale * 0.94 },
-        { ...plot, dx: plot.dx * 0.86, dy: plot.dy + 34, scale: plot.scale * 0.9 },
-        { ...plot, dx: plot.dx * 0.66, dy: plot.dy + 58, scale: plot.scale * 0.84 },
-        { ...plot, dx: -plot.dx * 0.9, dy: plot.dy + 42, scale: plot.scale * 0.8, mirror: !plot.mirror },
-        { ...plot, dx: side * (Math.abs(plot.dx) + 44), dy: plot.dy + 44, scale: plot.scale * 0.76 },
-        { ...plot, dx: side * 184, dy: plot.dy + 82, scale: plot.scale * 0.7 }
+        { ...plot, dx: plot.dx * 1.08, dy: plot.dy + 10, scale: plot.scale * 0.96 },
+        { ...plot, dx: plot.dx * 0.88, dy: plot.dy + 18, scale: plot.scale * 0.94 },
+        { ...plot, dx: plot.dx * 0.68, dy: plot.dy + 30, scale: plot.scale * 0.9 },
+        { ...plot, dx: -plot.dx * 0.76, dy: plot.dy + 20, scale: plot.scale * 0.88, mirror: !plot.mirror },
+        { ...plot, dx: side * (Math.abs(plot.dx) + 26), dy: plot.dy + 24, scale: plot.scale * 0.86 },
+        { ...plot, dx: side * 136, dy: plot.dy + 40, scale: plot.scale * 0.82 }
       ];
     }
 
@@ -4675,7 +4675,7 @@
       const inwardAngle = Math.atan2(center.y - cityPos.y, center.x - cityPos.x);
       const angleOffsets = [0, 0.45, -0.45, 0.9, -0.9, 1.35, -1.35, Math.PI];
       for (let ring = 0; ring < 7; ring += 1) {
-        const radius = 104 + ring * 24;
+        const radius = 84 + ring * 16;
         for (let offsetIndex = 0; offsetIndex < angleOffsets.length; offsetIndex += 1) {
           const angle = inwardAngle + angleOffsets[(offsetIndex + index) % angleOffsets.length];
           const candidate = {
@@ -4683,8 +4683,8 @@
             localSide: undefined,
             localDepth: undefined,
             dx: Math.cos(angle) * radius,
-            dy: Math.max(72, Math.sin(angle) * radius + 96 + ring * 6),
-            scale: Math.max(0.18, plot.scale * (0.78 - ring * 0.035)),
+            dy: Math.max(58, Math.sin(angle) * radius + 76 + ring * 5),
+            scale: Math.max(0.2, plot.scale * (0.86 - ring * 0.035)),
             mirror: Math.cos(angle) > 0
           };
           if (
@@ -4725,8 +4725,8 @@
         }
         const fallbackCandidates = [
           ...orientedCandidates.map((candidate) => ({ ...candidate, scale: Math.max(0.13, candidate.scale * 0.72) })),
-          orientTaskPlot({ ...plot, dx: 196 + index * 8, dy: 182 + index * 14, scale: Math.max(0.12, plot.scale * 0.55) }, inwardAngle),
-          orientTaskPlot({ ...plot, dx: -196 - index * 8, dy: 182 + index * 14, scale: Math.max(0.12, plot.scale * 0.55) }, inwardAngle)
+          orientTaskPlot({ ...plot, dx: 128 + index * 4, dy: 126 + index * 7, scale: Math.max(0.18, plot.scale * 0.72) }, inwardAngle),
+          orientTaskPlot({ ...plot, dx: -128 - index * 4, dy: 126 + index * 7, scale: Math.max(0.18, plot.scale * 0.72) }, inwardAngle)
         ];
         const fallback = fallbackCandidates.find((candidate) => (
           taskPlotAvoidsCastle(candidate)
@@ -4736,7 +4736,7 @@
           taskPlotAvoidsCastle(candidate)
           && taskPlotFitsLand(points, cityPos, candidate, cityScale)
         )) || {
-          ...orientTaskPlot({ dx: 0, dy: 226 + index * 12, scale: Math.max(0.1, plot.scale * 0.42), mirror: true }, inwardAngle),
+          ...orientTaskPlot({ dx: 0, dy: 172 + index * 8, scale: Math.max(0.16, plot.scale * 0.58), mirror: true }, inwardAngle),
           overflowFallback: true
         };
         placed.push(fallback);
@@ -10635,6 +10635,10 @@
       const built = Math.max(0.16, progress);
       return `
         <g opacity="0.94">
+          <path d="M-142 34 C-126 -36 -56 -68 18 -56 C92 -44 144 -12 154 52 C166 116 104 166 22 176 C-66 186 -142 142 -154 78 C-160 54 -154 42 -142 34 Z" fill="rgba(207,184,123,0.18)" stroke="#8a7a58" stroke-width="1.4" opacity="0.62"/>
+          <path d="M-118 62 C-74 44 -20 52 30 44 C76 36 116 48 142 76" fill="none" stroke="#d7c99f" stroke-width="2.2" opacity="0.36"/>
+          <path d="M-92 122 C-46 100 0 112 42 98 C84 84 116 94 138 116" fill="none" stroke="#8a7a58" stroke-width="2" opacity="0.24"/>
+          <path d="M-16 -42 C-18 4 -12 42 -24 82 C-32 110 -40 134 -36 160" fill="none" stroke="#d7c99f" stroke-width="2.4" opacity="0.3"/>
           <path d="M-70 -8 C-58 -44 -18 -56 16 -48 C52 -40 75 -12 68 24 C58 58 18 66 -20 58 C-58 50 -82 26 -70 -8 Z" fill="rgba(207,184,123,0.28)" stroke="#8a7a58" stroke-width="2.2"/>
           <path d="M-58 -2 C-42 -28 -14 -36 14 -32 C42 -28 58 -8 55 18 C51 42 18 50 -14 43 C-44 36 -66 21 -58 -2 Z" fill="rgba(239,224,185,0.18)" stroke="#8a7a58" stroke-width="1.15" opacity="0.58"/>
           <path d="M-70 -8 C-58 -44 -18 -56 16 -48 C52 -40 75 -12 68 24 C58 58 18 66 -20 58 C-58 50 -82 26 -70 -8 Z" fill="none" stroke="#d7c99f" stroke-width="1.05" opacity="${0.3 + built * 0.4}"/>

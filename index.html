@@ -10571,7 +10571,8 @@
     }
 
     function cityScaleForGoal(stats) {
-      return 0.42 + Math.min(stats.total, 20) * 0.008;
+      const taskCount = Math.max(0, Number(stats?.total) || 0);
+      return 0.24 + Math.min(taskCount, 20) * 0.0035;
     }
 
     function renderGoalSequencePaths(projects) {

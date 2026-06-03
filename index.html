@@ -4560,34 +4560,30 @@
     }
 
     const taskPlotBasePositions = [
-      { dx: -118, dy: 8, scale: 0.58, mirror: false },
-      { dx: 118, dy: 8, scale: 0.58, mirror: true },
-      { dx: -86, dy: 55, scale: 0.54, mirror: false },
-      { dx: 86, dy: 55, scale: 0.54, mirror: true },
-      { dx: -42, dy: 88, scale: 0.5, mirror: false },
-      { dx: 42, dy: 88, scale: 0.5, mirror: true },
-      { dx: -150, dy: 44, scale: 0.5, mirror: false },
-      { dx: 150, dy: 44, scale: 0.5, mirror: true },
-      { dx: -108, dy: -54, scale: 0.46, mirror: false },
-      { dx: 108, dy: -54, scale: 0.46, mirror: true },
-      { dx: -54, dy: -78, scale: 0.44, mirror: false },
-      { dx: 54, dy: -78, scale: 0.44, mirror: true },
-      { dx: -184, dy: -2, scale: 0.44, mirror: false },
-      { dx: 184, dy: -2, scale: 0.44, mirror: true },
-      { dx: -162, dy: 88, scale: 0.42, mirror: false },
-      { dx: 162, dy: 88, scale: 0.42, mirror: true },
-      { dx: -96, dy: 120, scale: 0.4, mirror: false },
-      { dx: 96, dy: 120, scale: 0.4, mirror: true },
-      { dx: -22, dy: 132, scale: 0.38, mirror: false },
-      { dx: 22, dy: 132, scale: 0.38, mirror: true },
-      { dx: -204, dy: 52, scale: 0.38, mirror: false },
-      { dx: 204, dy: 52, scale: 0.38, mirror: true },
-      { dx: -132, dy: -104, scale: 0.38, mirror: false },
-      { dx: 132, dy: -104, scale: 0.38, mirror: true }
+      { dx: -58, dy: 12, scale: 0.66, mirror: false },
+      { dx: 58, dy: 12, scale: 0.66, mirror: true },
+      { dx: -72, dy: 40, scale: 0.58, mirror: false },
+      { dx: 72, dy: 40, scale: 0.58, mirror: true },
+      { dx: -44, dy: 65, scale: 0.52, mirror: false },
+      { dx: 44, dy: 65, scale: 0.52, mirror: true },
+      { dx: -12, dy: 82, scale: 0.48, mirror: false },
+      { dx: 12, dy: 82, scale: 0.48, mirror: true },
+      { dx: -82, dy: 5, scale: 0.48, mirror: false },
+      { dx: 82, dy: 5, scale: 0.48, mirror: true },
+      { dx: -64, dy: -24, scale: 0.44, mirror: false },
+      { dx: 64, dy: -24, scale: 0.44, mirror: true },
+      { dx: -92, dy: 64, scale: 0.42, mirror: false },
+      { dx: 92, dy: 64, scale: 0.42, mirror: true },
+      { dx: -34, dy: 102, scale: 0.38, mirror: false },
+      { dx: 34, dy: 102, scale: 0.38, mirror: true },
+      { dx: -76, dy: 92, scale: 0.36, mirror: false },
+      { dx: 76, dy: 92, scale: 0.36, mirror: true },
+      { dx: -18, dy: -45, scale: 0.36, mirror: false },
+      { dx: 18, dy: -45, scale: 0.36, mirror: true }
     ];
 
     function taskPlotLayout(total = 0) {
-      const densityScale = total > 18 ? 0.86 : total > 12 ? 0.92 : 1;
+      const densityScale = total > 18 ? 0.82 : total > 12 ? 0.88 : 1;
       const layout = taskPlotBasePositions.slice(0, Math.max(0, total)).map((plot) => ({
         ...plot,
         scale: plot.scale * densityScale
@@ -4596,16 +4592,66 @@
         const extraIndex = index - taskPlotBasePositions.length;
         const ring = Math.floor(extraIndex / 12);
         const angle = ((extraIndex * 137.5 + 35) % 360) * Math.PI / 180;
-        const rx = 224 + ring * 36;
-        const ry = 132 + ring * 22;
+        const rx = 96 + ring * 12;
+        const ry = 78 + ring * 10;
         layout.push({
           dx: Math.cos(angle) * rx,
-          dy: 28 + Math.sin(angle) * ry,
-          scale: Math.max(0.3, 0.36 - ring * 0.03),
+          dy: 34 + Math.sin(angle) * ry,
+          scale: Math.max(0.26, 0.32 - ring * 0.03),
           mirror: Math.cos(angle) > 0
         });
       }
       return layout;
+    }
+
+    function taskPlotFitsLand(points, cityPos, plot, cityScale) {
+      if (!points.length) return true;
+      const point = {
+        x: cityPos.x + plot.dx * cityScale,
+        y: cityPos.y + plot.dy * cityScale
+      };
+      const margin = Math.max(9, 42 * plot.scale * cityScale);
+      return [
+        point,
+        { x: point.x - margin, y: point.y },
+        { x: point.x + margin, y: point.y },
+        { x: point.x, y: point.y - margin },
+        { x: point.x, y: point.y + margin }
+      ].every((candidate) => pointInPolygon(points, candidate));
+    }
+
+    function taskPlotCandidates(plot) {
+      const side = plot.dx >= 0 ? 1 : -1;
+      const vertical = plot.dy >= 0 ? 1 : -1;
+      return [
+        plot,
+        { ...plot, dx: plot.dx * 0.84, dy: plot.dy * 0.84, scale: plot.scale * 0.98 },
+        { ...plot, dx: plot.dx * 0.66, dy: plot.dy * 0.66, scale: plot.scale * 0.94 },
+        { ...plot, dx: side * Math.min(54, Math.abs(plot.dx) * 0.62), dy: vertical * Math.min(55, Math.abs(plot.dy) * 0.62), scale: plot.scale * 0.9 },
+        { ...plot, dx: -plot.dx * 0.52, dy: plot.dy * 0.58, scale: plot.scale * 0.86, mirror: !plot.mirror },
+        { ...plot, dx: plot.dx * 0.38, dy: plot.dy * 0.38, scale: plot.scale * 0.82 }
+      ];
+    }
+
+    function taskPlotLayoutForGoal(project, goal, goalIndex, total = 0, cityScale = 1) {
+      const layout = taskPlotLayout(total);
+      const coast = continentPathForProject(project, projectMapIndex(project.id));
+      const points = parsePathPoints(coast);
+      const cityPos = goalPosition(goal, project, goalIndex);
+      const center = points.length ? polygonCenter(points) : cityPos;
+      return layout.map((plot) => {
+        const chosen = taskPlotCandidates(plot).find((candidate) => taskPlotFitsLand(points, cityPos, candidate, cityScale));
+        if (chosen) return chosen;
+        const inward = {
+          ...plot,
+          dx: (center.x - cityPos.x) / Math.max(0.1, cityScale) * 0.34 + plot.dx * 0.08,
+          dy: (center.y - cityPos.y) / Math.max(0.1, cityScale) * 0.34 + plot.dy * 0.08,
+          scale: plot.scale * 0.7
+        };
+        return taskPlotFitsLand(points, cityPos, inward, cityScale)
+          ? inward
+          : { ...plot, dx: plot.dx * 0.16, dy: plot.dy * 0.16, scale: plot.scale * 0.58 };
+      });
     }
     const palette = ["#5e85aa", "#5ba878", "#c5a46d", "#b64a4a", "#7d7197", "#b98652", "#5a9a9a", "#9b9657"];
     const accentMap = {
@@ -5143,7 +5189,7 @@
         ? (data.view === "map" ? "list" : data.view)
         : "list";
       const repositionGoals = !data.schemaVersion || data.schemaVersion < 13;
-      const repairMapOrderDrift = !data.schemaVersion || data.schemaVersion < 17;
+      const repairMapOrderDrift = true;
       const defaultBox = { x: 0, y: 0, w: 900, h: 800 };
       return {
         schemaVersion: 18,
@@ -10080,7 +10126,7 @@
         const cityScale = cityScaleForGoal(stats);
         const cityPos = goalPosition(goal, project, index);
         const tasks = sortedTasks(project.id, goal.id);
-        const layout = taskPlotLayout(tasks.length);
+        const layout = taskPlotLayoutForGoal(project, goal, index, tasks.length, cityScale);
         return tasks
           .map((task, taskIndex) => renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale, layout))
           .join("");
@@ -10509,12 +10555,9 @@
       const tasks = sortedTasks(project.id, goal.id);
       const pos = goalPosition(goal, project, index);
       const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
-      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      const selected = goalKey(project.id, goal.id) === state.selectedGoalId;
-      const layout = taskPlotLayout(tasks.length);
-      const sequencePath = selected || box.w <= 430 ? renderTaskSequencePath(tasks, pos, cityScale, layout) : "";
+      const layout = taskPlotLayoutForGoal(project, goal, index, tasks.length, cityScale);
       const constructions = tasks.map((task, taskIndex) => renderTaskConstruction(task, pos, layout[taskIndex], taskIndex, cityScale)).join("");
-      return `${sequencePath}${constructions}`;
+      return constructions;
     }
 
     function taskPlotPoint(cityPos, taskIndex, cityScale, layout = null) {
@@ -10529,6 +10572,7 @@
     }
 
     function renderTaskSequencePath(tasks, cityPos, cityScale, layout = taskPlotLayout(tasks.length)) {
+      return "";
       if (tasks.length < 2) return "";
       const ringCount = tasks.length > 14 ? 3 : tasks.length > 7 ? 2 : 1;
       const rings = Array.from({ length: ringCount }, (_, ring) => {
@@ -10782,7 +10826,8 @@
       const tasks = sortedTasks(project.id, goal.id);
       const taskIndex = Math.max(0, tasks.findIndex((item) => item.id === task.id));
       const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
-      const point = taskPlotPoint(goalPosition(goal, project, goalIndex), taskIndex, cityScale, taskPlotLayout(tasks.length));
+      const layout = taskPlotLayoutForGoal(project, goal, goalIndex, tasks.length, cityScale);
+      const point = taskPlotPoint(goalPosition(goal, project, goalIndex), taskIndex, cityScale, layout);
       const width = 315;
       const lines = taskPopupLines(task, goal, width, { titleChars: 34, metaChars: 39 });
       const height = taskPopupHeight(lines) + 4;

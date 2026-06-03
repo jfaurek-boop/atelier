@@ -7838,18 +7838,51 @@
       openOverviewTarget(element);
     }
 
-    function preserveViewportAfterRender(callback) {
+    function overviewAnchorSelector(element) {
+      if (!element?.dataset) return "";
+      const action = element.dataset.action;
+      const pairs = [
+        ["toggle-overview-project", "projectId", "project-id"],
+        ["toggle-overview-goal", "sectionId", "section-id"],
+        ["toggle-overview-task", "taskId", "task-id"],
+        ["toggle-overview-subtask", "subtaskId", "subtask-id"],
+        ["toggle-goal", "sectionId", "section-id"],
+        ["toggle-task", "taskId", "task-id"],
+        ["toggle-subtask", "subtaskId", "subtask-id"]
+      ];
+      const match = pairs.find(([name]) => name === action);
+      if (!match) return "";
+      const [, datasetKey, attribute] = match;
+      const value = element.dataset[datasetKey];
+      if (!value) return "";
+      const safeValue = window.CSS?.escape ? CSS.escape(value) : String(value).replace(/"/g, '\\"');
+      return `[data-action="${action}"][data-${attribute}="${safeValue}"]`;
+    }
+
+    function preserveViewportAfterRender(callback, anchorElement = null) {
       const scrollX = window.scrollX || window.pageXOffset || 0;
       const scrollY = window.scrollY || window.pageYOffset || 0;
+      const anchorSelector = overviewAnchorSelector(anchorElement);
+      const anchorTop = anchorElement ? anchorElement.getBoundingClientRect().top : null;
+      if (anchorElement?.blur) anchorElement.blur();
       callback();
+      const restore = () => {
+        const nextAnchor = anchorSelector ? document.querySelector(anchorSelector) : null;
+        if (nextAnchor && anchorTop !== null) {
+          window.scrollBy(0, nextAnchor.getBoundingClientRect().top - anchorTop);
+          window.scrollTo(scrollX, window.scrollY || window.pageYOffset || 0);
+        } else {
+          window.scrollTo(scrollX, scrollY);
+        }
+      };
       requestAnimationFrame(() => {
-        window.scrollTo(scrollX, scrollY);
-        requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
+        restore();
+        requestAnimationFrame(restore);
       });
     }
 
-    function runOverviewAction(callback) {
-      if (state.view === "overview") preserveViewportAfterRender(callback);
+    function runOverviewAction(callback, anchorElement = null) {
+      if (state.view === "overview") preserveViewportAfterRender(callback, anchorElement);
       else callback();
     }
 
@@ -7896,19 +7929,19 @@
         });
       }
       if (action === "toggle-overview-project") {
-        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenProjectIds", projectId));
+        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenProjectIds", projectId), actionTarget);
         return;
       }
       if (action === "toggle-overview-goal") {
-        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenGoalIds", sectionId));
+        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenGoalIds", sectionId), actionTarget);
         return;
       }
       if (action === "toggle-overview-task") {
-        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenTaskIds", taskId));
+        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenTaskIds", taskId), actionTarget);
         return;
       }
       if (action === "toggle-overview-subtask") {
-        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenSubtaskIds", actionTarget.dataset.subtaskId));
+        preserveViewportAfterRender(() => toggleOverviewOpen("overviewOpenSubtaskIds", actionTarget.dataset.subtaskId), actionTarget);
         return;
       }
       if (action === "map-reset") resetMapView();
@@ -8079,11 +8112,11 @@
       }
       if (action === "close-subtask-panel") setState({ selectedTaskId: null, selectedSubtaskId: null }, false);
       if (action === "toggle-goal") {
-        runOverviewAction(() => toggleGoal(sectionId));
+        runOverviewAction(() => toggleGoal(sectionId), actionTarget);
         return;
       }
       if (action === "toggle-task") {
-        runOverviewAction(() => toggleTask(taskId));
+        runOverviewAction(() => toggleTask(taskId), actionTarget);
         return;
       }
       if (action === "toggle-combo") toggleTaskCombo(actionTarget);
@@ -8120,7 +8153,7 @@
       if (action === "delete-tag") deleteTag(actionTarget.dataset.tagId);
       if (action === "delete-task") deleteTask(taskId);
       if (action === "toggle-subtask") {
-        runOverviewAction(() => toggleSubtask(actionTarget.dataset.subtaskId));
+        runOverviewAction(() => toggleSubtask(actionTarget.dataset.subtaskId), actionTarget);
         return;
       }
       if (action === "delete-subtask") deleteSubtask(actionTarget.dataset.subtaskId);

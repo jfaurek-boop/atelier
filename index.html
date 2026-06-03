@@ -4559,20 +4559,54 @@
       return recurrence.intervalo > 1 ? `${base} cada ${recurrence.intervalo}` : base;
     }
 
-    const taskPlotPositions = [
-      { dx: -52, dy: 14, scale: 0.78, mirror: false },
-      { dx: 52, dy: 15, scale: 0.78, mirror: true },
-      { dx: -34, dy: 39, scale: 0.68, mirror: false },
-      { dx: 34, dy: 40, scale: 0.68, mirror: true },
-      { dx: -68, dy: 35, scale: 0.62, mirror: false },
-      { dx: 68, dy: 36, scale: 0.62, mirror: true },
-      { dx: -18, dy: 58, scale: 0.58, mirror: false },
-      { dx: 18, dy: 58, scale: 0.58, mirror: true },
-      { dx: -74, dy: -4, scale: 0.58, mirror: false },
-      { dx: 74, dy: -4, scale: 0.58, mirror: true },
-      { dx: -48, dy: -22, scale: 0.54, mirror: false },
-      { dx: 48, dy: -22, scale: 0.54, mirror: true }
+    const taskPlotBasePositions = [
+      { dx: -118, dy: 8, scale: 0.58, mirror: false },
+      { dx: 118, dy: 8, scale: 0.58, mirror: true },
+      { dx: -86, dy: 55, scale: 0.54, mirror: false },
+      { dx: 86, dy: 55, scale: 0.54, mirror: true },
+      { dx: -42, dy: 88, scale: 0.5, mirror: false },
+      { dx: 42, dy: 88, scale: 0.5, mirror: true },
+      { dx: -150, dy: 44, scale: 0.5, mirror: false },
+      { dx: 150, dy: 44, scale: 0.5, mirror: true },
+      { dx: -108, dy: -54, scale: 0.46, mirror: false },
+      { dx: 108, dy: -54, scale: 0.46, mirror: true },
+      { dx: -54, dy: -78, scale: 0.44, mirror: false },
+      { dx: 54, dy: -78, scale: 0.44, mirror: true },
+      { dx: -184, dy: -2, scale: 0.44, mirror: false },
+      { dx: 184, dy: -2, scale: 0.44, mirror: true },
+      { dx: -162, dy: 88, scale: 0.42, mirror: false },
+      { dx: 162, dy: 88, scale: 0.42, mirror: true },
+      { dx: -96, dy: 120, scale: 0.4, mirror: false },
+      { dx: 96, dy: 120, scale: 0.4, mirror: true },
+      { dx: -22, dy: 132, scale: 0.38, mirror: false },
+      { dx: 22, dy: 132, scale: 0.38, mirror: true },
+      { dx: -204, dy: 52, scale: 0.38, mirror: false },
+      { dx: 204, dy: 52, scale: 0.38, mirror: true },
+      { dx: -132, dy: -104, scale: 0.38, mirror: false },
+      { dx: 132, dy: -104, scale: 0.38, mirror: true }
     ];
+
+    function taskPlotLayout(total = 0) {
+      const densityScale = total > 18 ? 0.86 : total > 12 ? 0.92 : 1;
+      const layout = taskPlotBasePositions.slice(0, Math.max(0, total)).map((plot) => ({
+        ...plot,
+        scale: plot.scale * densityScale
+      }));
+      for (let index = layout.length; index < total; index += 1) {
+        const extraIndex = index - taskPlotBasePositions.length;
+        const ring = Math.floor(extraIndex / 12);
+        const angle = ((extraIndex * 137.5 + 35) % 360) * Math.PI / 180;
+        const rx = 224 + ring * 36;
+        const ry = 132 + ring * 22;
+        layout.push({
+          dx: Math.cos(angle) * rx,
+          dy: 28 + Math.sin(angle) * ry,
+          scale: Math.max(0.3, 0.36 - ring * 0.03),
+          mirror: Math.cos(angle) > 0
+        });
+      }
+      return layout;
+    }
     const palette = ["#5e85aa", "#5ba878", "#c5a46d", "#b64a4a", "#7d7197", "#b98652", "#5a9a9a", "#9b9657"];
     const accentMap = {
       "#5e85aa": "#263c53",
@@ -10045,8 +10079,10 @@
         const stats = statsForGoal(project.id, goal.id);
         const cityScale = cityScaleForGoal(stats);
         const cityPos = goalPosition(goal, project, index);
-        return sortedTasks(project.id, goal.id)
-          .map((task, taskIndex) => renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale))
+        const tasks = sortedTasks(project.id, goal.id);
+        const layout = taskPlotLayout(tasks.length);
+        return tasks
+          .map((task, taskIndex) => renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale, layout))
           .join("");
       }).join("");
       return `<g class="map-hover-layer">${goalHits}${taskHits}</g>`;
@@ -10068,8 +10104,8 @@
       `;
     }
 
-    function renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale) {
-      const point = taskPlotPoint(cityPos, taskIndex, cityScale);
+    function renderTaskHoverHit(project, goal, task, taskIndex, cityPos, cityScale, layout = null) {
+      const point = taskPlotPoint(cityPos, taskIndex, cityScale, layout);
       const width = 330;
       const text = taskPopupLines(task, goal, width, { titleChars: 34, metaChars: 38 });
       const height = taskPopupHeight(text);
@@ -10084,11 +10120,12 @@
 
     function renderCityLabels(goals) {
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      const scale = 0.58;
       return `<g class="city-title-layer" pointer-events="none" style="${box.w > 650 ? "display:none" : ""}">
         ${goals.map(({ project, goal, index }) => {
           const pos = goalPosition(goal, project, index);
-          const lines = wrapSvgLines(goal.nombre, 24).slice(0, 2);
+          const nameLength = String(goal.nombre || "").length;
+          const scale = nameLength > 54 ? 0.36 : nameLength > 34 ? 0.44 : 0.52;
+          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 30 : 24).slice(0, nameLength > 54 ? 3 : 2);
           const y = pos.y - 58 * cityScaleForGoal(statsForGoal(project.id, goal.id));
           return `
             <g transform="translate(${pos.x} ${y}) scale(${scale})">
@@ -10393,7 +10430,7 @@
     }
 
     function cityScaleForGoal(stats) {
-      return 0.42 + Math.min(stats.total, 8) * 0.012;
+      return 0.42 + Math.min(stats.total, 20) * 0.008;
     }
 
     function renderGoalSequencePaths(projects) {
@@ -10474,13 +10511,16 @@
       const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
       const selected = goalKey(project.id, goal.id) === state.selectedGoalId;
-      const sequencePath = selected || box.w <= 430 ? renderTaskSequencePath(tasks, pos, cityScale) : "";
-      const constructions = tasks.map((task, taskIndex) => renderTaskConstruction(task, pos, taskPlotPositions[taskIndex % taskPlotPositions.length], taskIndex, cityScale)).join("");
+      const layout = taskPlotLayout(tasks.length);
+      const sequencePath = selected || box.w <= 430 ? renderTaskSequencePath(tasks, pos, cityScale, layout) : "";
+      const constructions = tasks.map((task, taskIndex) => renderTaskConstruction(task, pos, layout[taskIndex], taskIndex, cityScale)).join("");
       return `${sequencePath}${constructions}`;
     }
 
-    function taskPlotPoint(cityPos, taskIndex, cityScale) {
-      const plot = taskPlotPositions[taskIndex % taskPlotPositions.length];
+    function taskPlotPoint(cityPos, taskIndex, cityScale, layout = null) {
+      const plot = Array.isArray(layout)
+        ? layout[taskIndex] || taskPlotLayout(taskIndex + 1)[taskIndex]
+        : taskPlotLayout(Math.max(taskIndex + 1, Number(layout) || 0))[taskIndex];
       return {
         x: cityPos.x + plot.dx * cityScale,
         y: cityPos.y + plot.dy * cityScale,
@@ -10488,38 +10528,40 @@
       };
     }
 
-    function renderTaskSequencePath(tasks, cityPos, cityScale) {
+    function renderTaskSequencePath(tasks, cityPos, cityScale, layout = taskPlotLayout(tasks.length)) {
       if (tasks.length < 2) return "";
-      const segments = tasks.slice(0, -1).map((task, index) => {
-        const next = tasks[index + 1];
-        const a = taskPlotPoint(cityPos, index, cityScale);
-        const b = taskPlotPoint(cityPos, index + 1, cityScale);
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const length = Math.hypot(dx, dy) || 1;
-        const trim = Math.min(11, Math.max(5, length * 0.22));
-        const start = { x: a.x + dx / length * trim, y: a.y + dy / length * trim };
-        const end = { x: b.x - dx / length * trim, y: b.y - dy / length * trim };
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-        const bend = ((index % 2 === 0 ? 1 : -1) * Math.min(7, length * 0.18));
-        const cx = midX - dy / length * bend;
-        const cy = midY + dx / length * bend;
-        const d = `M${start.x.toFixed(1)} ${start.y.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
-        const completeSegment = task.completada && next.completada;
-        const activeSegment = task.completada && !next.completada;
-        const stroke = completeSegment ? "#5ba878" : activeSegment ? "#c5a46d" : "#7a6740";
-        const dash = completeSegment ? "" : activeSegment ? "5 4" : "2 5";
+      const ringCount = tasks.length > 14 ? 3 : tasks.length > 7 ? 2 : 1;
+      const rings = Array.from({ length: ringCount }, (_, ring) => {
+        const rx = (104 + ring * 58) * cityScale;
+        const ry = (58 + ring * 34) * cityScale;
+        const cy = cityPos.y + (28 + ring * 7) * cityScale;
         return `
-          <path d="${d}" fill="none" stroke="rgba(54,43,29,0.34)" stroke-width="3.1" stroke-linecap="round"/>
-          <path d="${d}" fill="none" stroke="${stroke}" stroke-width="${activeSegment ? 1.8 : 1.35}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="${completeSegment ? 0.82 : activeSegment ? 0.72 : 0.42}"/>
+          <ellipse cx="${cityPos.x.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="none" stroke="rgba(54,43,29,0.22)" stroke-width="${(3.2 - ring * 0.35).toFixed(1)}"/>
+          <ellipse cx="${cityPos.x.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="none" stroke="#eadfc4" stroke-width="${(1.25 - ring * 0.1).toFixed(1)}" opacity="0.34"/>
         `;
       }).join("");
+      const lanes = tasks.slice(0, Math.min(tasks.length, 18)).map((task, index) => {
+        const plot = layout[index];
+        const point = taskPlotPoint(cityPos, index, cityScale, layout);
+        const length = Math.hypot(plot.dx, plot.dy - 28) || 1;
+        const inner = {
+          x: cityPos.x + (plot.dx / length) * 96 * cityScale,
+          y: cityPos.y + 28 * cityScale + ((plot.dy - 28) / length) * 56 * cityScale
+        };
+        const complete = task.completada;
+        const stroke = complete ? "#5ba878" : "#8a7a58";
+        return `<path d="M${inner.x.toFixed(1)} ${inner.y.toFixed(1)} Q${((inner.x + point.x) / 2).toFixed(1)} ${(inner.y + point.y + 8 * cityScale).toFixed(1)} ${point.x.toFixed(1)} ${point.y.toFixed(1)}" fill="none" stroke="${stroke}" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="${complete ? "" : "4 5"}" opacity="${complete ? 0.5 : 0.26}"/>`;
+      }).join("");
+      const segments = `${rings}${lanes}`;
       return `<g class="task-sequence-path" pointer-events="none">${segments}</g>`;
     }
 
     function renderTaskConstruction(task, cityPos, plot, index, cityScale) {
-      const point = taskPlotPoint(cityPos, index, cityScale);
+      const point = {
+        x: cityPos.x + plot.dx * cityScale,
+        y: cityPos.y + plot.dy * cityScale,
+        scale: plot.scale * cityScale
+      };
       const x = point.x;
       const y = point.y;
       const pop = task.id === state.recentlyCompletedTaskId ? "worker-pop" : "";
@@ -10737,9 +10779,10 @@
       const goal = state.sections.find((item) => item.id === task.sectionId);
       if (!project || !goal) return "";
       const goalIndex = Math.max(0, goalsForProject(project.id).findIndex((item) => item.id === goal.id));
-      const taskIndex = Math.max(0, sortedTasks(project.id, goal.id).findIndex((item) => item.id === task.id));
+      const tasks = sortedTasks(project.id, goal.id);
+      const taskIndex = Math.max(0, tasks.findIndex((item) => item.id === task.id));
       const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
-      const point = taskPlotPoint(goalPosition(goal, project, goalIndex), taskIndex, cityScale);
+      const point = taskPlotPoint(goalPosition(goal, project, goalIndex), taskIndex, cityScale, taskPlotLayout(tasks.length));
       const width = 315;
       const lines = taskPopupLines(task, goal, width, { titleChars: 34, metaChars: 39 });
       const height = taskPopupHeight(lines) + 4;

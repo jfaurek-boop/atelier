@@ -7841,6 +7841,7 @@
     function overviewAnchorSelector(element) {
       if (!element?.dataset) return "";
       const action = element.dataset.action;
+      if (element.dataset.scrollAnchorId) return `[data-scroll-anchor-id="${element.dataset.scrollAnchorId}"]`;
       const pairs = [
         ["toggle-overview-project", "projectId", "project-id"],
         ["toggle-overview-goal", "sectionId", "section-id"],
@@ -7859,16 +7860,56 @@
       return `[data-action="${action}"][data-${attribute}="${safeValue}"]`;
     }
 
+    function overviewAnchorElement(element) {
+      if (!element) return null;
+      return element.closest(".tree-row, .overview-project-head") || element;
+    }
+
+    function markOverviewAnchor(element) {
+      if (!element?.dataset) return "";
+      const id = `anchor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      element.dataset.scrollAnchorId = id;
+      return id;
+    }
+
+    function scrollContainerSelectorFor(element) {
+      const container = element?.closest?.(".workspace-view");
+      if (!container) return "";
+      if (container.classList.contains("overview-view")) return ".overview-view";
+      return ".workspace-view";
+    }
+
     function preserveViewportAfterRender(callback, anchorElement = null) {
       const scrollX = window.scrollX || window.pageXOffset || 0;
       const scrollY = window.scrollY || window.pageYOffset || 0;
-      const anchorSelector = overviewAnchorSelector(anchorElement);
-      const anchorTop = anchorElement ? anchorElement.getBoundingClientRect().top : null;
+      const visualAnchor = overviewAnchorElement(anchorElement);
+      const scrollContainer = visualAnchor?.closest?.(".workspace-view") || null;
+      const scrollContainerSelector = scrollContainerSelectorFor(visualAnchor);
+      const containerScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+      const containerScrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+      const anchorTopInContainer = visualAnchor && scrollContainer
+        ? visualAnchor.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top
+        : null;
+      const visualSelector = overviewAnchorSelector(visualAnchor);
+      const anchorId = markOverviewAnchor(anchorElement);
+      const anchorSelector = anchorId ? `[data-scroll-anchor-id="${anchorId}"]` : overviewAnchorSelector(anchorElement);
+      const anchorTop = visualAnchor ? visualAnchor.getBoundingClientRect().top : null;
       if (anchorElement?.blur) anchorElement.blur();
       callback();
       const restore = () => {
-        const nextAnchor = anchorSelector ? document.querySelector(anchorSelector) : null;
-        if (nextAnchor && anchorTop !== null) {
+        const nextActionAnchor = anchorSelector ? document.querySelector(anchorSelector) : null;
+        const nextAnchor = overviewAnchorElement(nextActionAnchor) || (visualSelector ? document.querySelector(visualSelector) : null);
+        const nextScrollContainer = scrollContainerSelector ? document.querySelector(scrollContainerSelector) : null;
+        if (nextAnchor && nextScrollContainer && anchorTopInContainer !== null) {
+          const nextAnchorTopInContent = nextAnchor.getBoundingClientRect().top - nextScrollContainer.getBoundingClientRect().top + nextScrollContainer.scrollTop;
+          nextScrollContainer.scrollTop = Math.max(0, nextAnchorTopInContent - anchorTopInContainer);
+          nextScrollContainer.scrollLeft = containerScrollLeft;
+          window.scrollTo(scrollX, scrollY);
+        } else if (nextScrollContainer) {
+          nextScrollContainer.scrollTop = containerScrollTop;
+          nextScrollContainer.scrollLeft = containerScrollLeft;
+          window.scrollTo(scrollX, scrollY);
+        } else if (nextAnchor && anchorTop !== null) {
           window.scrollBy(0, nextAnchor.getBoundingClientRect().top - anchorTop);
           window.scrollTo(scrollX, window.scrollY || window.pageYOffset || 0);
         } else {
@@ -7879,6 +7920,7 @@
         restore();
         requestAnimationFrame(restore);
       });
+      setTimeout(restore, 90);
     }
 
     function runOverviewAction(callback, anchorElement = null) {

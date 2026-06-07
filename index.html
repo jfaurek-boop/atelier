@@ -4391,10 +4391,30 @@
     }
 
     .tree-row {
-      grid-template-columns: 28px minmax(0, 1fr) 34px 72px auto;
+      grid-template-columns: 28px minmax(0, 1fr) minmax(0, 30px) minmax(0, 76px) max-content;
       gap: 6px;
       min-height: 42px;
       padding: 6px 7px;
+    }
+
+    .tree-row[draggable="true"] {
+      cursor: grab;
+    }
+
+    .tree-row[draggable="true"]:active {
+      cursor: grabbing;
+    }
+
+    .tree-row.is-dragging {
+      opacity: 0.54;
+    }
+
+    .tree-row.drag-over {
+      border-color: rgba(237, 241, 245, 0.72);
+      box-shadow:
+        inset 4px 0 0 currentColor,
+        inset 0 0 0 1px rgba(237, 241, 245, 0.28),
+        0 0 0 2px rgba(237, 241, 245, 0.08);
     }
 
     .tree-row.is-task {
@@ -4471,6 +4491,7 @@
 
     .tree-description {
       display: block;
+      max-width: 100%;
       margin-top: 1px;
       overflow: hidden;
       color: rgba(194, 207, 220, 0.78);
@@ -4482,6 +4503,7 @@
 
     .tree-priority,
     .tree-date {
+      display: block;
       overflow: hidden;
       color: var(--muted);
       font-size: 0.68rem;
@@ -4505,6 +4527,7 @@
     }
 
     .tree-actions {
+      min-width: max-content;
       gap: 4px;
     }
 
@@ -4884,6 +4907,7 @@
     let draggedTaskId = null;
     let draggedProjectId = null;
     let draggedSectionId = null;
+    let draggedTreeItem = null;
     let resizingMapPanel = null;
     let editingColor = palette[0];
     let editingIcon = projectIcons[0];
@@ -7816,6 +7840,13 @@
         block.addEventListener("dragleave", handleDragLeave);
         block.addEventListener("drop", handleSectionDrop);
       });
+      document.querySelectorAll(".tree-row[draggable='true']").forEach((row) => {
+        row.addEventListener("dragstart", handleTreeDragStart);
+        row.addEventListener("dragover", handleTreeDragOver);
+        row.addEventListener("dragleave", handleTreeDragLeave);
+        row.addEventListener("drop", handleTreeDrop);
+        row.addEventListener("dragend", handleTreeDragEnd);
+      });
       const modalInput = document.querySelector(".modal input[autofocus], .modal textarea[autofocus]");
       if (modalInput) setTimeout(() => modalInput.focus(), 0);
       window.onpointermove = (event) => {
@@ -9202,6 +9233,148 @@
         ordered.forEach((section, index) => section.orden = index);
       });
       draggedSectionId = null;
+    }
+
+    function treeItemFromRow(row) {
+      if (!row?.dataset?.treeType) return null;
+      const type = row.dataset.treeType;
+      return {
+        type,
+        projectId: row.dataset.projectId || "",
+        sectionId: row.dataset.sectionId || "",
+        taskId: row.dataset.taskId || "",
+        subtaskId: row.dataset.subtaskId || "",
+        parentSubtaskId: row.dataset.parentSubtaskId || ""
+      };
+    }
+
+    function treeItemId(item) {
+      if (!item) return "";
+      if (item.type === "goal") return item.sectionId;
+      if (item.type === "task") return item.taskId;
+      if (item.type === "subtask") return item.subtaskId;
+      return "";
+    }
+
+    function treeItemsShareParent(source, target) {
+      if (!source || !target || source.type !== target.type) return false;
+      if (treeItemId(source) === treeItemId(target)) return false;
+      if (source.type === "goal") {
+        return source.projectId && source.projectId === target.projectId;
+      }
+      if (source.type === "task") {
+        return source.projectId === target.projectId && source.sectionId === target.sectionId;
+      }
+      if (source.type === "subtask") {
+        return source.taskId === target.taskId && source.parentSubtaskId === target.parentSubtaskId;
+      }
+      return false;
+    }
+
+    function handleTreeDragStart(event) {
+      if (event.target.closest(".tree-actions, .check-btn, .icon-btn, input, select, textarea")) {
+        event.preventDefault();
+        return;
+      }
+      draggedTreeItem = treeItemFromRow(event.currentTarget);
+      if (!draggedTreeItem) return;
+      event.currentTarget.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/tree-item", JSON.stringify(draggedTreeItem));
+    }
+
+    function handleTreeDragOver(event) {
+      const targetItem = treeItemFromRow(event.currentTarget);
+      if (!treeItemsShareParent(draggedTreeItem, targetItem)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      event.currentTarget.classList.add("drag-over");
+    }
+
+    function handleTreeDragLeave(event) {
+      event.currentTarget.classList.remove("drag-over");
+    }
+
+    function handleTreeDragEnd(event) {
+      event.currentTarget.classList.remove("is-dragging", "drag-over");
+      document.querySelectorAll(".tree-row.drag-over").forEach((row) => row.classList.remove("drag-over"));
+      draggedTreeItem = null;
+    }
+
+    function handleTreeDrop(event) {
+      const targetItem = treeItemFromRow(event.currentTarget);
+      if (!treeItemsShareParent(draggedTreeItem, targetItem)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.currentTarget.classList.remove("drag-over");
+      reorderTreeItem(draggedTreeItem, targetItem);
+      draggedTreeItem = null;
+    }
+
+    function reorderTreeItem(source, target) {
+      if (!treeItemsShareParent(source, target)) return;
+      if (source.type === "goal") {
+        reorderGoalByDrop(source.sectionId, target.sectionId);
+      } else if (source.type === "task") {
+        reorderTaskByDrop(source.taskId, target.taskId);
+      } else if (source.type === "subtask") {
+        reorderSubtaskByDrop(source.subtaskId, target.subtaskId);
+      }
+    }
+
+    function reorderGoalByDrop(sourceId, targetId) {
+      let changed = false;
+      mutate(() => {
+        const source = state.sections.find((section) => section.id === sourceId);
+        const target = state.sections.find((section) => section.id === targetId);
+        if (!source || !target || source.projectId !== target.projectId) return;
+        const ordered = sortedSections(target.projectId).filter((section) => section.id !== sourceId);
+        const targetIndex = ordered.findIndex((section) => section.id === targetId);
+        if (targetIndex < 0) return;
+        ordered.splice(targetIndex, 0, source);
+        ordered.forEach((section, index) => section.orden = index);
+        state.selectedProjectId = target.projectId;
+        state.selectedGoalId = goalKey(target.projectId, sourceId);
+        changed = true;
+      });
+      if (changed) showToast("Metas reordenadas");
+    }
+
+    function reorderTaskByDrop(sourceId, targetId) {
+      let changed = false;
+      mutate(() => {
+        const source = state.tasks.find((task) => task.id === sourceId);
+        const target = state.tasks.find((task) => task.id === targetId);
+        if (!source || !target || source.projectId !== target.projectId || source.sectionId !== target.sectionId) return;
+        const ordered = sortedTasks(target.projectId, target.sectionId).filter((task) => task.id !== sourceId);
+        const targetIndex = ordered.findIndex((task) => task.id === targetId);
+        if (targetIndex < 0) return;
+        ordered.splice(targetIndex, 0, source);
+        ordered.forEach((task, index) => task.orden = index);
+        state.selectedProjectId = target.projectId;
+        state.selectedGoalId = target.sectionId ? goalKey(target.projectId, target.sectionId) : null;
+        state.selectedTaskId = sourceId;
+        changed = true;
+      });
+      if (changed) showToast("Tareas reordenadas");
+    }
+
+    function reorderSubtaskByDrop(sourceId, targetId) {
+      let changed = false;
+      mutate(() => {
+        const source = state.subtasks.find((subtask) => subtask.id === sourceId);
+        const target = state.subtasks.find((subtask) => subtask.id === targetId);
+        if (!source || !target || source.taskId !== target.taskId || (source.parentSubtaskId || "") !== (target.parentSubtaskId || "")) return;
+        const ordered = sortedSubtaskChildren(target.taskId, target.parentSubtaskId || null).filter((subtask) => subtask.id !== sourceId);
+        const targetIndex = ordered.findIndex((subtask) => subtask.id === targetId);
+        if (targetIndex < 0) return;
+        ordered.splice(targetIndex, 0, source);
+        ordered.forEach((subtask, index) => subtask.orden = index);
+        state.selectedTaskId = target.taskId;
+        state.selectedSubtaskId = sourceId;
+        changed = true;
+      });
+      if (changed) showToast("Subtareas reordenadas");
     }
 
     function handleDragOver(event) {
@@ -11269,7 +11442,7 @@
       const tasks = sortedTasks(project.id, goal.id).filter((task) => !hideCompleted || !task.completada);
       const showTasks = treeMode === "tasks" || (isActive && treeMode === "all");
       return `
-        <div class="tree-row is-meta ${isActive ? "is-selected" : ""}">
+        <div class="tree-row is-meta ${isActive ? "is-selected" : ""}" draggable="true" data-tree-type="goal" data-project-id="${project.id}" data-section-id="${goal.id}">
           <span class="tree-level-label is-meta">M</span>
           <button type="button" class="tree-main" data-action="select-goal" data-project-id="${project.id}" data-section-id="${goal.id || ""}">
             <span class="tree-title">${escapeHtml(goal.nombre)}</span>
@@ -11305,7 +11478,7 @@
       const metaText = subtasks.length ? `${stats.completed}/${stats.total} subtareas logradas` : "";
       const showSubtasks = selected && treeMode === "all";
       return `
-        <div class="tree-row is-task ${task.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}">
+        <div class="tree-row is-task ${task.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" draggable="true" data-tree-type="task" data-project-id="${project.id}" data-section-id="${goal.id}" data-task-id="${task.id}">
           <button type="button" class="check-btn ${task.completada ? "is-complete" : ""}" data-action="toggle-task" data-task-id="${task.id}" aria-label="${task.completada ? "Reabrir tarea" : "Completar tarea"}">${task.completada ? "✓" : ""}</button>
           <button type="button" class="tree-main" data-action="select-task" data-task-id="${task.id}">
             <span class="tree-title">${escapeHtml(task.nombre)}</span>
@@ -11339,7 +11512,7 @@
       const indent = 56 + (safeDepth - 1) * 28;
       const expanded = selected || Boolean(state.selectedSubtaskId && subtaskDescendantIds(subtask.id).has(state.selectedSubtaskId));
       return `
-        <div class="tree-row is-subtask depth-${safeDepth} ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" style="--tree-indent:${indent}px">
+        <div class="tree-row is-subtask depth-${safeDepth} ${subtask.completada ? "is-complete" : ""} ${selected ? "is-selected" : ""}" draggable="true" data-tree-type="subtask" data-task-id="${task.id}" data-parent-subtask-id="${subtask.parentSubtaskId || ""}" data-subtask-id="${subtask.id}" style="--tree-indent:${indent}px">
           <button type="button" class="check-btn ${subtask.completada ? "is-complete" : ""}" data-action="toggle-subtask" data-subtask-id="${subtask.id}" aria-label="${subtask.completada ? "Reabrir subtarea" : "Completar subtarea"}">${subtask.completada ? "✓" : ""}</button>
           <button type="button" class="tree-main" data-action="select-subtask" data-subtask-id="${subtask.id}" data-task-id="${task.id}">
             <span class="tree-title">${escapeHtml(subtask.nombre)}</span>

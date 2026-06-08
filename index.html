@@ -4899,6 +4899,21 @@
     ];
 
     const shiftedLayoutCache = new Map();
+    const fittedLayoutCache = new Map();
+    const atlasSlotFrames = [
+      { x: 52, y: 72, w: 218, h: 132 },
+      { x: 342, y: 64, w: 216, h: 132 },
+      { x: 632, y: 72, w: 218, h: 132 },
+      { x: 52, y: 252, w: 224, h: 152 },
+      { x: 338, y: 246, w: 224, h: 152 },
+      { x: 624, y: 252, w: 224, h: 152 },
+      { x: 52, y: 458, w: 224, h: 152 },
+      { x: 338, y: 452, w: 224, h: 152 },
+      { x: 624, y: 458, w: 224, h: 152 },
+      { x: 64, y: 650, w: 196, h: 108 },
+      { x: 352, y: 650, w: 196, h: 108 },
+      { x: 640, y: 650, w: 196, h: 108 }
+    ];
 
     let state = loadState();
     let dragCastle = null;
@@ -5096,24 +5111,75 @@
       return layout;
     }
 
+    function pathPointBounds(points) {
+      return points.reduce((bounds, point) => ({
+        minX: Math.min(bounds.minX, point.x),
+        minY: Math.min(bounds.minY, point.y),
+        maxX: Math.max(bounds.maxX, point.x),
+        maxY: Math.max(bounds.maxY, point.y)
+      }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+    }
+
+    function atlasFrameForSlot(slot) {
+      if (slot < atlasSlotFrames.length) return atlasSlotFrames[slot];
+      const base = atlasSlotFrames[slot % atlasSlotFrames.length];
+      const cycle = Math.floor(slot / atlasSlotFrames.length);
+      const insetX = Math.min(22, cycle * 7);
+      const insetY = Math.min(14, cycle * 5);
+      return {
+        x: base.x + insetX,
+        y: base.y + insetY,
+        w: Math.max(150, base.w - insetX * 2),
+        h: Math.max(92, base.h - insetY * 2)
+      };
+    }
+
+    function fittedLayout(index, frame, slot) {
+      const cacheKey = `${index}:${slot}:${frame.x}:${frame.y}:${frame.w}:${frame.h}`;
+      if (fittedLayoutCache.has(cacheKey)) return fittedLayoutCache.get(cacheKey);
+      const source = continentLayouts[index];
+      const sourcePoints = parsePathPoints(source.path);
+      const sourceBounds = pathPointBounds(sourcePoints);
+      const sourceWidth = Math.max(1, sourceBounds.maxX - sourceBounds.minX);
+      const sourceHeight = Math.max(1, sourceBounds.maxY - sourceBounds.minY);
+      const scale = Math.min(frame.w / sourceWidth, frame.h / sourceHeight);
+      const offsetX = frame.x + (frame.w - sourceWidth * scale) / 2;
+      const offsetY = frame.y + (frame.h - sourceHeight * scale) / 2;
+      const transformPoint = (point) => ({
+        x: offsetX + (point.x - sourceBounds.minX) * scale,
+        y: offsetY + (point.y - sourceBounds.minY) * scale
+      });
+      const transformedPoints = sourcePoints.map(transformPoint);
+      const transformedLabel = transformPoint(source.label);
+      const layout = {
+        key: `${source.key}-atlas-${slot}`,
+        path: transformedPoints.map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ") + " Z",
+        label: transformedLabel,
+        visualScale: scale,
+        goalAnchors: source.goalAnchors.map((point) => {
+          const transformed = transformPoint(point);
+          return {
+            x: clampNumber(transformed.x, frame.x + 22, frame.x + frame.w - 22),
+            y: clampNumber(transformed.y, frame.y + 22, frame.y + frame.h - 18)
+          };
+        })
+      };
+      fittedLayoutCache.set(cacheKey, layout);
+      return layout;
+    }
+
     function layoutForSlot(slot) {
       const safe = normalizeMapSlot(slot, 0);
-      if (safe === 8) return shiftedLayout(8, -4, -34, 0.88);
-      if (safe === 9) return shiftedLayout(9, 0, -22, 0.82);
       const index = ((safe % continentLayouts.length) + continentLayouts.length) % continentLayouts.length;
-      if (safe < continentLayouts.length) return continentLayouts[index];
-      const ring = Math.floor(safe / continentLayouts.length);
-      const shrink = Math.max(0.58, 0.74 - ring * 0.05);
-      const dx = (seededValue((safe + 1) * 313) - 0.5) * 36;
-      const dy = (seededValue((safe + 1) * 719) - 0.5) * 30;
-      return shiftedLayout(index, dx, dy, shrink);
+      return fittedLayout(index, atlasFrameForSlot(safe), safe);
     }
 
     function nearestMapSlot(pos) {
       if (!pos || !Number.isFinite(Number(pos.x)) || !Number.isFinite(Number(pos.y))) return null;
       let bestIndex = 0;
       let bestDistance = Infinity;
-      continentLayouts.forEach((layout, index) => {
+      atlasSlotFrames.forEach((frame, index) => {
+        const layout = layoutForSlot(index);
         const distance = Math.hypot(Number(pos.x) - layout.label.x, Number(pos.y) - layout.label.y);
         if (distance < bestDistance) {
           bestDistance = distance;
@@ -5126,8 +5192,8 @@
     function nextAvailableMapSlot(candidate, used) {
       let slot = normalizeMapSlot(candidate, used.size);
       let attempts = 0;
-      while (used.has(slot) && attempts < continentLayouts.length) {
-        slot = (slot + 1) % continentLayouts.length;
+      while (used.has(slot) && attempts < atlasSlotFrames.length) {
+        slot = (slot + 1) % atlasSlotFrames.length;
         attempts += 1;
       }
       return used.has(slot) ? used.size : slot;
@@ -5155,7 +5221,7 @@
     function bestAvailableMapSlot(used) {
       const usedSlots = [...used].map((slot) => normalizeMapSlot(slot, 0));
       const usedBounds = usedSlots.map(boundsForSlot);
-      const maxCandidates = Math.max(continentLayouts.length + 18, usedSlots.length + 18);
+      const maxCandidates = Math.max(atlasSlotFrames.length, usedSlots.length + 8);
       let best = null;
       for (let slot = 0; slot < maxCandidates; slot += 1) {
         if (used.has(slot)) continue;
@@ -5220,7 +5286,7 @@
       if (!pos || !Number.isFinite(Number(pos.x)) || !Number.isFinite(Number(pos.y))) return false;
       const distance = distanceFromSlotCenter(pos, slot);
       const nearest = nearestMapSlot(pos);
-      const normalizedSlot = ((normalizeMapSlot(slot, 0) % continentLayouts.length) + continentLayouts.length) % continentLayouts.length;
+      const normalizedSlot = ((normalizeMapSlot(slot, 0) % atlasSlotFrames.length) + atlasSlotFrames.length) % atlasSlotFrames.length;
       return isTooFarForContinentExpansion(pos, slot)
         || (nearest !== null && nearest !== normalizedSlot && distance > baseRadiusForSlot(slot) + 28);
     }
@@ -5260,7 +5326,7 @@
         const distance = Math.hypot(dx, dy);
         if (distance < 1) return;
         const goalAngle = Math.atan2(dy, dx);
-        const margin = 24;
+        const margin = 16;
         for (let i = 0; i < binCount; i += 1) {
           const angle = i / binCount * Math.PI * 2;
           const delta = angleDifference(angle, goalAngle);
@@ -5269,7 +5335,7 @@
           const forward = distance * Math.cos(delta);
           if (forward < 0) continue;
           const coastRadius = Math.min(
-            radii[i] + 54,
+            radii[i] + 36,
             forward + Math.sqrt(Math.max(0, margin * margin - lateral * lateral))
           );
           const roughness = (seededValue((index + 1) * 991 + pointIndex * 73 + i * 17) - 0.5) * 4;
@@ -5284,7 +5350,7 @@
       const points = smoothed.map((radius, i) => {
         const angle = i / binCount * Math.PI * 2;
         const coastNoise = (seededValue((index + 1) * 1601 + i * 31) - 0.5) * 3;
-        const finalRadius = Math.min(radii[i] + 58, Math.max(required[i], radius + coastNoise));
+        const finalRadius = Math.min(radii[i] + 40, Math.max(required[i], radius + coastNoise));
         return {
           x: Math.max(0, Math.min(900, center.x + Math.cos(angle) * finalRadius)),
           y: Math.max(0, Math.min(800, center.y + Math.sin(angle) * finalRadius))
@@ -5418,7 +5484,7 @@
       const defaultBox = { x: 0, y: 0, w: 900, h: 800 };
       return {
         schemaVersion: 18,
-        mapFitVersion: 1,
+        mapFitVersion: 2,
         kingdomName: (!data.kingdomName || data.kingdomName === "Reino en Construcción" || data.kingdomName === "Atlas de Construccion") ? "Atelier" : data.kingdomName,
         userName: data.userName || "Usuario",
         userPhoto: data.userPhoto || "",
@@ -5463,7 +5529,7 @@
         mapTaskPopupId: data.mapTaskPopupId && tasks.some((t) => t.id === data.mapTaskPopupId) ? data.mapTaskPopupId : null,
         continentPopupId: data.continentPopupId || null,
         mapZoomMode: "free",
-        mapViewBox: data.mapFitVersion === 1 && !repositionGoals && isValidMapBox(data.mapViewBox) ? clampMapBox(data.mapViewBox) : defaultBox,
+        mapViewBox: data.mapFitVersion === 2 && !repositionGoals && isValidMapBox(data.mapViewBox) ? clampMapBox(data.mapViewBox) : defaultBox,
         recentlyCompletedTaskId: data.recentlyCompletedTaskId || null,
         celebratingProjectId: data.celebratingProjectId || null,
         celebratingGoalId: data.celebratingGoalId || null,
@@ -8750,7 +8816,7 @@
           state.projects.push(project);
           state.selectedProjectId = project.id;
           if (state.view === "list") state.listProjectOpen = true;
-          state.mapFitVersion = 1;
+          state.mapFitVersion = 2;
           state.mapViewBox = { x: 0, y: 0, w: 900, h: 800 };
         }
         state.modal = null;
@@ -10735,6 +10801,9 @@
         const bounds = pathBounds(coast);
         const x = (bounds.minX + bounds.maxX) / 2;
         const y = Math.max(24, bounds.minY - 10);
+        const title = String(project.nombre || "");
+        const labelScale = title.length > 48 ? 0.64 : title.length > 32 ? 0.74 : 0.86;
+        const labelLines = wrapSvgLines(title, title.length > 48 ? 22 : 26).slice(0, 2);
         const stats = totalStatsForProject(project.id);
         const goals = goalsForProject(project.id);
         const popupWidth = 240;
@@ -10745,7 +10814,9 @@
         return `
           <g class="continent-title-group ${isOpen ? "is-open" : ""}" data-project-id="${project.id}">
             <rect x="${roundViewBox(x - 86)}" y="${roundViewBox(y - 18)}" width="172" height="24" rx="12" fill="transparent"/>
-            <text class="continent-title-text" x="${roundViewBox(x)}" y="${roundViewBox(y)}" text-anchor="middle">${escapeHtml(project.nombre)}</text>
+            <g transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${labelScale})">
+              ${labelLines.map((line, lineIndex) => `<text class="continent-title-text" x="0" y="${lineIndex * 15}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
+            </g>
             <g class="continent-title-popup" transform="translate(${roundViewBox(popupX)} ${roundViewBox(popupY)})">
               <rect width="${popupWidth}" height="${popupHeight}" rx="8" fill="rgba(7,12,16,0.92)" stroke="rgba(248,250,252,0.3)" stroke-width="1.2"/>
               <g class="map-popup-close" data-action="close-continent-popup" data-project-id="${project.id}" transform="translate(${popupWidth - 30} 9)">
@@ -10764,6 +10835,7 @@
     function renderLandTexture(project, layout, index, clipId, coast) {
       const cx = layout.label.x;
       const cy = layout.label.y;
+      const visualScale = layout.visualScale || 1;
       const palettes = [
         [
           { dx: -62, dy: 18, color: "#7f925e", opacity: 0.34, size: 1.1 },
@@ -10799,10 +10871,16 @@
       ][index % 7];
       return `
         <g clip-path="url(#${clipId})">
-          ${palettes.map((patch) => renderTerrainPatch(cx + patch.dx, cy + patch.dy, patch.color, patch.opacity, patch.size)).join("")}
+          ${palettes.map((patch) => renderTerrainPatch(
+            cx + patch.dx * visualScale,
+            cy + patch.dy * visualScale,
+            patch.color,
+            patch.opacity,
+            patch.size * visualScale
+          )).join("")}
           ${renderCartographicTexture(coast, index)}
           ${renderExpansionTerrain(project, index)}
-          ${renderMicroTerrain(cx, cy, index)}
+          ${renderMicroTerrain(cx, cy, index, visualScale)}
         </g>
       `;
     }
@@ -10832,18 +10910,19 @@
       return `<path d="M${pts.map(([x, y]) => `${x} ${y}`).join(" L")} Z" fill="${color}" opacity="${opacity}"/>`;
     }
 
-    function renderMicroTerrain(cx, cy, index) {
+    function renderMicroTerrain(cx, cy, index, visualScale = 1) {
       const marks = Array.from({ length: 18 }, (_, i) => {
         const angle = (i * 137 + index * 29) * Math.PI / 180;
-        const radiusX = 38 + (i % 4) * 19;
-        const radiusY = 28 + (i % 5) * 16;
+        const radiusX = (38 + (i % 4) * 19) * visualScale;
+        const radiusY = (28 + (i % 5) * 16) * visualScale;
         const x = cx + Math.cos(angle) * radiusX;
-        const y = cy + 44 + Math.sin(angle) * radiusY;
+        const y = cy + 44 * visualScale + Math.sin(angle) * radiusY;
         const color = i % 3 === 0 ? "#6f7f4f" : i % 3 === 1 ? "#9b7f4c" : "#8d7c61";
+        const markScale = Math.max(0.55, visualScale);
         if (i % 3 === 2) {
-          return `<path d="M${x - 8} ${y + 2} C${x - 2} ${y - 5} ${x + 3} ${y - 5} ${x + 9} ${y + 1}" fill="none" stroke="${color}" stroke-width="1.2" opacity="0.24" stroke-linecap="round"/>`;
+          return `<path d="M${x - 8 * markScale} ${y + 2 * markScale} C${x - 2 * markScale} ${y - 5 * markScale} ${x + 3 * markScale} ${y - 5 * markScale} ${x + 9 * markScale} ${y + 1 * markScale}" fill="none" stroke="${color}" stroke-width="${1.2 * markScale}" opacity="0.24" stroke-linecap="round"/>`;
         }
-        return `<g opacity="0.3"><path d="M${x - 4} ${y + 2} C${x - 8} ${y - 4} ${x - 1} ${y - 9} ${x + 3} ${y - 4} C${x + 7} ${y - 5} ${x + 7} ${y + 2} ${x + 1} ${y + 3} Z" fill="${color}"/><path d="M${x} ${y + 2} L${x} ${y + 8}" stroke="#6b5635" stroke-width="0.8"/></g>`;
+        return `<g opacity="0.3" transform="translate(${x} ${y}) scale(${markScale})"><path d="M-4 2 C-8 -4 -1 -9 3 -4 C7 -5 7 2 1 3 Z" fill="${color}"/><path d="M0 2 L0 8" stroke="#6b5635" stroke-width="0.8"/></g>`;
       }).join("");
       return `<g>${marks}</g>`;
     }
@@ -10885,6 +10964,7 @@
     }
 
     function renderContinentMarks(layout, index) {
+      const visualScale = Math.max(0.54, layout.visualScale || 1);
       const marks = [
         [
           ["forest", -56, 40], ["mountain", 54, 14], ["ruin", -18, 82], ["tree", 24, 72]
@@ -10910,7 +10990,7 @@
       ][index % 7];
       return marks
         .filter(([type]) => type !== "ruin")
-        .map(([type, dx, dy]) => renderMapMark(type, layout.label.x + dx, layout.label.y + dy))
+        .map(([type, dx, dy]) => `<g transform="translate(${layout.label.x + dx * visualScale} ${layout.label.y + dy * visualScale}) scale(${visualScale})">${renderMapMark(type, 0, 0)}</g>`)
         .join("");
     }
 
@@ -10984,7 +11064,9 @@
 
     function cityScaleForGoal(stats) {
       const taskCount = Math.max(0, Number(stats?.total) || 0);
-      return 0.24 + Math.min(taskCount, 20) * 0.0035;
+      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
+      const overviewFactor = box.w > 650 ? 0.68 : box.w > 460 ? 0.82 : 1;
+      return (0.24 + Math.min(taskCount, 20) * 0.0035) * overviewFactor;
     }
 
     function renderGoalSequencePaths(projects) {

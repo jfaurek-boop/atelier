@@ -4898,6 +4898,8 @@
       }
     ];
 
+    const shiftedLayoutCache = new Map();
+
     let state = loadState();
     let dragCastle = null;
     let dragMap = null;
@@ -5069,8 +5071,6 @@
       return radii;
     }
 
-    const shiftedLayoutCache = new Map();
-
     function normalizeMapSlot(value, fallback = 0) {
       const slot = Math.trunc(Number(value));
       return Number.isFinite(slot) ? slot : fallback;
@@ -5169,13 +5169,22 @@
       return best ? best.slot : nextAvailableMapSlot(used.size, used);
     }
 
+    function slotSeriouslyOverlapsUsed(slot, used) {
+      if (!used.size) return false;
+      const bounds = boundsForSlot(slot);
+      return [...used].some((usedSlot) => boundsOverlapArea(bounds, boundsForSlot(usedSlot), 10) > 2200);
+    }
+
     function resolveProjectMapSlots(projects) {
       const used = new Set();
       const slots = new Map();
       projects.forEach((project, index) => {
         const explicit = Number.isFinite(Number(project.mapSlot)) ? Number(project.mapSlot) : null;
         const inferred = explicit ?? nearestMapSlot(project.posicion) ?? (Number.isFinite(Number(project.orden)) ? Number(project.orden) : index);
-        const slot = nextAvailableMapSlot(inferred, used);
+        const candidate = normalizeMapSlot(inferred, used.size);
+        const slot = used.has(candidate) || slotSeriouslyOverlapsUsed(candidate, used)
+          ? bestAvailableMapSlot(used)
+          : candidate;
         used.add(slot);
         if (project.id) slots.set(project.id, slot);
       });
@@ -5204,7 +5213,7 @@
     function isTooFarForContinentExpansion(pos, slot) {
       const distance = distanceFromSlotCenter(pos, slot);
       if (!Number.isFinite(distance)) return false;
-      return distance > baseRadiusForSlot(slot) + 135;
+      return distance > baseRadiusForSlot(slot) + 48;
     }
 
     function isLikelyMapOrderDrift(pos, slot) {
@@ -5213,7 +5222,7 @@
       const nearest = nearestMapSlot(pos);
       const normalizedSlot = ((normalizeMapSlot(slot, 0) % continentLayouts.length) + continentLayouts.length) % continentLayouts.length;
       return isTooFarForContinentExpansion(pos, slot)
-        || (nearest !== null && nearest !== normalizedSlot && distance > baseRadiusForSlot(slot) + 70);
+        || (nearest !== null && nearest !== normalizedSlot && distance > baseRadiusForSlot(slot) + 28);
     }
 
     function expandedGoalPositions(project, index = projectMapIndex(project.id)) {
@@ -5251,7 +5260,7 @@
         const distance = Math.hypot(dx, dy);
         if (distance < 1) return;
         const goalAngle = Math.atan2(dy, dx);
-        const margin = 50;
+        const margin = 24;
         for (let i = 0; i < binCount; i += 1) {
           const angle = i / binCount * Math.PI * 2;
           const delta = angleDifference(angle, goalAngle);
@@ -5259,7 +5268,10 @@
           if (Math.abs(lateral) > margin) continue;
           const forward = distance * Math.cos(delta);
           if (forward < 0) continue;
-          const coastRadius = forward + Math.sqrt(Math.max(0, margin * margin - lateral * lateral));
+          const coastRadius = Math.min(
+            radii[i] + 54,
+            forward + Math.sqrt(Math.max(0, margin * margin - lateral * lateral))
+          );
           const roughness = (seededValue((index + 1) * 991 + pointIndex * 73 + i * 17) - 0.5) * 4;
           required[i] = Math.max(required[i], coastRadius + roughness);
         }
@@ -5272,7 +5284,7 @@
       const points = smoothed.map((radius, i) => {
         const angle = i / binCount * Math.PI * 2;
         const coastNoise = (seededValue((index + 1) * 1601 + i * 31) - 0.5) * 3;
-        const finalRadius = Math.max(required[i], radius + coastNoise);
+        const finalRadius = Math.min(radii[i] + 58, Math.max(required[i], radius + coastNoise));
         return {
           x: Math.max(0, Math.min(900, center.x + Math.cos(angle) * finalRadius)),
           y: Math.max(0, Math.min(800, center.y + Math.sin(angle) * finalRadius))
@@ -12425,6 +12437,7 @@
 
     ensureRecurringInstances();
     syncCompletionState();
+    repairAllDistantGoalPositions();
     render();
     initSupabaseFromConfig({ mode: "pull", silent: true });
   </script>

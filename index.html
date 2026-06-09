@@ -4547,6 +4547,164 @@
     .tree-empty.is-task {
       margin-left: 28px;
     }
+
+    .project-tree-panel .quick-add,
+    .tree-add,
+    .tree-row {
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+
+    .project-tree-panel .quick-add {
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    .project-tree-panel .quick-add > * {
+      min-width: 0;
+    }
+
+    .project-tree-panel .quick-add input[name="nombre"],
+    .project-tree-panel .quick-add input[name="descripcion"] {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .project-tree-panel .quick-add input[type="date"] {
+      min-width: 96px;
+      max-width: 126px;
+      font-size: 0.68rem;
+    }
+
+    .tree-add {
+      max-width: calc(100% - var(--tree-indent, 0px));
+      overflow: hidden;
+    }
+
+    .tree-row {
+      grid-template-columns: 28px minmax(0, 1fr) 32px minmax(72px, 86px) max-content;
+      overflow: hidden;
+    }
+
+    .tree-main,
+    .tree-title,
+    .tree-description {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree-date {
+      max-width: 86px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-actions {
+      flex-shrink: 0;
+      max-width: 100%;
+      min-width: max-content;
+    }
+
+    .bitacora-panel {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .bitacora-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .bitacora-head h3 {
+      margin: 0;
+      color: #f8fafc;
+      font-size: 1rem;
+    }
+
+    .bitacora-head span {
+      color: #94a3b8;
+      font-size: 0.78rem;
+    }
+
+    .bitacora-composer {
+      margin-bottom: 12px;
+    }
+
+    .bitacora-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .bitacora-date {
+      margin-bottom: 7px;
+      color: #d8c18f;
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .bitacora-entry {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: start;
+      gap: 9px;
+      margin-bottom: 8px;
+    }
+
+    .bitacora-bubble {
+      min-width: 0;
+      padding: 8px 10px;
+      background: rgba(15, 23, 42, 0.44);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 10px;
+    }
+
+    .bitacora-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+      color: #94a3b8;
+      font-size: 0.72rem;
+    }
+
+    .bitacora-text {
+      color: #e5e7eb;
+      font-size: 0.86rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .bitacora-empty {
+      padding: 10px;
+      color: #94a3b8;
+      font-style: italic;
+      border: 1px dashed rgba(148, 163, 184, 0.25);
+      border-radius: 10px;
+    }
+
+    .task-comment-row.bitacora-composer {
+      align-items: center;
+      gap: 8px;
+    }
+
+    .task-comment-submit {
+      min-width: 92px;
+      padding-inline: 14px;
+    }
   </style>
 </head>
 <body>
@@ -5565,6 +5723,7 @@
             completada: Boolean(section.completada),
             fechaVencimiento: section.fechaVencimiento || null,
             completedAt: section.completedAt || null,
+            comentarios: Array.isArray(section.comentarios) ? section.comentarios : [],
             secondaryProjectId: section.secondaryProjectId && projects.some((project) => project.id === section.secondaryProjectId) && section.secondaryProjectId !== section.projectId ? section.secondaryProjectId : null,
             tags: Array.isArray(section.tags) ? section.tags.filter(Boolean) : [],
             orden: Number.isFinite(section.orden) ? section.orden : index,
@@ -5604,6 +5763,7 @@
           completada: Boolean(subtask.completada),
           fechaVencimiento: subtask.fechaVencimiento || null,
           tags: Array.isArray(subtask.tags) ? subtask.tags.filter(Boolean) : [],
+          comentarios: Array.isArray(subtask.comentarios) ? subtask.comentarios : [],
           orden: Number.isFinite(subtask.orden) ? subtask.orden : index,
           createdAt: subtask.createdAt || nowISO(),
           completedAt: subtask.completada ? subtask.completedAt || nowISO() : null
@@ -8381,7 +8541,7 @@
       }
       if (action === "set-priority") setPriorityInForm(actionTarget);
       if (action === "set-task-status") setTaskStatusInForm(actionTarget);
-      if (action === "add-comment") addTaskComment(taskId);
+      if (action === "add-comment") addLogComment(actionTarget.dataset.itemType || "task", actionTarget.dataset.itemId || taskId);
       if (action === "delete-tag") deleteTag(actionTarget.dataset.tagId);
       if (action === "delete-task") deleteTask(taskId);
       if (action === "toggle-subtask") {
@@ -8475,7 +8635,7 @@
     function handleCommentKeydown(event) {
       if (event.key !== "Enter" || event.shiftKey) return;
       event.preventDefault();
-      addTaskComment(event.currentTarget.dataset.commentInput);
+      addLogComment(event.currentTarget.dataset.commentType || "task", event.currentTarget.dataset.commentInput);
     }
 
     function closeTaskCombos(except = null) {
@@ -8557,22 +8717,48 @@
     }
 
     function addTaskComment(taskId) {
-      const input = document.querySelector(`[data-comment-input="${taskId}"]`);
+      addLogComment("task", taskId);
+    }
+
+    function logTarget(type, itemId) {
+      if (type === "goal") return state.sections.find((item) => item.id === itemId);
+      if (type === "subtask") return state.subtasks.find((item) => item.id === itemId);
+      return state.tasks.find((item) => item.id === itemId);
+    }
+
+    function addLogComment(type, itemId) {
+      const safeType = ["goal", "task", "subtask"].includes(type) ? type : "task";
+      const input = document.querySelector(`[data-comment-input="${itemId}"][data-comment-type="${safeType}"]`);
       const text = input?.value.trim();
-      if (!taskId || !text) return;
+      if (!itemId || !text) return;
       mutate(() => {
-        const task = state.tasks.find((item) => item.id === taskId);
-        if (!task) return;
-        task.comentarios = Array.isArray(task.comentarios) ? task.comentarios : [];
-        task.comentarios.push({
+        const item = logTarget(safeType, itemId);
+        if (!item) return;
+        item.comentarios = Array.isArray(item.comentarios) ? item.comentarios : [];
+        item.comentarios.push({
           id: uid("comment"),
           text,
           author: state.userName || "Usuario",
           createdAt: nowISO()
         });
-        state.selectedTaskId = task.id;
+        if (safeType === "goal") {
+          state.selectedProjectId = item.projectId;
+          state.selectedGoalId = goalKey(item.projectId, item.id);
+        } else if (safeType === "task") {
+          state.selectedProjectId = item.projectId;
+          state.selectedGoalId = goalKey(item.projectId, item.sectionId);
+          state.selectedTaskId = item.id;
+        } else {
+          const parentTask = state.tasks.find((task) => task.id === item.taskId);
+          if (parentTask) {
+            state.selectedProjectId = parentTask.projectId;
+            state.selectedGoalId = goalKey(parentTask.projectId, parentTask.sectionId);
+            state.selectedTaskId = parentTask.id;
+          }
+          state.selectedSubtaskId = item.id;
+        }
       }, { persist: true });
-      showToast("Comentario publicado");
+      showToast("Registro publicado");
     }
 
     function saveQuickTask(form, event) {
@@ -8659,6 +8845,7 @@
           orden: goalIndex,
           posicion: goalPositionFor(projectId, goalIndex),
           linkedGoalIds: [],
+          comentarios: [],
           createdAt: nowISO()
         });
         state.selectedProjectId = projectId;
@@ -8690,6 +8877,7 @@
           orden: goalIndex,
           posicion: goalPositionFor(projectId, goalIndex),
           linkedGoalIds: [],
+          comentarios: [],
           createdAt: nowISO()
         });
         state.selectedProjectId = projectId;
@@ -8731,6 +8919,7 @@
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           tags: [],
           orden: sortedSubtaskChildren(taskId, parentSubtaskId).length,
+          comentarios: [],
           createdAt: nowISO(),
           completedAt: null
         });
@@ -8772,6 +8961,7 @@
           fechaVencimiento: form.elements.fechaVencimiento?.value || null,
           tags: [],
           orden: sortedSubtaskChildren(taskId, parentSubtaskId).length,
+          comentarios: [],
           createdAt: nowISO(),
           completedAt: null
         });
@@ -8861,6 +9051,7 @@
             orden: state.sections.filter((section) => section.projectId === projectId).length,
             posicion: goalPositionFor(projectId, state.sections.filter((section) => section.projectId === projectId).length),
             linkedGoalIds: [],
+            comentarios: [],
             createdAt: nowISO()
           });
           state.selectedGoalId = goalKey(projectId, sectionId);
@@ -8945,6 +9136,7 @@
             taskId,
             parentSubtaskId,
             createdAt: nowISO(),
+            comentarios: [],
             orden: sortedSubtaskChildren(taskId, parentSubtaskId).length
           };
           state.subtasks.push(subtask);
@@ -10738,14 +10930,16 @@
 
     function renderCityLabels(goals) {
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      return `<g class="city-title-layer" pointer-events="none" style="${box.w > 650 ? "display:none" : ""}">
+      if (box.w > 500) return "";
+      return `<g class="city-title-layer" pointer-events="none">
         ${goals.map(({ project, goal, index }) => {
           const pos = goalPosition(goal, project, index);
           const nameLength = String(goal.nombre || "").length;
-          const zoomScale = clampNumber(box.w / 900, 0.26, 1);
-          const scale = (nameLength > 54 ? 0.88 : nameLength > 34 ? 0.98 : 1.1) * zoomScale;
-          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 18 : 20).slice(0, 3);
-          const y = pos.y - 132 * cityScaleForGoal(statsForGoal(project.id, goal.id));
+          const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
+          const zoomScale = clampNumber(box.w / 500, 0.34, 0.82);
+          const scale = (nameLength > 54 ? 0.52 : nameLength > 34 ? 0.6 : 0.68) * zoomScale;
+          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 18 : 22).slice(0, 2);
+          const y = pos.y - Math.max(30, 58 * cityScale);
           return `
             <g transform="translate(${pos.x} ${y}) scale(${scale})">
               ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${lineIndex * 11}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
@@ -11131,16 +11325,12 @@
     }
 
     function renderCityWall(project, progress) {
-      const built = Math.max(0.16, progress);
+      const built = Math.max(0.18, progress);
       return `
-        <g opacity="0.94">
-          <path d="M-142 34 C-126 -36 -56 -68 18 -56 C92 -44 144 -12 154 52 C166 116 104 166 22 176 C-66 186 -142 142 -154 78 C-160 54 -154 42 -142 34 Z" fill="rgba(207,184,123,0.18)" stroke="#8a7a58" stroke-width="1.4" opacity="0.62"/>
-          <path d="M-118 62 C-74 44 -20 52 30 44 C76 36 116 48 142 76" fill="none" stroke="#d7c99f" stroke-width="2.2" opacity="0.36"/>
-          <path d="M-92 122 C-46 100 0 112 42 98 C84 84 116 94 138 116" fill="none" stroke="#8a7a58" stroke-width="2" opacity="0.24"/>
-          <path d="M-16 -42 C-18 4 -12 42 -24 82 C-32 110 -40 134 -36 160" fill="none" stroke="#d7c99f" stroke-width="2.4" opacity="0.3"/>
-          <path d="M-70 -8 C-58 -44 -18 -56 16 -48 C52 -40 75 -12 68 24 C58 58 18 66 -20 58 C-58 50 -82 26 -70 -8 Z" fill="rgba(207,184,123,0.28)" stroke="#8a7a58" stroke-width="2.2"/>
-          <path d="M-58 -2 C-42 -28 -14 -36 14 -32 C42 -28 58 -8 55 18 C51 42 18 50 -14 43 C-44 36 -66 21 -58 -2 Z" fill="rgba(239,224,185,0.18)" stroke="#8a7a58" stroke-width="1.15" opacity="0.58"/>
-          <path d="M-70 -8 C-58 -44 -18 -56 16 -48 C52 -40 75 -12 68 24 C58 58 18 66 -20 58 C-58 50 -82 26 -70 -8 Z" fill="none" stroke="#d7c99f" stroke-width="1.05" opacity="${0.3 + built * 0.4}"/>
+        <g opacity="${0.32 + built * 0.2}">
+          <ellipse cx="0" cy="34" rx="70" ry="26" fill="rgba(207,184,123,0.1)" stroke="#8a7a58" stroke-width="0.9" opacity="0.42"/>
+          <path d="M-52 40 C-22 27 22 28 56 41" fill="none" stroke="#d7c99f" stroke-width="1.1" opacity="0.26"/>
+          <path d="M-44 52 C-12 61 24 60 50 50" fill="none" stroke="#8a7a58" stroke-width="0.9" opacity="0.14"/>
         </g>
       `;
     }
@@ -11950,6 +12140,7 @@
               <div class="field"><label>Fecha limite</label><input type="date" name="fechaVencimiento" value="${section?.fechaVencimiento || ""}"></div>
               ${renderTagCheckboxField(section?.tags || [])}
               ${renderGoalLinkField(section, project)}
+              ${section?.id ? renderBitacora(section, "goal", section.id) : ""}
             </div>
             <div class="modal-foot"><button type="button" class="ghost-btn" data-action="close-modal">Cancelar</button><button type="submit" class="primary-btn">Guardar</button></div>
           </form>
@@ -12037,32 +12228,77 @@
           </div>
           <textarea class="task-description-input" name="descripcion" placeholder="Descripcion">${escapeHtml(task.descripcion)}</textarea>
           <div class="task-editor-divider"></div>
-          <div class="task-comment-row">
-            ${renderCommentAvatar()}
-            <input class="task-comment-input" data-comment-input="${task.id}" placeholder="Comentar" aria-label="Comentar">
-            <button type="button" class="task-comment-submit" data-action="add-comment" data-task-id="${task.id}">Publicar</button>
-          </div>
-          ${renderTaskComments(task)}
+          ${renderBitacora(task, "task", task.id)}
         </section>
       `;
     }
 
     function renderTaskComments(task) {
-      const comments = Array.isArray(task.comentarios) ? task.comentarios : [];
-      if (!comments.length) return "";
+      return renderBitacora(task, "task", task.id);
+    }
+
+    function renderBitacora(item, type, itemId) {
+      const comments = Array.isArray(item?.comentarios) ? item.comentarios.slice() : [];
       return `
-        <div class="task-comments" aria-label="Comentarios publicados">
-          ${comments.slice().reverse().map((comment) => `
-            <article class="task-comment-published">
-              ${renderCommentAvatar(comment.author)}
-              <div class="task-comment-bubble">
-                <strong>${escapeHtml(comment.author || state.userName || "Usuario")}</strong>
-                <span>${escapeHtml(comment.text || "")}</span>
-              </div>
-            </article>
+        <div class="bitacora-panel" aria-label="Bitacora">
+          <div class="bitacora-head">
+            <h3>Bitacora</h3>
+            <span>${comments.length} registro${comments.length === 1 ? "" : "s"}</span>
+          </div>
+          <div class="task-comment-row bitacora-composer">
+            ${renderCommentAvatar()}
+            <input class="task-comment-input" data-comment-type="${type}" data-comment-input="${itemId}" placeholder="Registrar avance" aria-label="Registrar avance">
+            <button type="button" class="task-comment-submit" data-action="add-comment" data-item-type="${type}" data-item-id="${itemId}">Publicar</button>
+          </div>
+          ${renderCommentGroups(comments)}
+        </div>
+      `;
+    }
+
+    function renderCommentGroups(comments) {
+      if (!comments.length) return `<div class="bitacora-empty">Aun no hay registros en la bitacora.</div>`;
+      const groups = new Map();
+      comments
+        .slice()
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .forEach((comment) => {
+          const key = formatLogDate(comment.createdAt);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(comment);
+        });
+      return `
+        <div class="bitacora-groups">
+          ${Array.from(groups.entries()).map(([date, entries]) => `
+            <section class="bitacora-day">
+              <div class="bitacora-date">${escapeHtml(date)}</div>
+              ${entries.map((comment) => `
+                <article class="bitacora-entry">
+                  ${renderCommentAvatar(comment.author)}
+                  <div class="bitacora-bubble">
+                    <div class="bitacora-meta">
+                      <strong>${escapeHtml(comment.author || state.userName || "Usuario")}</strong>
+                      <span>${escapeHtml(formatLogTime(comment.createdAt))}</span>
+                    </div>
+                    <div class="bitacora-text">${escapeHtml(comment.text || "")}</div>
+                  </div>
+                </article>
+              `).join("")}
+            </section>
           `).join("")}
         </div>
       `;
+    }
+
+    function formatLogDate(value) {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return "Sin fecha";
+      return new Intl.DateTimeFormat("es-CL", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(date);
+    }
+
+    function formatLogTime(value) {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("es-CL", { hour: "2-digit", minute: "2-digit" }).format(date);
     }
 
     function renderTaskMetaField(label, controlHtml, icon) {
@@ -12260,7 +12496,8 @@
         prioridad: "",
         completada: false,
         fechaVencimiento: "",
-        tags: []
+        tags: [],
+        comentarios: []
       };
       const goal = state.sections.find((section) => section.id === parentTask.sectionId);
       return `
@@ -12285,6 +12522,7 @@
                   <input class="task-title-input" name="nombre" value="${escapeHtml(subtask.nombre)}" placeholder="Nombre de la subtarea" required autofocus>
                 </div>
                 <textarea class="task-description-input" name="descripcion" placeholder="Descripcion">${escapeHtml(subtask.descripcion || "")}</textarea>
+                ${subtask.id ? renderBitacora(subtask, "subtask", subtask.id) : ""}
               </section>
               <aside class="task-editor-sidebar">
                 ${renderTaskMetaField("Tarea", renderTaskStaticMeta("parentTask", parentTask.id, parentTask.nombre), "")}

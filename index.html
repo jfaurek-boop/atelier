@@ -5670,13 +5670,13 @@
           : projects.map((project) => project.id),
         overviewOpenGoalIds: Array.isArray(data.overviewOpenGoalIds)
           ? data.overviewOpenGoalIds.filter((id) => sections.some((section) => section.id === id))
-          : [],
+          : sections.map((section) => section.id),
         overviewOpenTaskIds: Array.isArray(data.overviewOpenTaskIds)
           ? data.overviewOpenTaskIds.filter((id) => tasks.some((task) => task.id === id))
-          : [],
+          : tasks.map((task) => task.id),
         overviewOpenSubtaskIds: Array.isArray(data.overviewOpenSubtaskIds)
           ? data.overviewOpenSubtaskIds.filter((id) => subtasks.some((subtask) => subtask.id === id))
-          : [],
+          : subtasks.map((subtask) => subtask.id),
         selectedProjectId: data.selectedProjectId && projects.some((p) => p.id === data.selectedProjectId)
           ? data.selectedProjectId
           : projects[0]?.id || null,
@@ -8297,6 +8297,7 @@
         const nextView = actionTarget.dataset.view;
         setState({
           view: nextView,
+          ...(nextView === "overview" ? overviewOpenAllPatch() : {}),
           ...(nextView === "list" ? { listProjectOpen: false, selectedTaskId: null, selectedSubtaskId: null } : {}),
           ...(nextView === "calendar" && state.view !== "calendar" ? { calendarMode: "agenda" } : {})
         });
@@ -8317,7 +8318,8 @@
             priority: "all",
             tagId: "all",
             sortBy: "project"
-          }
+          },
+          ...overviewOpenAllPatch()
         });
       }
       if (action === "toggle-overview-project") {
@@ -9773,11 +9775,13 @@
       }
       const overviewFilter = event.target.closest("[data-action='overview-filter']");
       if (overviewFilter) {
+        const nextFilters = {
+          ...(state.overviewFilters || {}),
+          [overviewFilter.dataset.filter]: overviewFilter.value
+        };
         setState({
-          overviewFilters: {
-            ...(state.overviewFilters || {}),
-            [overviewFilter.dataset.filter]: overviewFilter.value
-          }
+          overviewFilters: nextFilters,
+          ...overviewOpenAllPatch()
         });
         return;
       }
@@ -9972,6 +9976,15 @@
 
     function overviewIsOpen(key, id) {
       return Boolean(id) && Array.isArray(state[key]) && state[key].includes(id);
+    }
+
+    function overviewOpenAllPatch() {
+      return {
+        overviewOpenProjectIds: state.projects.map((project) => project.id),
+        overviewOpenGoalIds: state.sections.map((section) => section.id),
+        overviewOpenTaskIds: state.tasks.map((task) => task.id),
+        overviewOpenSubtaskIds: state.subtasks.map((subtask) => subtask.id)
+      };
     }
 
     function toggleOverviewOpen(key, id) {
@@ -10248,7 +10261,7 @@
                       ${groups[key].map(renderBuiltEntry).join("")}
                     </div>
                   `).join("")
-                : `<div class="empty-state">Aun no hay elementos construidos. Completa una tarea o una subtarea para inaugurar el registro.</div>`}
+                : `<div class="empty-state">Aún no hay elementos construidos. Completa una tarea o una subtarea para inaugurar el registro.</div>`}
             </div>
           </div>
         </section>
@@ -11784,7 +11797,7 @@
             </div>
             <div class="tree-list">
               <div class="tree-section-heading is-meta">Metas definidas</div>
-              ${goals.length ? goals.map((goal, index) => renderTreeGoal(project, goal, index, goals.length, activeGoal, treeMode)).join("") : `<div class="tree-empty">${hideCompleted ? "No hay metas pendientes visibles." : "Este proyecto aun no tiene metas."}</div>`}
+              ${goals.length ? goals.map((goal, index) => renderTreeGoal(project, goal, index, goals.length, activeGoal, treeMode)).join("") : `<div class="tree-empty">${hideCompleted ? "No hay metas pendientes visibles." : "Este proyecto aún no tiene metas."}</div>`}
               <div class="tree-section-heading is-create is-meta">Nueva meta</div>
               <div class="tree-add is-goal">${renderQuickAddGoal(project.id)}</div>
             </div>
@@ -11827,7 +11840,7 @@
         </div>
         ${showTasks ? `
           <div class="tree-section-heading is-task">Tareas de esta meta</div>
-          ${tasks.length ? tasks.map((task) => renderTreeTask(project, goal, task, treeMode)).join("") : `<div class="tree-empty is-task">${hideCompleted ? "No hay tareas pendientes visibles." : "Esta meta aun no tiene tareas."}</div>`}
+          ${tasks.length ? tasks.map((task) => renderTreeTask(project, goal, task, treeMode)).join("") : `<div class="tree-empty is-task">${hideCompleted ? "No hay tareas pendientes visibles." : "Esta meta aún no tiene tareas."}</div>`}
           ${isActive ? `
             <div class="tree-section-heading is-create is-task">Nueva tarea</div>
             <div class="tree-add is-task">${renderQuickAdd(project.id, goal.id, "Nueva tarea para esta meta")}</div>
@@ -11862,7 +11875,7 @@
         </div>
         ${showSubtasks ? `
           <div class="tree-section-heading is-subtask depth-1" style="--tree-indent:56px">Subtareas de esta tarea</div>
-          ${subtasks.length ? subtasks.map((subtask) => renderTreeSubtask(task, subtask, 1)).join("") : `<div class="tree-empty is-subtask" style="--tree-indent:56px">${hideCompleted ? "No hay subtareas pendientes visibles." : "Esta tarea aun no tiene subtareas."}</div>`}
+          ${subtasks.length ? subtasks.map((subtask) => renderTreeSubtask(task, subtask, 1)).join("") : `<div class="tree-empty is-subtask" style="--tree-indent:56px">${hideCompleted ? "No hay subtareas pendientes visibles." : "Esta tarea aún no tiene subtareas."}</div>`}
           <div class="tree-section-heading is-create is-subtask depth-1" style="--tree-indent:56px">Nueva subtarea</div>
           <div class="tree-add is-subtask depth-1" style="--tree-indent:56px">${renderQuickAddSubtask(task.id, null, "Nueva subtarea")}</div>
         ` : ""}
@@ -11895,7 +11908,7 @@
         </div>
         ${selected && safeDepth < MAX_SUBTASK_DEPTH ? `
           <div class="tree-section-heading is-subtask depth-${safeDepth + 1}" style="--tree-indent:${indent + 28}px">Subtareas de esta subtarea</div>
-          ${children.length ? children.map((child) => renderTreeSubtask(task, child, safeDepth + 1)).join("") : `<div class="tree-empty is-subtask" style="--tree-indent:${indent + 28}px">${hideCompleted ? "No hay subtareas pendientes visibles." : "Esta subtarea aun no tiene subtareas."}</div>`}
+          ${children.length ? children.map((child) => renderTreeSubtask(task, child, safeDepth + 1)).join("") : `<div class="tree-empty is-subtask" style="--tree-indent:${indent + 28}px">${hideCompleted ? "No hay subtareas pendientes visibles." : "Esta subtarea aún no tiene subtareas."}</div>`}
           <div class="tree-section-heading is-create is-subtask depth-${safeDepth + 1}" style="--tree-indent:${indent + 28}px">Nueva subtarea</div>
           <div class="tree-add is-subtask depth-${safeDepth + 1}" style="--tree-indent:${indent + 28}px">${renderQuickAddSubtask(task.id, subtask.id, "Nueva subtarea")}</div>
         ` : expanded ? children.map((child) => renderTreeSubtask(task, child, safeDepth + 1)).join("") : ""}
@@ -11925,7 +11938,7 @@
             </div>
             <div class="progress-wrap"><div class="progress-bar" style="width:${Math.round(goalStats.progress * 100)}%"></div></div>
             ${renderQuickAdd(project.id, goal.id, "Nueva tarea para esta meta")}
-            <div class="task-list">${tasks.length ? tasks.map((task) => renderTaskRow(task, true)).join("") : `<div class="empty-state">Esta meta aun no tiene tareas.</div>`}</div>
+            <div class="task-list">${tasks.length ? tasks.map((task) => renderTaskRow(task, true)).join("") : `<div class="empty-state">Esta meta aún no tiene tareas.</div>`}</div>
           </div>
         </aside>
       `;
@@ -11955,7 +11968,7 @@
             <div class="progress-wrap"><div class="progress-bar" style="width:${Math.round(stats.progress * 100)}%"></div></div>
             ${renderQuickAddSubtask(task.id)}
             <div class="subtask-list">
-              ${subtasks.length ? subtasks.map(renderSubtaskRow).join("") : `<div class="empty-state">Esta tarea aun no tiene subtareas.</div>`}
+              ${subtasks.length ? subtasks.map(renderSubtaskRow).join("") : `<div class="empty-state">Esta tarea aún no tiene subtareas.</div>`}
             </div>
           </div>
         </aside>
@@ -12240,9 +12253,9 @@
     function renderBitacora(item, type, itemId) {
       const comments = Array.isArray(item?.comentarios) ? item.comentarios.slice() : [];
       return `
-        <div class="bitacora-panel" aria-label="Bitacora">
+        <div class="bitacora-panel" aria-label="Bitácora">
           <div class="bitacora-head">
-            <h3>Bitacora</h3>
+            <h3>Bitácora</h3>
             <span>${comments.length} registro${comments.length === 1 ? "" : "s"}</span>
           </div>
           <div class="task-comment-row bitacora-composer">
@@ -12256,7 +12269,7 @@
     }
 
     function renderCommentGroups(comments) {
-      if (!comments.length) return `<div class="bitacora-empty">Aun no hay registros en la bitacora.</div>`;
+      if (!comments.length) return `<div class="bitacora-empty">Aún no hay registros en la bitácora.</div>`;
       const groups = new Map();
       comments
         .slice()
@@ -12758,6 +12771,9 @@
     ensureRecurringInstances();
     syncCompletionState();
     repairAllDistantGoalPositions();
+    if (state.view === "overview") {
+      state = normalizeState({ ...state, ...overviewOpenAllPatch() });
+    }
     render();
     initSupabaseFromConfig({ mode: "pull", silent: true });
   </script>

@@ -740,7 +740,7 @@
     }
 
     .castle-label-box {
-      filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.52));
+      filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.32));
     }
 
     .continent-title-group {
@@ -757,14 +757,19 @@
       stroke-linejoin: round;
     }
 
+    .castle-node,
+    .task-construction {
+      shape-rendering: geometricPrecision;
+    }
+
     .city-title-text {
       fill: #f7ecd1;
-      font-size: 12.5px;
+      font-size: 10.8px;
       font-weight: 800;
       letter-spacing: 0;
       paint-order: stroke;
-      stroke: rgba(38, 29, 18, 0.7);
-      stroke-width: 3.4px;
+      stroke: rgba(38, 29, 18, 0.72);
+      stroke-width: 2.5px;
       stroke-linejoin: round;
       pointer-events: none;
     }
@@ -794,7 +799,7 @@
     }
 
     .map-hover-zone {
-      fill: rgba(255, 255, 255, 0.001);
+      fill: transparent;
       pointer-events: all;
     }
 
@@ -4726,6 +4731,7 @@
     const priorityAccent = { p1: "#b64a4a", p2: "#b98652", p3: "#5e85aa", p4: "#7d8790" };
     const priorityGoalColor = { p1: "#c75050", p2: "#c98a47", p3: "#5e85aa", p4: "#7d8790" };
     const neutralBuildColor = "#8a806d";
+    const CITY_LABEL_MAX_VIEWBOX_WIDTH = 240;
     const MAX_SUBTASK_DEPTH = 5;
     function normalizePriority(value) {
       return priorities.includes(value) ? value : "";
@@ -6889,8 +6895,8 @@
       const pct = progress * 100;
       const selected = project.id === state.selectedProjectId;
       return `
-        <g class="castle-node" data-project-id="${project.id}" transform="translate(${project.posicion.x} ${project.posicion.y}) scale(${scale})" filter="url(#softShadow)">
-          <ellipse cx="0" cy="70" rx="96" ry="22" fill="rgba(0,0,0,0.34)"/>
+        <g class="castle-node" data-project-id="${project.id}" transform="translate(${project.posicion.x} ${project.posicion.y}) scale(${scale})">
+          <ellipse cx="0" cy="70" rx="82" ry="15" fill="rgba(0,0,0,0.18)"/>
           ${stats.total >= 4 ? renderScaffold() : ""}
           ${renderFoundation()}
           ${pct >= 0 ? renderCentralTower(project, pct) : ""}
@@ -10561,7 +10567,7 @@
         label.style.display = label.classList.contains("is-selected") ? "" : "none";
       });
       document.querySelectorAll(".city-title-layer").forEach((layer) => {
-        layer.style.display = box.w <= 650 ? "" : "none";
+        layer.style.display = box.w <= CITY_LABEL_MAX_VIEWBOX_WIDTH ? "" : "none";
       });
     }
 
@@ -10844,8 +10850,11 @@
               <stop offset="0%" stop-color="#7d8790"/>
               <stop offset="100%" stop-color="#4f5963"/>
             </linearGradient>
-            <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#000" flood-opacity="0.42"/>
+            <filter id="softShadow" x="-28%" y="-28%" width="156%" height="156%">
+              <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.24"/>
+            </filter>
+            <filter id="castleLift" x="-24%" y="-24%" width="148%" height="148%">
+              <feDropShadow dx="0" dy="1.8" stdDeviation="1.1" flood-color="#271f16" flood-opacity="0.28"/>
             </filter>
             <pattern id="stars" width="90" height="90" patternUnits="userSpaceOnUse">
               <circle cx="12" cy="18" r="1.1" fill="#cbd6df" opacity="0.45"/>
@@ -10943,19 +10952,27 @@
 
     function renderCityLabels(goals) {
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      if (box.w > 500) return "";
+      if (box.w > CITY_LABEL_MAX_VIEWBOX_WIDTH) return "";
       return `<g class="city-title-layer" pointer-events="none">
         ${goals.map(({ project, goal, index }) => {
           const pos = goalPosition(goal, project, index);
           const nameLength = String(goal.nombre || "").length;
           const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
-          const zoomScale = clampNumber(box.w / 500, 0.34, 0.82);
-          const scale = (nameLength > 54 ? 0.52 : nameLength > 34 ? 0.6 : 0.68) * zoomScale;
+          const mapIndex = projectMapIndex(project.id);
+          const coast = continentPathForProject(project, mapIndex);
+          const bounds = pathBounds(coast);
+          const projectTitleX = (bounds.minX + bounds.maxX) / 2;
+          const projectTitleY = Math.max(24, bounds.minY - 10);
+          const screenScale = clampNumber(box.w / 900, 0.16, 0.38);
+          const scale = (nameLength > 54 ? 0.46 : nameLength > 34 ? 0.53 : 0.6) * screenScale;
           const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 18 : 22).slice(0, 2);
-          const y = pos.y - Math.max(30, 58 * cityScale);
+          let y = pos.y - Math.max(18, 42 * cityScale);
+          if (Math.abs(pos.x - projectTitleX) < 190 && y < projectTitleY + 38) {
+            y = pos.y + Math.max(26, 40 * cityScale);
+          }
           return `
             <g transform="translate(${pos.x} ${y}) scale(${scale})">
-              ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${lineIndex * 11}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
+              ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${lineIndex * 10}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
             </g>
           `;
         }).join("")}
@@ -11009,7 +11026,9 @@
         const x = (bounds.minX + bounds.maxX) / 2;
         const y = Math.max(24, bounds.minY - 10);
         const title = String(project.nombre || "");
-        const labelScale = title.length > 48 ? 0.64 : title.length > 32 ? 0.74 : 0.86;
+        const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
+        const screenScale = clampNumber(box.w / 900, 0.16, 0.9);
+        const labelScale = (title.length > 48 ? 0.64 : title.length > 32 ? 0.74 : 0.86) * screenScale;
         const labelLines = wrapSvgLines(title, title.length > 48 ? 22 : 26).slice(0, 2);
         const stats = totalStatsForProject(project.id);
         const goals = goalsForProject(project.id);
@@ -11235,9 +11254,9 @@
       const castleScale = 0.18 + progress * 0.22;
       const pct = progress * 100;
       return `
-        <g class="castle-node" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" transform="translate(${pos.x} ${pos.y}) scale(${cityScale})" filter="url(#softShadow)">
+        <g class="castle-node" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" transform="translate(${pos.x} ${pos.y}) scale(${cityScale})">
           <title>${escapeHtml(goal.nombre)}</title>
-          <ellipse cx="0" cy="47" rx="74" ry="16" fill="rgba(0,0,0,0.28)"/>
+          <ellipse cx="0" cy="43" rx="38" ry="7" fill="rgba(45,34,20,0.12)"/>
           ${renderCityWall(project, stats.progress)}
           <g transform="translate(0 -11) scale(${castleScale})">
             ${renderFoundation()}
@@ -11340,10 +11359,9 @@
     function renderCityWall(project, progress) {
       const built = Math.max(0.18, progress);
       return `
-        <g opacity="${0.32 + built * 0.2}">
-          <ellipse cx="0" cy="34" rx="70" ry="26" fill="rgba(207,184,123,0.1)" stroke="#8a7a58" stroke-width="0.9" opacity="0.42"/>
-          <path d="M-52 40 C-22 27 22 28 56 41" fill="none" stroke="#d7c99f" stroke-width="1.1" opacity="0.26"/>
-          <path d="M-44 52 C-12 61 24 60 50 50" fill="none" stroke="#8a7a58" stroke-width="0.9" opacity="0.14"/>
+        <g opacity="${0.14 + built * 0.1}">
+          <path d="M-44 39 C-18 30 20 30 47 39" fill="none" stroke="#d7c99f" stroke-width="0.75" opacity="0.3" stroke-linecap="round"/>
+          <path d="M-35 48 C-10 53 18 52 39 47" fill="none" stroke="#7f704f" stroke-width="0.65" opacity="0.16" stroke-linecap="round"/>
         </g>
       `;
     }
@@ -11481,7 +11499,7 @@
       const sparkle = complete ? `<path d="M18 -28 L21 -20 L29 -18 L22 -14 L20 -6 L16 -14 L8 -17 L16 -21 Z" fill="#f1d58a" opacity="0.72"/>` : "";
       return `
         <g>
-          <ellipse cx="0" cy="20" rx="28" ry="7" fill="rgba(0,0,0,0.18)"/>
+          <ellipse cx="0" cy="20" rx="22" ry="5.2" fill="rgba(45,34,20,0.13)"/>
           ${scaffold}
           <path d="M-24 4 L0 -18 L25 4 Z" fill="${roof}" stroke="#5d4a2f" stroke-width="1.4"/>
           <rect x="-18" y="3" width="36" height="24" rx="2" fill="${wall}" stroke="#6f5a39" stroke-width="1.2"/>

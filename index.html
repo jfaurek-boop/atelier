@@ -1218,7 +1218,6 @@
       text-overflow: clip;
       line-height: 1.18;
     }
-    }
 
     .sidebar,
     .task-detail {
@@ -3382,12 +3381,12 @@
     }
 
     .task-combo-menu {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: calc(100% + 6px);
-      z-index: 80;
+      position: fixed;
+      left: var(--combo-menu-left, 0);
+      top: var(--combo-menu-top, 0);
+      z-index: 120;
       display: none;
+      width: var(--combo-menu-width, 220px);
       max-height: 180px;
       overflow: auto;
       padding: 6px;
@@ -4283,7 +4282,7 @@
     .map-view.has-task .project-tree-panel .quick-add,
     .map-view.has-task .project-tree-panel .quick-add.is-goal,
     .map-view.has-task .project-tree-panel .quick-add.is-subtask {
-      grid-template-columns: minmax(120px, 1.15fr) minmax(120px, 0.95fr) 52px 112px minmax(64px, max-content) minmax(86px, max-content);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) 52px minmax(94px, 112px);
       gap: 5px;
       padding: 5px;
       align-items: stretch;
@@ -4333,12 +4332,12 @@
     }
 
     .project-tree-panel .quick-add .primary-btn {
-      grid-column: 5;
+      grid-column: 1 / span 2;
       min-width: 64px;
     }
 
     .project-tree-panel .quick-add .quick-add-card-btn {
-      grid-column: 6;
+      grid-column: 3 / span 2;
       min-width: 86px;
     }
 
@@ -4346,12 +4345,12 @@
     .project-tree-panel .quick-add.is-subtask,
     .map-view.has-task .project-tree-panel .quick-add.is-goal,
     .map-view.has-task .project-tree-panel .quick-add.is-subtask {
-      grid-template-columns: minmax(120px, 1.15fr) minmax(120px, 0.95fr) 52px 112px minmax(64px, max-content) minmax(86px, max-content);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) 52px minmax(94px, 112px);
     }
 
     .project-tree-panel .quick-add.is-goal .primary-btn,
     .project-tree-panel .quick-add.is-subtask .primary-btn {
-      grid-column: 5;
+      grid-column: 1 / span 2;
       min-width: 64px;
     }
 
@@ -8485,8 +8484,7 @@
       if (action === "open-task") {
         const task = state.tasks.find((item) => item.id === taskId);
         setState({
-          view: "list",
-          listProjectOpen: true,
+          ...(state.view === "overview" ? {} : { view: "list", listProjectOpen: true }),
           selectedProjectId: task?.projectId || state.selectedProjectId,
           selectedGoalId: task ? goalKey(task.projectId, task.sectionId) : state.selectedGoalId,
           selectedTaskId: taskId,
@@ -8530,7 +8528,15 @@
       }
       if (action === "open-subtask") {
         const subtaskId = actionTarget.dataset.subtaskId || null;
-        setState({ selectedSubtaskId: subtaskId, modal: { type: "subtask", id: subtaskId, taskId: taskId || state.selectedTaskId } }, false);
+        const subtask = state.subtasks.find((item) => item.id === subtaskId);
+        const parentTask = subtask ? state.tasks.find((item) => item.id === subtask.taskId) : null;
+        setState({
+          selectedProjectId: parentTask?.projectId || state.selectedProjectId,
+          selectedGoalId: parentTask ? goalKey(parentTask.projectId, parentTask.sectionId) : state.selectedGoalId,
+          selectedTaskId: parentTask?.id || taskId || state.selectedTaskId,
+          selectedSubtaskId: subtaskId,
+          modal: { type: "subtask", id: subtaskId, taskId: parentTask?.id || taskId || state.selectedTaskId }
+        }, false);
       }
       if (action === "select-subtask") {
         const subtaskId = actionTarget.dataset.subtaskId || null;
@@ -8652,12 +8658,36 @@
       });
     }
 
+    function positionTaskComboMenu(combo) {
+      const button = combo?.querySelector(".task-combo-button");
+      const menu = combo?.querySelector(".task-combo-menu");
+      if (!button || !menu) return;
+      const rect = button.getBoundingClientRect();
+      const gap = 6;
+      const margin = 12;
+      const desiredHeight = Math.min(180, menu.scrollHeight || 180);
+      const spaceBelow = window.innerHeight - rect.bottom - margin;
+      const spaceAbove = rect.top - margin;
+      const opensUp = spaceBelow < desiredHeight && spaceAbove > spaceBelow;
+      const availableHeight = Math.max(96, (opensUp ? spaceAbove : spaceBelow) - gap);
+      const menuHeight = Math.min(desiredHeight, availableHeight);
+      const left = Math.min(Math.max(margin, rect.left), Math.max(margin, window.innerWidth - rect.width - margin));
+      const top = opensUp
+        ? Math.max(margin, rect.top - menuHeight - gap)
+        : Math.min(window.innerHeight - margin - menuHeight, rect.bottom + gap);
+      combo.style.setProperty("--combo-menu-left", `${left}px`);
+      combo.style.setProperty("--combo-menu-top", `${top}px`);
+      combo.style.setProperty("--combo-menu-width", `${rect.width}px`);
+      menu.style.maxHeight = `${menuHeight}px`;
+    }
+
     function toggleTaskCombo(button) {
       const combo = button.closest(".task-combo");
       if (!combo) return;
       const shouldOpen = !combo.classList.contains("is-open");
       closeTaskCombos(combo);
       combo.classList.toggle("is-open", shouldOpen);
+      if (shouldOpen) positionTaskComboMenu(combo);
     }
 
     function chooseTaskCombo(button) {
@@ -10019,6 +10049,17 @@
       if (type === "goal") {
         const sectionId = element.dataset.sectionId || null;
         selectedGoalId = goalKey(projectId, sectionId);
+        setState({
+          selectedProjectId: projectId,
+          selectedGoalId,
+          selectedTaskId: null,
+          selectedSubtaskId: null,
+          modal: { type: "section", id: sectionId, projectId },
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null
+        }, false);
+        return;
       }
 
       if (type === "task") {
@@ -10027,6 +10068,17 @@
         projectId = task.projectId;
         selectedGoalId = goalKey(task.projectId, task.sectionId);
         selectedTaskId = task.id;
+        setState({
+          selectedProjectId: projectId,
+          selectedGoalId,
+          selectedTaskId,
+          selectedSubtaskId: null,
+          modal: { type: "task", id: task.id },
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null
+        }, false);
+        return;
       }
 
       if (type === "subtask") {
@@ -10037,6 +10089,17 @@
         selectedGoalId = goalKey(task.projectId, task.sectionId);
         selectedTaskId = task.id;
         selectedSubtaskId = subtask.id;
+        setState({
+          selectedProjectId: projectId,
+          selectedGoalId,
+          selectedTaskId,
+          selectedSubtaskId,
+          modal: { type: "subtask", id: subtask.id, taskId: task.id },
+          mapGoalPopupId: null,
+          mapTaskPopupId: null,
+          continentPopupId: null
+        }, false);
+        return;
       }
 
       if (!projectId) return;
@@ -10104,7 +10167,7 @@
               <span class="tree-percent">${goalDone ? 100 : Math.round(stats.progress * 100)}%</span>
               <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="up" data-section-id="${goal.id}" title="Subir meta" aria-label="Subir meta" ${index === 0 ? "disabled" : ""}>&#8593;</button>
               <button type="button" class="icon-btn goal-order-btn" data-action="move-goal" data-direction="down" data-section-id="${goal.id}" title="Bajar meta" aria-label="Bajar meta" ${index === totalGoals - 1 ? "disabled" : ""}>&#8595;</button>
-              <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-section-id="${goal.id}" title="Editar meta" aria-label="Editar meta">&#9998;</button>
+              <button type="button" class="icon-btn goal-edit-btn" data-action="open-section" data-project-id="${project.id}" data-section-id="${goal.id}" title="Editar meta" aria-label="Editar meta">&#9998;</button>
               <button type="button" class="icon-btn goal-delete-btn" data-action="delete-section" data-section-id="${goal.id}" title="Borrar meta" aria-label="Borrar meta">&#128465;</button>
             </div>
           </div>

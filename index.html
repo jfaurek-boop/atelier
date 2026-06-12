@@ -756,12 +756,12 @@
     }
 
     .continent-title-text {
-      fill: rgba(54, 39, 24, 0.96);
-      font-size: 25px;
+      fill: rgba(54, 39, 24, 0.88);
+      font-size: 22px;
       font-weight: 900;
       paint-order: stroke;
-      stroke: rgba(249, 230, 184, 0.72);
-      stroke-width: 2.1px;
+      stroke: rgba(249, 230, 184, 0.62);
+      stroke-width: 1.75px;
       stroke-linejoin: round;
     }
 
@@ -770,16 +770,38 @@
       shape-rendering: geometricPrecision;
     }
 
+    .goal-symbol-glow {
+      fill: rgba(250, 229, 181, 0.42);
+      stroke: var(--goal-accent, rgba(88, 66, 38, 0.56));
+      stroke-width: 1.7px;
+    }
+
+    .goal-symbol-base {
+      fill: rgba(63, 47, 28, 0.18);
+    }
+
+    .city-label-leader {
+      fill: none;
+      stroke: rgba(86, 62, 34, 0.48);
+      stroke-width: 1.2px;
+      stroke-linecap: round;
+      stroke-dasharray: 2.5 4;
+    }
+
     .city-title-text {
-      fill: rgba(62, 45, 26, 0.9);
-      font-size: 13px;
+      fill: rgba(58, 42, 24, 0.78);
+      font-size: 11.4px;
       font-weight: 850;
       letter-spacing: 0;
       paint-order: stroke;
-      stroke: rgba(249, 230, 184, 0.68);
-      stroke-width: 1.55px;
+      stroke: rgba(249, 230, 184, 0.56);
+      stroke-width: 1.15px;
       stroke-linejoin: round;
       pointer-events: none;
+    }
+
+    .task-construction {
+      filter: drop-shadow(0 2px 3px rgba(48, 34, 18, 0.3));
     }
 
     .task-title-plate {
@@ -4920,8 +4942,8 @@
       return placed.every((other) => {
         const dx = plot.dx - other.dx;
         const dy = plot.dy - other.dy;
-        const minX = 25 * (plot.scale + other.scale) + 5;
-        const minY = 24 * (plot.scale + other.scale) + 5;
+        const minX = 34 * (plot.scale + other.scale) + 7;
+        const minY = 32 * (plot.scale + other.scale) + 7;
         return (dx * dx) / (minX * minX) + (dy * dy) / (minY * minY) >= 1;
       });
     }
@@ -4932,7 +4954,7 @@
         x: cityPos.x + plot.dx * cityScale,
         y: cityPos.y + plot.dy * cityScale
       };
-      const margin = Math.max(9, 42 * plot.scale * cityScale);
+      const margin = Math.max(11, 54 * plot.scale * cityScale);
       return [
         point,
         { x: point.x - margin, y: point.y },
@@ -11013,10 +11035,10 @@
           ${renderLandscape()}
           ${renderContinents(projects)}
           ${goalRoutes}
-          ${castles}
-          ${workers}
           ${continentLabels}
           ${cityLabels}
+          ${castles}
+          ${workers}
           ${hoverLayer}
           ${celebration}
           <g transform="translate(84 710)" opacity="0.78">
@@ -11066,7 +11088,7 @@
       const point = taskPlotPoint(cityPos, taskIndex, cityScale, layout);
       return `
         <g class="task-hover-hit" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" data-task-id="${task.id}">
-          <rect class="map-hover-zone" x="${point.x - 23}" y="${point.y - 28}" width="46" height="58" rx="8"/>
+          <rect class="map-hover-zone" x="${point.x - 30}" y="${point.y - 36}" width="60" height="72" rx="10"/>
         </g>
       `;
     }
@@ -11083,23 +11105,21 @@
           const mapIndex = projectMapIndex(project.id);
           const coast = continentPathForProject(project, mapIndex);
           const bounds = pathBounds(coast);
-          const projectTitleX = (bounds.minX + bounds.maxX) / 2;
-          const projectTitleY = bounds.minY + Math.min(72, Math.max(44, (bounds.maxY - bounds.minY) * 0.18));
           const centerY = (bounds.minY + bounds.maxY) / 2;
-          const screenScale = clampNumber(box.w / 900, 0.48, 0.84);
-          const scale = (nameLength > 54 ? 0.57 : nameLength > 34 ? 0.64 : 0.7) * screenScale;
+          const screenScale = clampNumber(box.w / 900, 0.52, 0.82);
+          const scale = (nameLength > 54 ? 0.48 : nameLength > 34 ? 0.55 : 0.62) * screenScale;
           const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 15 : 18).slice(0, 2);
           const labelAbove = pos.y > centerY;
-          let y = pos.y + (labelAbove ? -Math.max(34, 58 * cityScale) : Math.max(36, 62 * cityScale));
-          if (Math.abs(pos.x - projectTitleX) < 160 && y < projectTitleY + 42) {
-            y = pos.y + Math.max(36, 58 * cityScale);
-          }
-          if (y < bounds.minY + 22) y = pos.y + Math.max(36, 58 * cityScale);
-          if (y > bounds.maxY - 14) y = pos.y - Math.max(34, 54 * cityScale);
-          const x = clampNumber(pos.x, bounds.minX + 34, bounds.maxX - 34);
+          let y = pos.y + (labelAbove ? -Math.max(22, 42 * cityScale) : Math.max(26, 46 * cityScale));
+          if (y < bounds.minY + 20) y = pos.y + Math.max(26, 46 * cityScale);
+          if (y > bounds.maxY - 14) y = pos.y - Math.max(22, 42 * cityScale);
+          const x = clampNumber(pos.x, bounds.minX + 18, bounds.maxX - 18);
           const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
           const textStartY = lines.length > 1 ? -5 : 1;
+          const leaderEndY = y + (y < pos.y ? 8 : -10);
+          const leaderStartY = pos.y + (y < pos.y ? -15 * cityScale : 18 * cityScale);
           return `
+            <path class="city-label-leader" d="M${roundViewBox(pos.x)} ${roundViewBox(leaderStartY)} L${roundViewBox(x)} ${roundViewBox(leaderEndY)}"/>
             <g class="city-title-label" style="--map-goal-accent:${accent}" transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${roundViewBox(scale)})">
               ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${textStartY + lineIndex * 11}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
             </g>
@@ -11373,12 +11393,14 @@
       const pos = goalPosition(goal, project, index);
       const progress = stats.progress;
       const cityScale = cityScaleForGoal(stats);
-      const castleScale = 0.18 + progress * 0.22;
+      const castleScale = 0.34 + progress * 0.2;
       const pct = progress * 100;
+      const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
       return `
-        <g class="castle-node" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" transform="translate(${pos.x} ${pos.y}) scale(${cityScale})">
+        <g class="castle-node" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" style="--goal-accent:${accent}" transform="translate(${pos.x} ${pos.y}) scale(${cityScale})">
           <title>${escapeHtml(goal.nombre)}</title>
-          <ellipse cx="0" cy="43" rx="38" ry="7" fill="rgba(45,34,20,0.12)"/>
+          <ellipse class="goal-symbol-glow" cx="0" cy="28" rx="${52 + stats.total * 1.6}" ry="${27 + stats.total * 0.8}" opacity="${0.38 + progress * 0.18}"/>
+          <ellipse class="goal-symbol-base" cx="0" cy="47" rx="48" ry="10"/>
           ${renderCityWall(project, stats.progress)}
           <g transform="translate(0 -11) scale(${castleScale})">
             ${renderFoundation()}
@@ -11413,8 +11435,8 @@
     function cityScaleForGoal(stats) {
       const taskCount = Math.max(0, Number(stats?.total) || 0);
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      const overviewFactor = box.w > 650 ? 0.68 : box.w > 460 ? 0.82 : 1;
-      return (0.24 + Math.min(taskCount, 20) * 0.0035) * overviewFactor;
+      const overviewFactor = box.w > 650 ? 0.72 : box.w > 460 ? 0.9 : 1.05;
+      return (0.3 + Math.min(taskCount, 20) * 0.005) * overviewFactor;
     }
 
     function renderGoalSequencePaths(projects) {
@@ -11549,10 +11571,11 @@
       };
       const x = point.x;
       const y = point.y;
+      const visualScale = point.scale * 1.42;
       const pop = task.id === state.recentlyCompletedTaskId ? "worker-pop" : "";
       const complete = task.completada;
       return `
-        <g class="task-construction ${pop}" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${point.scale})">
+        <g class="task-construction ${pop}" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${visualScale})">
           <title>${escapeHtml(task.nombre)}</title>
           ${renderTaskHouse(task, index)}
           ${renderSubtaskGarden(task)}
@@ -11565,8 +11588,8 @@
       const subtasks = sortedSubtasks(task.id).slice(0, 8);
       if (!subtasks.length) return "";
       const positions = [
-        { x: -35, y: 31 }, { x: -21, y: 38 }, { x: -7, y: 34 }, { x: 8, y: 38 },
-        { x: 23, y: 31 }, { x: 36, y: 23 }, { x: -38, y: 18 }, { x: 38, y: 12 }
+        { x: -39, y: 32 }, { x: -24, y: 41 }, { x: -8, y: 38 }, { x: 9, y: 42 },
+        { x: 26, y: 34 }, { x: 41, y: 23 }, { x: -43, y: 18 }, { x: 42, y: 10 }
       ];
       return `
         <g class="subtask-garden" aria-label="Subtareas">
@@ -11574,12 +11597,12 @@
             const pos = positions[index % positions.length];
             const color = subtask.completada ? "#5ba878" : priorityAccent[normalizePriority(subtask.prioridad)] || "#9a7f52";
             const bloom = subtask.completada
-              ? `<circle cx="${pos.x}" cy="${pos.y - 8}" r="3.2" fill="#f2d184"/><circle cx="${pos.x - 3}" cy="${pos.y - 7}" r="2.2" fill="${color}"/><circle cx="${pos.x + 3}" cy="${pos.y - 7}" r="2.2" fill="${color}"/>`
-              : `<path d="M${pos.x} ${pos.y - 1} C${pos.x - 2} ${pos.y - 7} ${pos.x - 7} ${pos.y - 8} ${pos.x - 6} ${pos.y - 3} M${pos.x} ${pos.y - 1} C${pos.x + 2} ${pos.y - 8} ${pos.x + 7} ${pos.y - 8} ${pos.x + 6} ${pos.y - 3}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/>`;
+              ? `<circle cx="${pos.x}" cy="${pos.y - 9}" r="3.8" fill="#f2d184"/><circle cx="${pos.x - 3.5}" cy="${pos.y - 8}" r="2.6" fill="${color}"/><circle cx="${pos.x + 3.5}" cy="${pos.y - 8}" r="2.6" fill="${color}"/>`
+              : `<path d="M${pos.x} ${pos.y - 1} C${pos.x - 2} ${pos.y - 8} ${pos.x - 8} ${pos.y - 9} ${pos.x - 7} ${pos.y - 3} M${pos.x} ${pos.y - 1} C${pos.x + 2} ${pos.y - 9} ${pos.x + 8} ${pos.y - 9} ${pos.x + 7} ${pos.y - 3}" fill="none" stroke="${color}" stroke-width="1.9" stroke-linecap="round"/>`;
             return `
-              <g opacity="${subtask.completada ? 0.95 : 0.76}">
-                <ellipse cx="${pos.x}" cy="${pos.y}" rx="8" ry="3.6" fill="#6b5635" opacity="0.34"/>
-                <path d="M${pos.x} ${pos.y} L${pos.x} ${pos.y - 10}" stroke="#557046" stroke-width="1.5" stroke-linecap="round"/>
+              <g opacity="${subtask.completada ? 0.98 : 0.88}">
+                <ellipse cx="${pos.x}" cy="${pos.y}" rx="9" ry="4.2" fill="#6b5635" opacity="0.32"/>
+                <path d="M${pos.x} ${pos.y} L${pos.x} ${pos.y - 11}" stroke="#557046" stroke-width="2" stroke-linecap="round"/>
                 ${bloom}
               </g>
             `;
@@ -11609,10 +11632,10 @@
     function renderTaskHouse(task, index) {
       const complete = task.completada;
       const roof = complete ? "#5ba878" : priorityAccent[normalizePriority(task.prioridad)] || neutralBuildColor;
-      const wall = complete ? "#d9cba3" : "#cbb783";
+      const wall = complete ? "#eadfbf" : "#dcc58d";
       const detail = complete ? "#6f8b69" : "#8a6741";
       const scaffold = complete ? "" : `
-        <g opacity="0.72" stroke="#7a5431" stroke-width="1.4" stroke-linecap="round">
+        <g opacity="0.78" stroke="#7a5431" stroke-width="1.7" stroke-linecap="round">
           <path d="M-22 8 H24"/>
           <path d="M-19 -8 V17 M20 -9 V17"/>
           <path d="M-22 16 L21 -9 M20 16 L-19 -9"/>
@@ -11621,15 +11644,15 @@
       const sparkle = complete ? `<path d="M18 -28 L21 -20 L29 -18 L22 -14 L20 -6 L16 -14 L8 -17 L16 -21 Z" fill="#f1d58a" opacity="0.72"/>` : "";
       return `
         <g>
-          <ellipse cx="0" cy="20" rx="22" ry="5.2" fill="rgba(45,34,20,0.13)"/>
+          <ellipse cx="0" cy="23" rx="28" ry="6.8" fill="rgba(45,34,20,0.18)"/>
           ${scaffold}
-          <path d="M-24 4 L0 -18 L25 4 Z" fill="${roof}" stroke="#5d4a2f" stroke-width="1.4"/>
-          <rect x="-18" y="3" width="36" height="24" rx="2" fill="${wall}" stroke="#6f5a39" stroke-width="1.2"/>
+          <path d="M-27 5 L0 -21 L28 5 Z" fill="${roof}" stroke="#5d4a2f" stroke-width="1.9"/>
+          <rect x="-20" y="4" width="40" height="27" rx="2.5" fill="${wall}" stroke="#6f5a39" stroke-width="1.55"/>
           <rect x="-5" y="12" width="10" height="15" rx="1.5" fill="#5b4630"/>
-          <rect x="-15" y="9" width="7" height="7" rx="1" fill="#8fb0bd" opacity="0.72"/>
-          <rect x="8" y="9" width="7" height="7" rx="1" fill="#8fb0bd" opacity="0.72"/>
-          <path d="M-20 27 H20" stroke="${detail}" stroke-width="1.6"/>
-          <path d="M-24 4 L0 -18 L25 4" fill="none" stroke="#eadfc4" stroke-width="1" opacity="0.38"/>
+          <rect x="-16" y="10" width="7.5" height="7.5" rx="1" fill="#8fb0bd" opacity="0.82"/>
+          <rect x="8.5" y="10" width="7.5" height="7.5" rx="1" fill="#8fb0bd" opacity="0.82"/>
+          <path d="M-22 31 H22" stroke="${detail}" stroke-width="2"/>
+          <path d="M-27 5 L0 -21 L28 5" fill="none" stroke="#fff0c9" stroke-width="1.3" opacity="0.44"/>
           ${sparkle}
         </g>
       `;

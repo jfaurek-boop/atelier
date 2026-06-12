@@ -804,6 +804,22 @@
       filter: drop-shadow(0 2px 3px rgba(48, 34, 18, 0.3));
     }
 
+    .task-site-path {
+      fill: none;
+      stroke: rgba(92, 68, 38, 0.34);
+      stroke-width: 1.25px;
+      stroke-linecap: round;
+      stroke-dasharray: 3 4;
+      pointer-events: none;
+    }
+
+    .task-plot-pad {
+      fill: rgba(237, 216, 161, 0.34);
+      stroke: rgba(82, 61, 35, 0.42);
+      stroke-width: 1.35px;
+      pointer-events: none;
+    }
+
     .task-title-plate {
       fill: transparent;
       stroke: none;
@@ -4814,6 +4830,9 @@
     const priorityAccent = { p1: "#b64a4a", p2: "#b98652", p3: "#5e85aa", p4: "#7d8790" };
     const priorityGoalColor = { p1: "#c75050", p2: "#c98a47", p3: "#5e85aa", p4: "#7d8790" };
     const neutralBuildColor = "#8a806d";
+    const TASK_SYMBOL_SCALE = 1.08;
+    const TASK_SITE_HALF_WIDTH = 42;
+    const TASK_SITE_HALF_HEIGHT = 32;
     const CITY_LABEL_MAX_VIEWBOX_WIDTH = 640;
     const TASK_LABEL_MAX_VIEWBOX_WIDTH = 520;
     const SUBTASK_LABEL_MAX_VIEWBOX_WIDTH = 280;
@@ -4861,30 +4880,30 @@
     }
 
     const taskPlotBasePositions = [
-      { dx: -64, dy: 34, scale: 0.62, mirror: false },
-      { dx: 64, dy: 34, scale: 0.62, mirror: true },
-      { dx: -36, dy: 62, scale: 0.63, mirror: false },
-      { dx: 36, dy: 62, scale: 0.63, mirror: true },
-      { dx: -88, dy: 64, scale: 0.57, mirror: false },
-      { dx: 88, dy: 64, scale: 0.57, mirror: true },
-      { dx: 0, dy: 88, scale: 0.64, mirror: false },
-      { dx: -62, dy: 94, scale: 0.55, mirror: false },
-      { dx: 62, dy: 94, scale: 0.55, mirror: true },
-      { dx: -104, dy: 96, scale: 0.5, mirror: false },
-      { dx: 104, dy: 96, scale: 0.5, mirror: true },
-      { dx: -26, dy: 116, scale: 0.52, mirror: false },
-      { dx: 26, dy: 116, scale: 0.52, mirror: true },
-      { dx: -76, dy: 124, scale: 0.48, mirror: false },
-      { dx: 76, dy: 124, scale: 0.48, mirror: true },
-      { dx: 0, dy: 138, scale: 0.48, mirror: false },
-      { dx: -112, dy: 134, scale: 0.43, mirror: false },
-      { dx: 112, dy: 134, scale: 0.43, mirror: true },
-      { dx: -48, dy: 150, scale: 0.43, mirror: false },
-      { dx: 48, dy: 150, scale: 0.43, mirror: true },
-      { dx: -86, dy: 162, scale: 0.39, mirror: false },
-      { dx: 86, dy: 162, scale: 0.39, mirror: true },
-      { dx: -16, dy: 172, scale: 0.39, mirror: false },
-      { dx: 16, dy: 172, scale: 0.39, mirror: true }
+      { dx: -84, dy: 52, scale: 0.56, mirror: false },
+      { dx: 84, dy: 52, scale: 0.56, mirror: true },
+      { dx: -46, dy: 92, scale: 0.57, mirror: false },
+      { dx: 46, dy: 92, scale: 0.57, mirror: true },
+      { dx: -126, dy: 92, scale: 0.5, mirror: false },
+      { dx: 126, dy: 92, scale: 0.5, mirror: true },
+      { dx: 0, dy: 128, scale: 0.56, mirror: false },
+      { dx: -86, dy: 138, scale: 0.48, mirror: false },
+      { dx: 86, dy: 138, scale: 0.48, mirror: true },
+      { dx: -146, dy: 142, scale: 0.42, mirror: false },
+      { dx: 146, dy: 142, scale: 0.42, mirror: true },
+      { dx: -34, dy: 166, scale: 0.45, mirror: false },
+      { dx: 34, dy: 166, scale: 0.45, mirror: true },
+      { dx: -104, dy: 178, scale: 0.4, mirror: false },
+      { dx: 104, dy: 178, scale: 0.4, mirror: true },
+      { dx: 0, dy: 194, scale: 0.4, mirror: false },
+      { dx: -156, dy: 190, scale: 0.36, mirror: false },
+      { dx: 156, dy: 190, scale: 0.36, mirror: true },
+      { dx: -62, dy: 212, scale: 0.36, mirror: false },
+      { dx: 62, dy: 212, scale: 0.36, mirror: true },
+      { dx: -118, dy: 228, scale: 0.33, mirror: false },
+      { dx: 118, dy: 228, scale: 0.33, mirror: true },
+      { dx: -22, dy: 244, scale: 0.33, mirror: false },
+      { dx: 22, dy: 244, scale: 0.33, mirror: true }
     ];
 
     function taskPlotLayout(total = 0) {
@@ -4929,21 +4948,21 @@
 
     function taskPlotAvoidsCastle(plot) {
       if (Number.isFinite(plot.localDepth) && Number.isFinite(plot.localSide)) {
-        const protectedEllipse = (plot.localSide * plot.localSide) / (58 * 58) + ((plot.localDepth - 18) * (plot.localDepth - 18)) / (48 * 48);
-        const protectedBox = Math.abs(plot.localSide) < 42 && plot.localDepth > -42 && plot.localDepth < 64;
-        return protectedEllipse > 1.02 && !protectedBox;
+        const protectedEllipse = (plot.localSide * plot.localSide) / (76 * 76) + ((plot.localDepth - 18) * (plot.localDepth - 18)) / (64 * 64);
+        const protectedBox = Math.abs(plot.localSide) < 56 && plot.localDepth > -48 && plot.localDepth < 82;
+        return protectedEllipse > 1.08 && !protectedBox;
       }
-      const protectedEllipse = (plot.dx * plot.dx) / (62 * 62) + ((plot.dy - 18) * (plot.dy - 18)) / (52 * 52);
-      const protectedBox = Math.abs(plot.dx) < 46 && plot.dy > -42 && plot.dy < 68;
-      return protectedEllipse > 1.08 && !protectedBox;
+      const protectedEllipse = (plot.dx * plot.dx) / (78 * 78) + ((plot.dy - 18) * (plot.dy - 18)) / (66 * 66);
+      const protectedBox = Math.abs(plot.dx) < 58 && plot.dy > -48 && plot.dy < 84;
+      return protectedEllipse > 1.12 && !protectedBox;
     }
 
     function taskPlotFitsSpacing(plot, placed) {
       return placed.every((other) => {
         const dx = plot.dx - other.dx;
         const dy = plot.dy - other.dy;
-        const minX = 34 * (plot.scale + other.scale) + 7;
-        const minY = 32 * (plot.scale + other.scale) + 7;
+        const minX = TASK_SITE_HALF_WIDTH * TASK_SYMBOL_SCALE * (plot.scale + other.scale) + 10;
+        const minY = TASK_SITE_HALF_HEIGHT * TASK_SYMBOL_SCALE * (plot.scale + other.scale) + 10;
         return (dx * dx) / (minX * minX) + (dy * dy) / (minY * minY) >= 1;
       });
     }
@@ -4954,7 +4973,7 @@
         x: cityPos.x + plot.dx * cityScale,
         y: cityPos.y + plot.dy * cityScale
       };
-      const margin = Math.max(11, 54 * plot.scale * cityScale);
+      const margin = Math.max(13, TASK_SITE_HALF_WIDTH * TASK_SYMBOL_SCALE * plot.scale * cityScale);
       return [
         point,
         { x: point.x - margin, y: point.y },
@@ -4978,9 +4997,9 @@
 
     function taskPlotSearchFallback(points, cityPos, plot, cityScale, placed, center, index) {
       const inwardAngle = Math.atan2(center.y - cityPos.y, center.x - cityPos.x);
-      const angleOffsets = [0, 0.45, -0.45, 0.9, -0.9, 1.35, -1.35, Math.PI];
-      for (let ring = 0; ring < 5; ring += 1) {
-        const radius = 62 + ring * 11;
+      const angleOffsets = [0, 0.38, -0.38, 0.76, -0.76, 1.14, -1.14, 1.55, -1.55, Math.PI];
+      for (let ring = 0; ring < 8; ring += 1) {
+        const radius = 72 + ring * 16;
         for (let offsetIndex = 0; offsetIndex < angleOffsets.length; offsetIndex += 1) {
           const angle = inwardAngle + angleOffsets[(offsetIndex + index) % angleOffsets.length];
           const candidate = {
@@ -4988,8 +5007,8 @@
             localSide: undefined,
             localDepth: undefined,
             dx: Math.cos(angle) * radius,
-            dy: Math.max(40, Math.sin(angle) * radius + 58 + ring * 4),
-            scale: Math.max(0.2, plot.scale * (0.9 - ring * 0.03)),
+            dy: Math.max(54, Math.sin(angle) * radius + 78 + ring * 7),
+            scale: Math.max(0.18, plot.scale * (0.88 - ring * 0.035)),
             mirror: Math.cos(angle) > 0
           };
           if (
@@ -5002,6 +5021,56 @@
         }
       }
       return null;
+    }
+
+    function taskPlotEmergencyFallback(points, cityPos, plot, cityScale, placed, center, index) {
+      const inwardAngle = Math.atan2(center.y - cityPos.y, center.x - cityPos.x);
+      const slots = 16;
+      for (let ring = 0; ring < 10; ring += 1) {
+        const radius = 104 + ring * 22;
+        for (let slot = 0; slot < slots; slot += 1) {
+          const angle = inwardAngle + ((slot / slots) * Math.PI * 2) + (index % 3) * 0.13;
+          const candidate = {
+            ...plot,
+            localSide: undefined,
+            localDepth: undefined,
+            dx: Math.cos(angle) * radius,
+            dy: Math.max(66, Math.sin(angle) * radius + 96 + ring * 8),
+            scale: Math.max(0.16, plot.scale * (0.72 - ring * 0.025)),
+            mirror: Math.cos(angle) > 0,
+            overflowFallback: ring > 5
+          };
+          if (
+            taskPlotAvoidsCastle(candidate)
+            && taskPlotFitsSpacing(candidate, placed)
+            && taskPlotFitsLand(points, cityPos, candidate, cityScale)
+          ) {
+            return candidate;
+          }
+        }
+      }
+      for (let ring = 0; ring < 8; ring += 1) {
+        const side = index % 2 ? 1 : -1;
+        const candidate = {
+          ...plot,
+          localSide: undefined,
+          localDepth: undefined,
+          dx: side * (126 + ring * 26),
+          dy: 148 + index * 18 + ring * 24,
+          scale: Math.max(0.15, plot.scale * 0.58),
+          mirror: side > 0,
+          overflowFallback: true
+        };
+        if (taskPlotFitsSpacing(candidate, placed)) return candidate;
+      }
+      return {
+        ...plot,
+        dx: (index % 2 ? 1 : -1) * (150 + index * 16),
+        dy: 168 + index * 22,
+        scale: Math.max(0.14, plot.scale * 0.52),
+        mirror: index % 2 === 1,
+        overflowFallback: true
+      };
     }
 
     function taskPlotLayoutForGoal(project, goal, goalIndex, total = 0, cityScale = 1) {
@@ -5039,11 +5108,8 @@
           && taskPlotFitsLand(points, cityPos, candidate, cityScale)
         )) || fallbackCandidates.find((candidate) => (
           taskPlotAvoidsCastle(candidate)
-          && taskPlotFitsLand(points, cityPos, candidate, cityScale)
-        )) || {
-          ...orientTaskPlot({ dx: (index % 2 ? 1 : -1) * 82, dy: 132 + index * 3, scale: Math.max(0.18, plot.scale * 0.62), mirror: index % 2 === 1 }, inwardAngle),
-          overflowFallback: true
-        };
+          && taskPlotFitsSpacing(candidate, placed)
+        )) || taskPlotEmergencyFallback(points, cityPos, orientTaskPlot(plot, inwardAngle), cityScale, placed, center, index);
         placed.push(fallback);
         return fallback;
       });
@@ -11393,7 +11459,7 @@
       const pos = goalPosition(goal, project, index);
       const progress = stats.progress;
       const cityScale = cityScaleForGoal(stats);
-      const castleScale = 0.34 + progress * 0.2;
+      const castleScale = 0.48 + progress * 0.24;
       const pct = progress * 100;
       const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
       return `
@@ -11436,7 +11502,7 @@
       const taskCount = Math.max(0, Number(stats?.total) || 0);
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
       const overviewFactor = box.w > 650 ? 0.72 : box.w > 460 ? 0.9 : 1.05;
-      return (0.3 + Math.min(taskCount, 20) * 0.005) * overviewFactor;
+      return (0.29 + Math.min(taskCount, 20) * 0.0045) * overviewFactor;
     }
 
     function renderGoalSequencePaths(projects) {
@@ -11515,12 +11581,16 @@
       const pos = goalPosition(goal, project, index);
       const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
       const layout = taskPlotLayoutForGoal(project, goal, index, tasks.length, cityScale);
-      const constructions = tasks
+      const placements = tasks
         .map((task, taskIndex) => ({ task, taskIndex, plot: layout[taskIndex] }))
-        .sort((a, b) => (a.plot.dy - b.plot.dy) || (a.plot.dx - b.plot.dx))
+        .sort((a, b) => (a.plot.dy - b.plot.dy) || (a.plot.dx - b.plot.dx));
+      const paths = placements
+        .map(({ plot }) => renderTaskSitePath(pos, plot, cityScale))
+        .join("");
+      const constructions = placements
         .map(({ task, taskIndex, plot }) => renderTaskConstruction(task, pos, plot, taskIndex, cityScale))
         .join("");
-      return constructions;
+      return `${paths}${constructions}`;
     }
 
     function taskPlotPoint(cityPos, taskIndex, cityScale, layout = null) {
@@ -11563,6 +11633,22 @@
       return `<g class="task-sequence-path" pointer-events="none">${segments}</g>`;
     }
 
+    function renderTaskSitePath(cityPos, plot, cityScale) {
+      const x = cityPos.x + plot.dx * cityScale;
+      const y = cityPos.y + plot.dy * cityScale;
+      const pointScale = plot.scale * cityScale;
+      const visualScale = pointScale * TASK_SYMBOL_SCALE;
+      const pathStart = {
+        x: cityPos.x + plot.dx * cityScale * 0.34,
+        y: cityPos.y + plot.dy * cityScale * 0.34 + 18 * cityScale
+      };
+      const pathMid = {
+        x: (pathStart.x + x) / 2,
+        y: (pathStart.y + y) / 2 + 8 * cityScale
+      };
+      return `<path class="task-site-path" d="M${roundViewBox(pathStart.x)} ${roundViewBox(pathStart.y)} Q${roundViewBox(pathMid.x)} ${roundViewBox(pathMid.y)} ${roundViewBox(x)} ${roundViewBox(y + 12 * visualScale)}"/>`;
+    }
+
     function renderTaskConstruction(task, cityPos, plot, index, cityScale) {
       const point = {
         x: cityPos.x + plot.dx * cityScale,
@@ -11571,12 +11657,13 @@
       };
       const x = point.x;
       const y = point.y;
-      const visualScale = point.scale * 1.42;
+      const visualScale = point.scale * TASK_SYMBOL_SCALE;
       const pop = task.id === state.recentlyCompletedTaskId ? "worker-pop" : "";
       const complete = task.completada;
       return `
         <g class="task-construction ${pop}" data-task-id="${task.id}" transform="translate(${x} ${y}) scale(${visualScale})">
           <title>${escapeHtml(task.nombre)}</title>
+          <ellipse class="task-plot-pad" cx="0" cy="22" rx="${TASK_SITE_HALF_WIDTH}" ry="${TASK_SITE_HALF_HEIGHT * 0.52}"/>
           ${renderTaskHouse(task, index)}
           ${renderSubtaskGarden(task)}
           ${renderPriorityCrew(task, complete, index)}

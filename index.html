@@ -748,18 +748,19 @@
     }
 
     .continent-title-plate {
-      fill: transparent;
-      stroke: none;
-      filter: none;
+      fill: rgba(248, 237, 207, 0.82);
+      stroke: rgba(78, 58, 34, 0.24);
+      stroke-width: 1px;
+      filter: drop-shadow(0 5px 8px rgba(23, 19, 13, 0.24));
     }
 
     .continent-title-text {
-      fill: #f8fafc;
-      font-size: 24px;
+      fill: #322719;
+      font-size: 22px;
       font-weight: 900;
       paint-order: stroke;
-      stroke: var(--map-label-stroke, rgba(5, 12, 18, 0.78));
-      stroke-width: 4.8px;
+      stroke: rgba(255, 248, 225, 0.86);
+      stroke-width: 1.7px;
       stroke-linejoin: round;
     }
 
@@ -768,19 +769,43 @@
       shape-rendering: geometricPrecision;
     }
 
+    .city-title-label {
+      filter: drop-shadow(0 3px 6px rgba(18, 14, 9, 0.24));
+    }
+
+    .city-title-plate {
+      fill: rgba(248, 237, 207, 0.78);
+      stroke: var(--map-goal-accent, #8f7550);
+      stroke-opacity: 0.62;
+      stroke-width: 1px;
+    }
+
+    .city-title-cap {
+      fill: var(--map-goal-accent, #8f7550);
+      opacity: 0.82;
+    }
+
     .city-title-text {
-      fill: #fff3c4;
-      font-size: 15px;
-      font-weight: 900;
+      fill: #2f281e;
+      font-size: 13.2px;
+      font-weight: 850;
       letter-spacing: 0;
       paint-order: stroke;
-      stroke: var(--map-label-stroke, #9b6a2f);
-      stroke-width: 3.4px;
+      stroke: rgba(255, 248, 225, 0.9);
+      stroke-width: 1.45px;
       stroke-linejoin: round;
       pointer-events: none;
     }
 
-    .city-title-plate,
+    .city-progress-track {
+      fill: rgba(71, 55, 34, 0.16);
+    }
+
+    .city-progress-fill {
+      fill: var(--map-goal-accent, #8f7550);
+      opacity: 0.78;
+    }
+
     .task-title-plate {
       fill: transparent;
       stroke: none;
@@ -4791,7 +4816,7 @@
     const priorityAccent = { p1: "#b64a4a", p2: "#b98652", p3: "#5e85aa", p4: "#7d8790" };
     const priorityGoalColor = { p1: "#c75050", p2: "#c98a47", p3: "#5e85aa", p4: "#7d8790" };
     const neutralBuildColor = "#8a806d";
-    const CITY_LABEL_MAX_VIEWBOX_WIDTH = 560;
+    const CITY_LABEL_MAX_VIEWBOX_WIDTH = 640;
     const TASK_LABEL_MAX_VIEWBOX_WIDTH = 520;
     const SUBTASK_LABEL_MAX_VIEWBOX_WIDTH = 280;
     const MAX_SUBTASK_DEPTH = 5;
@@ -6870,7 +6895,7 @@
           </g>
           <g>
             <rect x="0" y="760" width="900" height="40" fill="rgba(0,0,0,0.48)"/>
-            <text class="footer-ribbon" x="450" y="786" text-anchor="middle">Doble click en un proyecto para abrir sus metas y tareas</text>
+            <text class="footer-ribbon" x="450" y="786" text-anchor="middle">Doble click en un elemento para abrir su tarjeta</text>
           </g>
         </svg>
       `;
@@ -10948,12 +10973,10 @@
       const goalRoutes = renderGoalSequencePaths(projects);
       const workers = goals.map(({ project, goal, index }) => renderProjectWorkers(project, goal, index)).join("");
       const cityLabels = renderCityLabels(goals);
-      const taskLabels = renderTaskInlineLabels(goals);
-      const subtaskLabels = renderSubtaskInlineLabels(goals);
       const continentLabels = renderContinentLabels(projects);
       const hoverLayer = renderMapHoverLayer(goals);
       const footerText = projects.length
-        ? "Doble click en un proyecto para abrir sus metas y tareas"
+        ? "Doble click en un elemento para abrir su tarjeta"
         : "Presione en Crear proyecto para comenzar la aventura";
       const celebration = state.celebratingGoalId
         ? renderFullCelebration(goals.find(({ project, goal }) => goalKey(project.id, goal.id) === state.celebratingGoalId))
@@ -11017,10 +11040,8 @@
           ${castles}
           ${workers}
           ${continentLabels}
-          ${hoverLayer}
           ${cityLabels}
-          ${taskLabels}
-          ${subtaskLabels}
+          ${hoverLayer}
           ${celebration}
           <g transform="translate(84 710)" opacity="0.78">
             <circle r="40" fill="rgba(7,12,16,0.44)" stroke="#8da2b5" stroke-width="1.6"/>
@@ -11076,30 +11097,44 @@
 
     function renderCityLabels(goals) {
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      if (box.w > CITY_LABEL_MAX_VIEWBOX_WIDTH) return "";
-      return `<g class="city-title-layer" pointer-events="none">
+      const hidden = box.w > CITY_LABEL_MAX_VIEWBOX_WIDTH ? ` style="display:none"` : "";
+      return `<g class="city-title-layer" pointer-events="none"${hidden}>
         ${goals.map(({ project, goal, index }) => {
           const pos = goalPosition(goal, project, index);
           const nameLength = String(goal.nombre || "").length;
-          const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
+          const stats = statsForGoal(project.id, goal.id);
+          const cityScale = cityScaleForGoal(stats);
           const mapIndex = projectMapIndex(project.id);
           const coast = continentPathForProject(project, mapIndex);
           const bounds = pathBounds(coast);
           const projectTitleX = (bounds.minX + bounds.maxX) / 2;
-          const projectTitleY = bounds.minY + 18;
-          const screenScale = clampNumber(box.w / 900, 0.24, 0.56);
-          const scale = (nameLength > 54 ? 0.58 : nameLength > 34 ? 0.66 : 0.74) * screenScale;
-          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 18 : 24).slice(0, 2);
-          const plateWidth = Math.min(178, Math.max(68, Math.max(...lines.map((line) => line.length)) * 6.6 + 20));
-          const plateHeight = 20 + (lines.length - 1) * 12;
-          let y = pos.y - Math.max(24, 52 * cityScale);
-          if (Math.abs(pos.x - projectTitleX) < 190 && y < projectTitleY + 36) {
-            y = pos.y + Math.max(28, 46 * cityScale);
+          const projectTitleY = bounds.minY + Math.min(72, Math.max(44, (bounds.maxY - bounds.minY) * 0.18));
+          const centerY = (bounds.minY + bounds.maxY) / 2;
+          const screenScale = clampNumber(box.w / 900, 0.42, 0.78);
+          const scale = (nameLength > 54 ? 0.62 : nameLength > 34 ? 0.69 : 0.76) * screenScale;
+          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 16 : 20).slice(0, 2);
+          const plateWidth = Math.min(164, Math.max(78, Math.max(...lines.map((line) => line.length)) * 6.7 + 26));
+          const plateHeight = 29 + (lines.length - 1) * 11;
+          const labelAbove = pos.y > centerY;
+          let y = pos.y + (labelAbove ? -Math.max(34, 58 * cityScale) : Math.max(36, 62 * cityScale));
+          if (Math.abs(pos.x - projectTitleX) < 160 && y < projectTitleY + 42) {
+            y = pos.y + Math.max(36, 58 * cityScale);
           }
+          if (y < bounds.minY + 22) y = pos.y + Math.max(36, 58 * cityScale);
+          if (y > bounds.maxY - 14) y = pos.y - Math.max(34, 54 * cityScale);
+          const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
+          const progressWidth = Math.max(30, plateWidth - 24);
+          const progressFill = roundViewBox(progressWidth * clampNumber(stats.progress, 0, 1));
+          const progressX = -progressWidth / 2;
+          const progressY = -18 + plateHeight - 7;
+          const textStartY = lines.length > 1 ? -5 : 1;
           return `
-            <g style="--map-label-stroke:${goalPriorityColor(goal)}" transform="translate(${pos.x} ${y}) scale(${scale})">
-              <rect class="city-title-plate" x="${-plateWidth / 2}" y="-15" width="${plateWidth}" height="${plateHeight}" rx="7"/>
-              ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${lineIndex * 12}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
+            <g class="city-title-label" style="--map-goal-accent:${accent}" transform="translate(${roundViewBox(pos.x)} ${roundViewBox(y)}) scale(${roundViewBox(scale)})">
+              <rect class="city-title-plate" x="${-plateWidth / 2}" y="-18" width="${plateWidth}" height="${plateHeight}" rx="8"/>
+              <rect class="city-title-cap" x="${-plateWidth / 2 + 8}" y="-17" width="${plateWidth - 16}" height="2.2" rx="1.1"/>
+              ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${textStartY + lineIndex * 11}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
+              <rect class="city-progress-track" x="${progressX}" y="${progressY}" width="${progressWidth}" height="2.4" rx="1.2"/>
+              <rect class="city-progress-fill" x="${progressX}" y="${progressY}" width="${progressFill}" height="2.4" rx="1.2"/>
             </g>
           `;
         }).join("")}
@@ -11107,65 +11142,11 @@
     }
 
     function renderTaskInlineLabels(goals) {
-      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      if (box.w > TASK_LABEL_MAX_VIEWBOX_WIDTH) return "";
-      const screenScale = clampNumber(box.w / 900, 0.18, 0.36);
-      const labels = goals.map(({ project, goal, index }) => {
-        const tasks = sortedTasks(project.id, goal.id);
-        if (!tasks.length) return "";
-        const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
-        const cityPos = goalPosition(goal, project, index);
-        const layout = taskPlotLayoutForGoal(project, goal, index, tasks.length, cityScale);
-        return tasks.map((task, taskIndex) => {
-          const point = taskPlotPoint(cityPos, taskIndex, cityScale, layout);
-          const name = String(task.nombre || "");
-          const lines = wrapSvgLines(name, name.length > 32 ? 14 : 17).slice(0, 2);
-          const plateWidth = Math.min(142, Math.max(54, Math.max(...lines.map((line) => line.length)) * 5.8 + 16));
-          const plateHeight = 18 + (lines.length - 1) * 10;
-          const side = taskIndex % 2 === 0 ? -1 : 1;
-          const labelX = point.x + side * Math.min(18, 9 + taskIndex * 0.45);
-          const labelY = point.y + (taskIndex % 3 === 1 ? 24 : -28);
-          return `
-            <g class="task-title-label ${task.completada ? "is-complete" : ""}" style="--map-label-stroke:${task.completada ? "#3f7b4f" : priorityAccent[normalizePriority(task.prioridad)] || "#2e6f4a"}" transform="translate(${labelX} ${labelY}) scale(${screenScale})">
-              <rect class="task-title-plate" x="${-plateWidth / 2}" y="-13" width="${plateWidth}" height="${plateHeight}" rx="6"/>
-              ${lines.map((line, lineIndex) => `<text class="task-title-text" x="0" y="${lineIndex * 10}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
-            </g>
-          `;
-        }).join("");
-      }).join("");
-      return labels ? `<g class="task-title-layer">${labels}</g>` : "";
+      return "";
     }
 
     function renderSubtaskInlineLabels(goals) {
-      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      if (box.w > SUBTASK_LABEL_MAX_VIEWBOX_WIDTH) return "";
-      const screenScale = clampNumber(box.w / 900, 0.16, 0.28);
-      const labels = goals.map(({ project, goal, index }) => {
-        const tasks = sortedTasks(project.id, goal.id);
-        if (!tasks.length) return "";
-        const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
-        const cityPos = goalPosition(goal, project, index);
-        const layout = taskPlotLayoutForGoal(project, goal, index, tasks.length, cityScale);
-        return tasks.map((task, taskIndex) => {
-          const subtasks = sortedSubtaskChildren(task.id, null).slice(0, 3);
-          if (!subtasks.length) return "";
-          const point = taskPlotPoint(cityPos, taskIndex, cityScale, layout);
-          return subtasks.map((subtask, subtaskIndex) => {
-            const name = String(subtask.nombre || "");
-            const lines = wrapSvgLines(name, 14).slice(0, 1);
-            const labelX = point.x + (subtaskIndex - 1) * 18 * cityScale;
-            const labelY = point.y + 42 * cityScale + subtaskIndex * 9 * cityScale;
-            const depth = subtaskDepth(subtask.id);
-            const stroke = depth >= 3 ? "#4e9d98" : depth >= 2 ? "#7964a7" : "#b85f58";
-            return `
-              <g style="--map-label-stroke:${stroke}" transform="translate(${labelX} ${labelY}) scale(${screenScale})">
-                ${lines.map((line) => `<text class="subtask-title-text" x="0" y="0" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
-              </g>
-            `;
-          }).join("");
-        }).join("");
-      }).join("");
-      return labels ? `<g class="subtask-title-layer">${labels}</g>` : "";
+      return "";
     }
 
     function renderLandscape() {
@@ -11213,20 +11194,21 @@
         const coast = continentPathForProject(project, mapIndex);
         const bounds = pathBounds(coast);
         const x = (bounds.minX + bounds.maxX) / 2;
-        const y = Math.max(26, bounds.minY + 20);
+        const y = bounds.minY + Math.min(72, Math.max(44, (bounds.maxY - bounds.minY) * 0.18));
         const title = String(project.nombre || "");
         const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-        const screenScale = clampNumber(box.w / 900, 0.28, 1.05);
-        const labelScale = (title.length > 48 ? 0.82 : title.length > 32 ? 0.94 : 1.08) * screenScale;
-        const labelLines = wrapSvgLines(title, title.length > 48 ? 20 : 24).slice(0, 2);
-        const plateWidth = Math.min(230, Math.max(92, Math.max(...labelLines.map((line) => line.length)) * 10.5 + 28));
-        const plateHeight = 28 + (labelLines.length - 1) * 19;
+        const screenScale = clampNumber(box.w / 900, 0.42, 1.06);
+        const labelScale = (title.length > 48 ? 0.74 : title.length > 32 ? 0.86 : 0.98) * screenScale;
+        const labelLines = wrapSvgLines(title, title.length > 48 ? 19 : 23).slice(0, 2);
+        const plateWidth = Math.min(286, Math.max(126, Math.max(...labelLines.map((line) => line.length)) * 10.4 + 40));
+        const plateHeight = 34 + (labelLines.length - 1) * 18;
         return `
           <g class="continent-title-group" data-project-id="${project.id}">
-            <rect x="${roundViewBox(x - 110)}" y="${roundViewBox(y - 26)}" width="220" height="${plateHeight + 18}" rx="14" fill="transparent"/>
-            <g style="--map-label-stroke:${project.color}" transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${labelScale})">
-              <rect class="continent-title-plate" x="${-plateWidth / 2}" y="-22" width="${plateWidth}" height="${plateHeight}" rx="10"/>
-              ${labelLines.map((line, lineIndex) => `<text class="continent-title-text" x="0" y="${lineIndex * 19}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
+            <rect x="${roundViewBox(x - plateWidth / 2 - 18)}" y="${roundViewBox(y - 28)}" width="${plateWidth + 36}" height="${plateHeight + 22}" rx="16" fill="transparent"/>
+            <g transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${roundViewBox(labelScale)})">
+              <rect class="continent-title-plate" x="${-plateWidth / 2}" y="-24" width="${plateWidth}" height="${plateHeight}" rx="12"/>
+              <rect x="${-plateWidth / 2 + 12}" y="${-23}" width="${plateWidth - 24}" height="2.4" rx="1.2" fill="${project.color}" opacity="0.46"/>
+              ${labelLines.map((line, lineIndex) => `<text class="continent-title-text" x="0" y="${lineIndex * 18}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
             </g>
           </g>
         `;

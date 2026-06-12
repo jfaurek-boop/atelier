@@ -747,20 +747,21 @@
       cursor: pointer;
     }
 
-    .continent-title-plate {
-      fill: rgba(248, 237, 207, 0.82);
-      stroke: rgba(78, 58, 34, 0.24);
-      stroke-width: 1px;
-      filter: drop-shadow(0 5px 8px rgba(23, 19, 13, 0.24));
+    .continent-title-plate,
+    .city-title-plate,
+    .city-title-cap,
+    .city-progress-track,
+    .city-progress-fill {
+      display: none;
     }
 
     .continent-title-text {
-      fill: #322719;
-      font-size: 22px;
+      fill: rgba(54, 39, 24, 0.96);
+      font-size: 25px;
       font-weight: 900;
       paint-order: stroke;
-      stroke: rgba(255, 248, 225, 0.86);
-      stroke-width: 1.7px;
+      stroke: rgba(249, 230, 184, 0.72);
+      stroke-width: 2.1px;
       stroke-linejoin: round;
     }
 
@@ -769,41 +770,16 @@
       shape-rendering: geometricPrecision;
     }
 
-    .city-title-label {
-      filter: drop-shadow(0 3px 6px rgba(18, 14, 9, 0.24));
-    }
-
-    .city-title-plate {
-      fill: rgba(248, 237, 207, 0.78);
-      stroke: var(--map-goal-accent, #8f7550);
-      stroke-opacity: 0.62;
-      stroke-width: 1px;
-    }
-
-    .city-title-cap {
-      fill: var(--map-goal-accent, #8f7550);
-      opacity: 0.82;
-    }
-
     .city-title-text {
-      fill: #2f281e;
-      font-size: 13.2px;
+      fill: rgba(62, 45, 26, 0.9);
+      font-size: 13px;
       font-weight: 850;
       letter-spacing: 0;
       paint-order: stroke;
-      stroke: rgba(255, 248, 225, 0.9);
-      stroke-width: 1.45px;
+      stroke: rgba(249, 230, 184, 0.68);
+      stroke-width: 1.55px;
       stroke-linejoin: round;
       pointer-events: none;
-    }
-
-    .city-progress-track {
-      fill: rgba(71, 55, 34, 0.16);
-    }
-
-    .city-progress-fill {
-      fill: var(--map-goal-accent, #8f7550);
-      opacity: 0.78;
     }
 
     .task-title-plate {
@@ -11110,11 +11086,9 @@
           const projectTitleX = (bounds.minX + bounds.maxX) / 2;
           const projectTitleY = bounds.minY + Math.min(72, Math.max(44, (bounds.maxY - bounds.minY) * 0.18));
           const centerY = (bounds.minY + bounds.maxY) / 2;
-          const screenScale = clampNumber(box.w / 900, 0.42, 0.78);
-          const scale = (nameLength > 54 ? 0.62 : nameLength > 34 ? 0.69 : 0.76) * screenScale;
-          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 16 : 20).slice(0, 2);
-          const plateWidth = Math.min(164, Math.max(78, Math.max(...lines.map((line) => line.length)) * 6.7 + 26));
-          const plateHeight = 29 + (lines.length - 1) * 11;
+          const screenScale = clampNumber(box.w / 900, 0.48, 0.84);
+          const scale = (nameLength > 54 ? 0.57 : nameLength > 34 ? 0.64 : 0.7) * screenScale;
+          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 15 : 18).slice(0, 2);
           const labelAbove = pos.y > centerY;
           let y = pos.y + (labelAbove ? -Math.max(34, 58 * cityScale) : Math.max(36, 62 * cityScale));
           if (Math.abs(pos.x - projectTitleX) < 160 && y < projectTitleY + 42) {
@@ -11122,19 +11096,12 @@
           }
           if (y < bounds.minY + 22) y = pos.y + Math.max(36, 58 * cityScale);
           if (y > bounds.maxY - 14) y = pos.y - Math.max(34, 54 * cityScale);
+          const x = clampNumber(pos.x, bounds.minX + 34, bounds.maxX - 34);
           const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
-          const progressWidth = Math.max(30, plateWidth - 24);
-          const progressFill = roundViewBox(progressWidth * clampNumber(stats.progress, 0, 1));
-          const progressX = -progressWidth / 2;
-          const progressY = -18 + plateHeight - 7;
           const textStartY = lines.length > 1 ? -5 : 1;
           return `
-            <g class="city-title-label" style="--map-goal-accent:${accent}" transform="translate(${roundViewBox(pos.x)} ${roundViewBox(y)}) scale(${roundViewBox(scale)})">
-              <rect class="city-title-plate" x="${-plateWidth / 2}" y="-18" width="${plateWidth}" height="${plateHeight}" rx="8"/>
-              <rect class="city-title-cap" x="${-plateWidth / 2 + 8}" y="-17" width="${plateWidth - 16}" height="2.2" rx="1.1"/>
+            <g class="city-title-label" style="--map-goal-accent:${accent}" transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${roundViewBox(scale)})">
               ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${textStartY + lineIndex * 11}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
-              <rect class="city-progress-track" x="${progressX}" y="${progressY}" width="${progressWidth}" height="2.4" rx="1.2"/>
-              <rect class="city-progress-fill" x="${progressX}" y="${progressY}" width="${progressFill}" height="2.4" rx="1.2"/>
             </g>
           `;
         }).join("")}
@@ -11198,16 +11165,14 @@
         const title = String(project.nombre || "");
         const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
         const screenScale = clampNumber(box.w / 900, 0.42, 1.06);
-        const labelScale = (title.length > 48 ? 0.74 : title.length > 32 ? 0.86 : 0.98) * screenScale;
+        const labelScale = (title.length > 48 ? 0.72 : title.length > 32 ? 0.84 : 0.96) * screenScale;
         const labelLines = wrapSvgLines(title, title.length > 48 ? 19 : 23).slice(0, 2);
-        const plateWidth = Math.min(286, Math.max(126, Math.max(...labelLines.map((line) => line.length)) * 10.4 + 40));
+        const hitWidth = Math.min(286, Math.max(126, Math.max(...labelLines.map((line) => line.length)) * 10.4 + 40));
         const plateHeight = 34 + (labelLines.length - 1) * 18;
         return `
           <g class="continent-title-group" data-project-id="${project.id}">
-            <rect x="${roundViewBox(x - plateWidth / 2 - 18)}" y="${roundViewBox(y - 28)}" width="${plateWidth + 36}" height="${plateHeight + 22}" rx="16" fill="transparent"/>
+            <rect x="${roundViewBox(x - hitWidth / 2 - 18)}" y="${roundViewBox(y - 28)}" width="${hitWidth + 36}" height="${plateHeight + 22}" rx="16" fill="transparent"/>
             <g transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${roundViewBox(labelScale)})">
-              <rect class="continent-title-plate" x="${-plateWidth / 2}" y="-24" width="${plateWidth}" height="${plateHeight}" rx="12"/>
-              <rect x="${-plateWidth / 2 + 12}" y="${-23}" width="${plateWidth - 24}" height="2.4" rx="1.2" fill="${project.color}" opacity="0.46"/>
               ${labelLines.map((line, lineIndex) => `<text class="continent-title-text" x="0" y="${lineIndex * 18}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
             </g>
           </g>

@@ -756,12 +756,12 @@
     }
 
     .continent-title-text {
-      fill: rgba(54, 39, 24, 0.58);
-      font-size: 17px;
+      fill: rgba(54, 39, 24, 0.7);
+      font-size: 19px;
       font-weight: 900;
       paint-order: stroke;
-      stroke: rgba(249, 230, 184, 0.38);
-      stroke-width: 1.1px;
+      stroke: rgba(249, 230, 184, 0.5);
+      stroke-width: 1.25px;
       stroke-linejoin: round;
     }
 
@@ -790,13 +790,13 @@
     }
 
     .city-title-text {
-      fill: rgba(58, 42, 24, 0.68);
-      font-size: 9.6px;
+      fill: rgba(58, 42, 24, 0.82);
+      font-size: 10.8px;
       font-weight: 850;
       letter-spacing: 0;
       paint-order: stroke;
-      stroke: rgba(249, 230, 184, 0.42);
-      stroke-width: 0.85px;
+      stroke: rgba(249, 230, 184, 0.58);
+      stroke-width: 0.95px;
       stroke-linejoin: round;
       pointer-events: none;
     }
@@ -819,6 +819,23 @@
       stroke: rgba(82, 61, 35, 0.22);
       stroke-width: 0.9px;
       pointer-events: none;
+    }
+
+    .city-plan-ring,
+    .city-plan-road {
+      fill: none;
+      stroke: rgba(87, 65, 38, 0.23);
+      stroke-linecap: round;
+      pointer-events: none;
+    }
+
+    .city-plan-ring {
+      stroke-width: 1.15px;
+    }
+
+    .city-plan-road {
+      stroke-width: 0.9px;
+      stroke-dasharray: 4 5;
     }
 
     .task-title-plate {
@@ -4881,30 +4898,30 @@
     }
 
     const taskPlotBasePositions = [
-      { dx: -84, dy: 52, scale: 0.56, mirror: false },
-      { dx: 84, dy: 52, scale: 0.56, mirror: true },
-      { dx: -46, dy: 92, scale: 0.57, mirror: false },
-      { dx: 46, dy: 92, scale: 0.57, mirror: true },
-      { dx: -126, dy: 92, scale: 0.5, mirror: false },
-      { dx: 126, dy: 92, scale: 0.5, mirror: true },
-      { dx: 0, dy: 128, scale: 0.56, mirror: false },
-      { dx: -86, dy: 138, scale: 0.48, mirror: false },
-      { dx: 86, dy: 138, scale: 0.48, mirror: true },
-      { dx: -146, dy: 142, scale: 0.42, mirror: false },
-      { dx: 146, dy: 142, scale: 0.42, mirror: true },
-      { dx: -34, dy: 166, scale: 0.45, mirror: false },
-      { dx: 34, dy: 166, scale: 0.45, mirror: true },
-      { dx: -104, dy: 178, scale: 0.4, mirror: false },
-      { dx: 104, dy: 178, scale: 0.4, mirror: true },
-      { dx: 0, dy: 194, scale: 0.4, mirror: false },
-      { dx: -156, dy: 190, scale: 0.36, mirror: false },
-      { dx: 156, dy: 190, scale: 0.36, mirror: true },
-      { dx: -62, dy: 212, scale: 0.36, mirror: false },
-      { dx: 62, dy: 212, scale: 0.36, mirror: true },
-      { dx: -118, dy: 228, scale: 0.33, mirror: false },
-      { dx: 118, dy: 228, scale: 0.33, mirror: true },
-      { dx: -22, dy: 244, scale: 0.33, mirror: false },
-      { dx: 22, dy: 244, scale: 0.33, mirror: true }
+      { dx: -58, dy: 50, scale: 0.6, mirror: false },
+      { dx: 58, dy: 50, scale: 0.6, mirror: true },
+      { dx: -28, dy: 72, scale: 0.6, mirror: false },
+      { dx: 28, dy: 72, scale: 0.6, mirror: true },
+      { dx: -88, dy: 78, scale: 0.54, mirror: false },
+      { dx: 88, dy: 78, scale: 0.54, mirror: true },
+      { dx: 0, dy: 96, scale: 0.58, mirror: false },
+      { dx: -58, dy: 112, scale: 0.5, mirror: false },
+      { dx: 58, dy: 112, scale: 0.5, mirror: true },
+      { dx: -112, dy: 116, scale: 0.45, mirror: false },
+      { dx: 112, dy: 116, scale: 0.45, mirror: true },
+      { dx: -24, dy: 136, scale: 0.46, mirror: false },
+      { dx: 24, dy: 136, scale: 0.46, mirror: true },
+      { dx: -78, dy: 150, scale: 0.42, mirror: false },
+      { dx: 78, dy: 150, scale: 0.42, mirror: true },
+      { dx: 0, dy: 164, scale: 0.42, mirror: false },
+      { dx: -124, dy: 160, scale: 0.37, mirror: false },
+      { dx: 124, dy: 160, scale: 0.37, mirror: true },
+      { dx: -44, dy: 184, scale: 0.37, mirror: false },
+      { dx: 44, dy: 184, scale: 0.37, mirror: true },
+      { dx: -92, dy: 200, scale: 0.34, mirror: false },
+      { dx: 92, dy: 200, scale: 0.34, mirror: true },
+      { dx: -16, dy: 218, scale: 0.34, mirror: false },
+      { dx: 16, dy: 218, scale: 0.34, mirror: true }
     ];
 
     function taskPlotLayout(total = 0) {
@@ -4949,13 +4966,13 @@
 
     function taskPlotAvoidsCastle(plot) {
       if (Number.isFinite(plot.localDepth) && Number.isFinite(plot.localSide)) {
-        const protectedEllipse = (plot.localSide * plot.localSide) / (76 * 76) + ((plot.localDepth - 18) * (plot.localDepth - 18)) / (64 * 64);
-        const protectedBox = Math.abs(plot.localSide) < 56 && plot.localDepth > -48 && plot.localDepth < 82;
-        return protectedEllipse > 1.08 && !protectedBox;
+        const protectedEllipse = (plot.localSide * plot.localSide) / (60 * 60) + ((plot.localDepth - 18) * (plot.localDepth - 18)) / (46 * 46);
+        const protectedBox = Math.abs(plot.localSide) < 32 && plot.localDepth > -38 && plot.localDepth < 68;
+        return protectedEllipse > 1.02 && !protectedBox;
       }
-      const protectedEllipse = (plot.dx * plot.dx) / (78 * 78) + ((plot.dy - 18) * (plot.dy - 18)) / (66 * 66);
-      const protectedBox = Math.abs(plot.dx) < 58 && plot.dy > -48 && plot.dy < 84;
-      return protectedEllipse > 1.12 && !protectedBox;
+      const protectedEllipse = (plot.dx * plot.dx) / (62 * 62) + ((plot.dy - 18) * (plot.dy - 18)) / (48 * 48);
+      const protectedBox = Math.abs(plot.dx) < 34 && plot.dy > -38 && plot.dy < 70;
+      return protectedEllipse > 1.04 && !protectedBox;
     }
 
     function taskPlotFitsSpacing(plot, placed) {
@@ -11313,7 +11330,7 @@
             patch.opacity,
             patch.size * visualScale
           )).join("")}
-          ${renderCartographicTexture(coast, index)}
+          ${renderCartographicTexture(coast, index, visualScale)}
           ${renderExpansionTerrain(project, index)}
           ${renderMicroTerrain(cx, cy, index, visualScale)}
         </g>
@@ -11330,9 +11347,9 @@
         const dy = 38 + (seededValue(index * 211 + anchorIndex * 43) - 0.5) * 28;
         return `
           <g opacity="0.78">
-            ${renderTerrainPatch(pos.x + dx, pos.y + dy, terrain, 0.26, 0.72)}
+            ${renderTerrainPatch(pos.x + dx, pos.y + dy, terrain, 0.18, 0.54)}
             <path d="M${pos.x - 44} ${pos.y + 28} C${pos.x - 18} ${pos.y + 10} ${pos.x + 16} ${pos.y + 45} ${pos.x + 50} ${pos.y + 24}" fill="none" stroke="#8a7a58" stroke-width="1.1" opacity="0.22" stroke-linecap="round"/>
-            ${renderMapMark(markType, pos.x + dx * 0.45, pos.y + dy * 0.75)}
+            <g transform="translate(${pos.x + dx * 0.45} ${pos.y + dy * 0.75}) scale(0.58)">${renderMapMark(markType, 0, 0)}</g>
           </g>
         `;
       }).join("");
@@ -11353,7 +11370,7 @@
         const x = cx + Math.cos(angle) * radiusX;
         const y = cy + 44 * visualScale + Math.sin(angle) * radiusY;
         const color = i % 3 === 0 ? "#6f7f4f" : i % 3 === 1 ? "#9b7f4c" : "#8d7c61";
-        const markScale = Math.max(0.55, visualScale);
+        const markScale = Math.max(0.28, visualScale * 0.38);
         if (i % 3 === 2) {
           return `<path d="M${x - 8 * markScale} ${y + 2 * markScale} C${x - 2 * markScale} ${y - 5 * markScale} ${x + 3 * markScale} ${y - 5 * markScale} ${x + 9 * markScale} ${y + 1 * markScale}" fill="none" stroke="${color}" stroke-width="${1.2 * markScale}" opacity="0.24" stroke-linecap="round"/>`;
         }
@@ -11367,7 +11384,7 @@
       return raw - Math.floor(raw);
     }
 
-    function renderCartographicTexture(coast, index) {
+    function renderCartographicTexture(coast, index, visualScale = 1) {
       const bounds = pathBounds(coast);
       const width = bounds.maxX - bounds.minX;
       const height = bounds.maxY - bounds.minY;
@@ -11375,22 +11392,34 @@
       const ridges = Array.from({ length: 11 }, (_, i) => {
         const x = bounds.minX + width * (0.16 + seededValue(seed + i * 19) * 0.68);
         const y = bounds.minY + height * (0.16 + seededValue(seed + i * 23) * 0.66);
-        const s = 0.55 + seededValue(seed + i * 29) * 0.55;
+        const s = (0.32 + seededValue(seed + i * 29) * 0.34) * Math.max(0.76, visualScale);
         return `<g transform="translate(${x} ${y}) scale(${s})" opacity="0.28"><path d="M-16 9 C-11 1 -8 -9 -2 -14 C4 -8 7 0 13 9 Z" fill="#827759"/><path d="M-2 -14 C4 -8 7 0 13 9 H0 C2 2 0 -5 -2 -14 Z" fill="#5f5744" opacity="0.38"/><path d="M-7 -4 C-5 -9 -3 -12 -2 -14 C1 -10 3 -6 5 -3 C1 -5 -2 -4 -7 -4 Z" fill="#eadfc4" opacity="0.66"/><path d="M-16 10 C-8 13 3 12 14 9" fill="none" stroke="#62523b" stroke-width="1" opacity="0.42"/></g>`;
       }).join("");
       const woods = Array.from({ length: 24 }, (_, i) => {
         const x = bounds.minX + width * (0.08 + seededValue(seed + i * 31) * 0.84);
         const y = bounds.minY + height * (0.1 + seededValue(seed + i * 37) * 0.78);
         const tone = i % 3 === 0 ? "#556c43" : i % 3 === 1 ? "#6f8150" : "#435a3c";
-        return `<g opacity="0.34"><path d="M${x - 4} ${y + 2} C${x - 8} ${y - 4} ${x - 2} ${y - 9} ${x + 2} ${y - 5} C${x + 7} ${y - 7} ${x + 8} ${y} ${x + 3} ${y + 3} Z" fill="${tone}"/><path d="M${x} ${y + 1} L${x} ${y + 7}" stroke="#6b5635" stroke-width="0.9"/></g>`;
+        const s = 0.58 * Math.max(0.7, visualScale);
+        return `<g opacity="0.24" transform="translate(${x} ${y}) scale(${s})"><path d="M-4 2 C-8 -4 -2 -9 2 -5 C7 -7 8 0 3 3 Z" fill="${tone}"/><path d="M0 1 L0 7" stroke="#6b5635" stroke-width="0.75"/></g>`;
       }).join("");
       const lakeX = bounds.minX + width * (0.32 + seededValue(seed + 3) * 0.34);
       const lakeY = bounds.minY + height * (0.34 + seededValue(seed + 5) * 0.32);
       const lakeW = 11 + seededValue(seed + 9) * 10;
       const lakeH = 5 + seededValue(seed + 15) * 7;
       const lake = `<path d="M${lakeX - lakeW} ${lakeY} C${lakeX - lakeW * 0.5} ${lakeY - lakeH} ${lakeX + lakeW * 0.2} ${lakeY - lakeH * 0.8} ${lakeX + lakeW} ${lakeY - lakeH * 0.15} C${lakeX + lakeW * 0.5} ${lakeY + lakeH} ${lakeX - lakeW * 0.35} ${lakeY + lakeH * 0.8} ${lakeX - lakeW} ${lakeY} Z" fill="#5e93a0" opacity="0.25" stroke="#d7eadf" stroke-width="0.7" stroke-opacity="0.34"/>`;
+      const riverStartX = bounds.minX + width * (0.24 + seededValue(seed + 61) * 0.5);
+      const riverStartY = bounds.minY + height * 0.16;
+      const riverMidX = bounds.minX + width * (0.42 + seededValue(seed + 67) * 0.22);
+      const riverMidY = bounds.minY + height * (0.43 + seededValue(seed + 71) * 0.16);
+      const riverEndX = bounds.minX + width * (0.54 + seededValue(seed + 79) * 0.28);
+      const riverEndY = bounds.minY + height * 0.82;
+      const river = `
+        <path d="M${riverStartX} ${riverStartY} C${riverStartX - width * 0.08} ${riverStartY + height * 0.16} ${riverMidX + width * 0.08} ${riverMidY - height * 0.12} ${riverMidX} ${riverMidY} S${riverEndX - width * 0.08} ${riverEndY - height * 0.18} ${riverEndX} ${riverEndY}" fill="none" stroke="#5e93a0" stroke-width="${Math.max(1.4, 2.2 * visualScale)}" stroke-linecap="round" opacity="0.22"/>
+        <path d="M${riverStartX} ${riverStartY} C${riverStartX - width * 0.08} ${riverStartY + height * 0.16} ${riverMidX + width * 0.08} ${riverMidY - height * 0.12} ${riverMidX} ${riverMidY} S${riverEndX - width * 0.08} ${riverEndY - height * 0.18} ${riverEndX} ${riverEndY}" fill="none" stroke="#d7eadf" stroke-width="${Math.max(0.45, 0.75 * visualScale)}" stroke-linecap="round" opacity="0.18"/>
+      `;
       return `
         <g>
+          ${river}
           ${lake}
           ${ridges}
           ${woods}
@@ -11399,7 +11428,7 @@
     }
 
     function renderContinentMarks(layout, index) {
-      const visualScale = Math.max(0.54, layout.visualScale || 1);
+      const visualScale = Math.max(0.32, (layout.visualScale || 1) * 0.52);
       const marks = [
         [
           ["forest", -56, 40], ["mountain", 54, 14], ["ruin", -18, 82], ["tree", 24, 72]
@@ -11441,18 +11470,18 @@
         </g>`;
       }
       if (type === "forest") {
-        return `<g transform="translate(${x} ${y})" opacity="0.68">
-          <ellipse cx="-12" cy="1" rx="8" ry="14" fill="#6b7d4e"/>
-          <ellipse cx="2" cy="-4" rx="10" ry="17" fill="#526a43"/>
-          <ellipse cx="15" cy="3" rx="8" ry="13" fill="#738553"/>
-          <path d="M-12 12 V22 M2 11 V24 M15 13 V22" stroke="#6b5635" stroke-width="2" stroke-linecap="round"/>
-          <path d="M-22 24 C-8 28 7 27 24 23" stroke="#5d4a2f" stroke-width="1.3" opacity="0.38"/>
+        return `<g transform="translate(${x} ${y})" opacity="0.48">
+          <ellipse cx="-8" cy="1" rx="5.5" ry="9" fill="#6b7d4e"/>
+          <ellipse cx="1" cy="-3" rx="7" ry="11" fill="#526a43"/>
+          <ellipse cx="10" cy="2" rx="5.5" ry="8.5" fill="#738553"/>
+          <path d="M-8 8 V15 M1 8 V16 M10 9 V15" stroke="#6b5635" stroke-width="1.25" stroke-linecap="round"/>
+          <path d="M-14 16 C-5 19 5 18 16 15" stroke="#5d4a2f" stroke-width="0.9" opacity="0.34"/>
         </g>`;
       }
       if (type === "tower") {
-        return `<g transform="translate(${x} ${y})" opacity="0.72"><rect x="-7" y="-18" width="14" height="28" fill="#a88e61" stroke="#6b5635" stroke-width="1.2"/><path d="M-11 -18 H11 L7 -28 H-7 Z" fill="#7f704f"/><path d="M-3 -2 V10 H3 V-2 Z" fill="#5b4630"/></g>`;
+        return `<g transform="translate(${x} ${y})" opacity="0.56"><rect x="-5" y="-13" width="10" height="20" fill="#a88e61" stroke="#6b5635" stroke-width="0.9"/><path d="M-8 -13 H8 L5 -21 H-5 Z" fill="#7f704f"/><path d="M-2 -1 V7 H2 V-1 Z" fill="#5b4630"/></g>`;
       }
-      return `<g transform="translate(${x} ${y})" opacity="0.68"><path d="M0 -18 C-14 -10 -16 3 -8 8 C-3 13 8 12 12 5 C18 -4 12 -14 0 -18 Z" fill="#71804f"/><path d="M-7 -3 C0 -8 7 -6 12 2" fill="none" stroke="#8c9a63" stroke-width="1" opacity="0.6"/><rect x="-2" y="6" width="4" height="13" fill="#6b5635"/></g>`;
+      return `<g transform="translate(${x} ${y})" opacity="0.5"><path d="M0 -12 C-9 -7 -11 2 -5 6 C-2 9 6 8 8 3 C12 -3 8 -10 0 -12 Z" fill="#71804f"/><path d="M-5 -2 C0 -5 5 -4 8 1" fill="none" stroke="#8c9a63" stroke-width="0.8" opacity="0.55"/><rect x="-1.4" y="4" width="2.8" height="9" fill="#6b5635"/></g>`;
     }
 
     function renderCastle(project, goal, index) {
@@ -11468,6 +11497,7 @@
           <title>${escapeHtml(goal.nombre)}</title>
           <ellipse class="goal-symbol-glow" cx="0" cy="29" rx="${40 + stats.total * 1.15}" ry="${21 + stats.total * 0.6}" opacity="${0.28 + progress * 0.12}"/>
           <ellipse class="goal-symbol-base" cx="0" cy="47" rx="48" ry="10"/>
+          ${renderCityPlan(stats)}
           ${renderCityWall(project, stats.progress)}
           <g transform="translate(0 -11) scale(${castleScale})">
             ${renderFoundation()}
@@ -11478,6 +11508,24 @@
             ${pct >= 80 ? renderGoldenFlag() : ""}
           </g>
           <rect x="-82" y="-62" width="164" height="126" fill="transparent"/>
+        </g>
+      `;
+    }
+
+    function renderCityPlan(stats) {
+      const taskCount = Math.max(0, Number(stats?.total) || 0);
+      if (!taskCount) return "";
+      const secondRing = taskCount > 5;
+      const thirdRing = taskCount > 12;
+      return `
+        <g class="city-plan" opacity="0.9">
+          <ellipse class="city-plan-ring" cx="0" cy="62" rx="62" ry="24"/>
+          ${secondRing ? `<ellipse class="city-plan-ring" cx="0" cy="86" rx="103" ry="38" opacity="0.72"/>` : ""}
+          ${thirdRing ? `<ellipse class="city-plan-ring" cx="0" cy="118" rx="136" ry="50" opacity="0.52"/>` : ""}
+          <path class="city-plan-road" d="M0 28 C-28 48 -50 69 -71 97"/>
+          <path class="city-plan-road" d="M0 28 C28 48 50 69 71 97"/>
+          <path class="city-plan-road" d="M0 34 C-8 68 -7 100 0 139"/>
+          <path class="city-plan-road" d="M-94 82 C-48 74 48 74 94 82"/>
         </g>
       `;
     }

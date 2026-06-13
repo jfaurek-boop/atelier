@@ -9686,7 +9686,7 @@
       const label = document.querySelector(`.castle-label[data-project-id="${dragCastle.projectId}"][data-section-id="${dragCastle.sectionId || ""}"]`);
       if (node) {
         const stats = goal ? statsForGoal(project.id, goal.id) : projectStats(project.id);
-        const nextScale = goal ? cityScaleForGoal(stats) : 0.4 + stats.progress * 0.8;
+        const nextScale = goal ? cityScaleForGoal(stats, project) : 0.4 + stats.progress * 0.8;
         node.setAttribute("transform", `translate(${nextPosition.x} ${nextPosition.y}) scale(${nextScale})`);
       }
       if (label) label.setAttribute("transform", `translate(${nextPosition.x - 80} ${nextPosition.y + 85})`);
@@ -11161,6 +11161,10 @@
               <stop offset="0%" stop-color="#7d8790"/>
               <stop offset="100%" stop-color="#4f5963"/>
             </linearGradient>
+            <linearGradient id="wallShade" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,250,235,0.22)"/>
+              <stop offset="100%" stop-color="rgba(90,67,38,0.30)"/>
+            </linearGradient>
             <filter id="softShadow" x="-28%" y="-28%" width="156%" height="156%">
               <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.24"/>
             </filter>
@@ -11217,7 +11221,7 @@
       const goalHits = goals.map(({ project, goal, index }) => renderGoalHoverHit(project, goal, index)).join("");
       const taskHits = goals.map(({ project, goal, index }) => {
         const stats = statsForGoal(project.id, goal.id);
-        const cityScale = cityScaleForGoal(stats);
+        const cityScale = cityScaleForGoal(stats, project);
         const cityPos = goalPosition(goal, project, index);
         const tasks = sortedTasks(project.id, goal.id);
         const layout = taskPlotLayoutForGoal(project, goal, index, tasks.length, cityScale);
@@ -11230,7 +11234,7 @@
 
     function renderGoalHoverHit(project, goal, index) {
       const stats = statsForGoal(project.id, goal.id);
-      const cityScale = cityScaleForGoal(stats);
+      const cityScale = cityScaleForGoal(stats, project);
       const pos = goalPosition(goal, project, index);
       return `
         <g class="goal-hover-hit" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}">
@@ -11258,7 +11262,7 @@
         const pos = goalPosition(goal, project, index);
         const nameLength = String(goal.nombre || "").length;
         const stats = statsForGoal(project.id, goal.id);
-        const cityScale = cityScaleForGoal(stats);
+        const cityScale = cityScaleForGoal(stats, project);
         const mapIndex = projectMapIndex(project.id);
         const bounds = pathBounds(continentPathForProject(project, mapIndex));
         const centerY = (bounds.minY + bounds.maxY) / 2;
@@ -11593,50 +11597,105 @@
       return `<g transform="translate(${x} ${y})" opacity="0.74"><path d="M0 -12 C-9 -7 -11 2 -5 6 C-2 9 6 8 8 3 C12 -3 8 -10 0 -12 Z" fill="#71804f"/><path d="M-5 -2 C0 -5 5 -4 8 1" fill="none" stroke="#8c9a63" stroke-width="0.8" opacity="0.55"/><rect x="-1.4" y="4" width="2.8" height="9" fill="#6b5635"/></g>`;
     }
 
+    function renderKeepIcon(pct, roof, accent, flag) {
+      const OUT = "#5a4326", LITE = "#dac9a7", MID = "#c5af86", DARK = "#a98f66", WIN = "#f6dd8c", DOOR = "#43301d", HL = "#fff1cf", WOOD = "#8a5d34";
+      const r = (n) => Number(Number(n).toFixed(1));
+      const hatch = (x, top, half) => {
+        const n = Math.max(0, Math.floor((24 - top) / 4));
+        let lines = "";
+        for (let i = 0; i < n; i += 1) lines += `<path d="M${r(x + half - 1)} ${r(top + 4 + i * 4)} l-3 3"/>`;
+        return `<g stroke="${OUT}" stroke-width="0.4" opacity="0.28" stroke-linecap="round">${lines}</g>`;
+      };
+      const courses = (x, top, half) => {
+        let p = "";
+        for (let y = Math.floor(top) + 5; y < 24; y += 5) p += `<path d="M${r(x - half + 1)} ${y} h${r(2 * half - 2)}"/>`;
+        return `<g stroke="${OUT}" stroke-width="0.4" opacity="0.22">${p}</g>`;
+      };
+      const tower = (x, top, w, opts = {}) => {
+        const pennant = opts.pennant !== false;
+        const merlon = opts.merlon === true;
+        const banner = opts.banner === true;
+        const half = w / 2;
+        const bodyH = 24 - top;
+        const body = `
+          <path d="M${r(x - half)} ${r(top)} h${r(w)} v${r(bodyH)} a${r(half)} 3.6 0 0 1 -${r(w)} 0 z" fill="${MID}" stroke="${OUT}" stroke-width="1.2"/>
+          <path d="M${r(x + half)} ${r(top)} v${r(bodyH)} a${r(half)} 3.6 0 0 1 -${r(half)} 3.4 v-${r(bodyH)}" fill="${DARK}" opacity="0.5"/>
+          ${courses(x, top, half)}
+          <ellipse cx="${r(x)}" cy="${r(top)}" rx="${r(half)}" ry="3.2" fill="${LITE}" stroke="${OUT}" stroke-width="1"/>
+          <path d="M${r(x - 1.8)} ${r(top + 5.5)} a1.8 1.8 0 0 1 3.6 0 v5 h-3.6 z" fill="${WIN}" stroke="${OUT}" stroke-width="0.55"/>
+          ${hatch(x, top, half)}
+        `;
+        let roofG = "";
+        if (merlon) {
+          const seg = (2 * half - 2) / 3;
+          for (let i = 0; i < 3; i += 1) roofG += `<rect x="${r(x - half + 1 + i * seg)}" y="${r(top - 4)}" width="${r(seg - 1.4)}" height="4.5" fill="${LITE}" stroke="${OUT}" stroke-width="0.8"/>`;
+        } else {
+          roofG = `
+            <path d="M${r(x - half - 2)} ${r(top + 1)} L${r(x)} ${r(top - 14)} L${r(x + half + 2)} ${r(top + 1)} Z" fill="${roof}" stroke="${OUT}" stroke-width="1.1"/>
+            <path d="M${r(x)} ${r(top - 14)} L${r(x + half + 2)} ${r(top + 1)} L${r(x)} ${r(top + 1)} Z" fill="${accent}" opacity="0.6"/>
+            <path d="M${r(x - half - 2)} ${r(top + 1)} L${r(x)} ${r(top - 14)}" stroke="${HL}" stroke-width="0.7" opacity="0.55" fill="none"/>
+            <circle cx="${r(x)}" cy="${r(top - 15.5)}" r="1.6" fill="${LITE}" stroke="${OUT}" stroke-width="0.6"/>
+          `;
+        }
+        const topknot = top - (merlon ? 4 : 14);
+        let flagG = "";
+        if (banner) {
+          flagG = `<path d="M${r(x)} ${r(topknot)} v-13" stroke="${OUT}" stroke-width="1.4"/><path d="M${r(x)} ${r(topknot - 13)} h11 l-2.5 4 2.5 4 h-11 z" fill="${flag}" stroke="${OUT}" stroke-width="0.6"/>`;
+        } else if (pennant) {
+          flagG = `<path d="M${r(x)} ${r(topknot)} v-8" stroke="${OUT}" stroke-width="1.2"/><path d="M${r(x)} ${r(topknot - 8)} l8 2.6 -8 2.6 z" fill="${flag}" stroke="${OUT}" stroke-width="0.5"/>`;
+        }
+        return body + roofG + flagG;
+      };
+      const parts = [`<ellipse cx="1" cy="30" rx="37" ry="6.5" fill="rgba(40,30,16,0.18)"/>`];
+      parts.push(`<path d="M-36 27 q-3 -7 6 -9 q10 -7 30 -6 q14 -1 30 5 q9 2 7 10 z" fill="#bda775" stroke="${OUT}" stroke-width="0.8" opacity="0.85"/>`);
+      if (pct < 22) {
+        parts.push(tower(0, -12, 22, { pennant: false, merlon: true }));
+        parts.push(`<g stroke="${WOOD}" stroke-width="1.5" stroke-linecap="round" opacity="0.95"><path d="M-16 26 V-6 M16 26 V-6 M-16 4 H16 M-16 15 H16"/><path d="M-16 -6 L16 4 M16 -6 L-16 4"/></g><path d="M-19 -8 H19" stroke="#a36b3b" stroke-width="1.6"/>`);
+      } else {
+        parts.push(`
+          <rect x="-31" y="6" width="62" height="20" fill="${MID}" stroke="${OUT}" stroke-width="1.2"/>
+          <rect x="-31" y="6" width="62" height="20" fill="url(#wallShade)"/>
+          <g fill="${LITE}" stroke="${OUT}" stroke-width="0.9">${[-30, -19, -8, 3, 14, 25].map((xx) => `<rect x="${xx}" y="1.5" width="6" height="5.5"/>`).join("")}</g>
+          <path d="M-31 6 H31" stroke="${HL}" stroke-width="0.8" opacity="0.5"/>
+          <g stroke="${OUT}" stroke-width="0.4" opacity="0.25"><path d="M-20 9 V25 M-9 9 V25 M2 9 V25 M13 9 V25 M24 9 V25 M-31 13 H31 M-31 19 H31"/></g>
+        `);
+        parts.push(tower(0, -20, 22, { banner: pct >= 78 }));
+        if (pct >= 50) {
+          parts.push(tower(-26, -2, 16, { pennant: pct >= 78 }));
+          parts.push(tower(26, -2, 16, { pennant: pct >= 78 }));
+        }
+        parts.push(`
+          <path d="M-7 26 V14 a7 7 0 0 1 14 0 V26 Z" fill="${DOOR}" stroke="${OUT}" stroke-width="1"/>
+          <path d="M0 8 V26" stroke="#2a1c10" stroke-width="0.9"/>
+          <g stroke="#caa96f" stroke-width="0.5" opacity="0.6"><path d="M-6 16 H6 M-6 20 H6"/></g>
+        `);
+      }
+      return `<g class="keep-icon" style="paint-order:stroke">${parts.join("")}</g>`;
+    }
+
     function renderCastle(project, goal, index) {
       const stats = statsForGoal(project.id, goal.id);
       const pos = goalPosition(goal, project, index);
       const progress = stats.progress;
-      const cityScale = cityScaleForGoal(stats);
-      const castleScale = 0.6 + progress * 0.18;
+      const cityScale = cityScaleForGoal(stats, project);
       const pct = progress * 100;
-      const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
+      const priorityColor = goalPriorityColor(goal);
+      const accentColor = priorityColor !== "transparent" ? priorityColor : project.color;
+      const roof = project.color;
+      const roofAccent = project.colorAccent || accentColor;
+      const flag = pct >= 100 ? "#e8b84b" : (priorityColor !== "transparent" ? priorityColor : project.color);
       return `
-        <g class="castle-node" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" style="--goal-accent:${accent}" transform="translate(${pos.x} ${pos.y}) scale(${cityScale})">
+        <g class="castle-node" data-project-id="${project.id}" data-section-id="${goal.id || ""}" data-goal-key="${goalKey(project.id, goal.id)}" style="--goal-accent:${accentColor}" transform="translate(${pos.x} ${pos.y}) scale(${cityScale})">
           <title>${escapeHtml(goal.nombre)}</title>
-          <ellipse class="goal-symbol-glow" cx="0" cy="29" rx="${40 + stats.total * 1.15}" ry="${21 + stats.total * 0.6}" opacity="${0.28 + progress * 0.12}"/>
-          <ellipse class="goal-symbol-base" cx="0" cy="47" rx="48" ry="10"/>
-          ${renderCityPlan(stats)}
-          ${renderCityWall(project, stats.progress)}
-          <g transform="translate(0 -11) scale(${castleScale})">
-            ${renderFoundation()}
-            ${renderCentralTower(project, pct)}
-            ${pct >= 20 ? renderWalls(project) : ""}
-            ${pct >= 40 ? renderSideTowers(project) : ""}
-            ${pct >= 60 ? renderWindows() : ""}
-            ${pct >= 80 ? renderGoldenFlag() : ""}
-          </g>
-          <rect x="-82" y="-62" width="164" height="126" fill="transparent"/>
+          <ellipse class="goal-symbol-glow" cx="1" cy="26" rx="${34 + stats.total * 0.8}" ry="${15 + stats.total * 0.4}" opacity="${0.2 + progress * 0.12}"/>
+          ${renderKeepIcon(pct, roof, roofAccent, flag)}
+          <rect x="-46" y="-54" width="92" height="92" fill="transparent"/>
         </g>
       `;
     }
 
     function renderCityPlan(stats) {
-      const taskCount = Math.max(0, Number(stats?.total) || 0);
-      if (!taskCount) return "";
-      const secondRing = taskCount > 5;
-      const thirdRing = taskCount > 12;
-      return `
-        <g class="city-plan" opacity="0.9">
-          <ellipse class="city-plan-ring" cx="0" cy="62" rx="62" ry="24"/>
-          ${secondRing ? `<ellipse class="city-plan-ring" cx="0" cy="86" rx="103" ry="38" opacity="0.72"/>` : ""}
-          ${thirdRing ? `<ellipse class="city-plan-ring" cx="0" cy="118" rx="136" ry="50" opacity="0.52"/>` : ""}
-          <path class="city-plan-road" d="M0 28 C-28 48 -50 69 -71 97"/>
-          <path class="city-plan-road" d="M0 28 C28 48 50 69 71 97"/>
-          <path class="city-plan-road" d="M0 34 C-8 68 -7 100 0 139"/>
-          <path class="city-plan-road" d="M-94 82 C-48 74 48 74 94 82"/>
-        </g>
-      `;
+      return "";
     }
 
     function renderGoalHoverPopup(project, goal, stats, x, y, scale = 1, options = {}) {
@@ -11656,11 +11715,15 @@
       `;
     }
 
-    function cityScaleForGoal(stats) {
+    function cityScaleForGoal(stats, project) {
       const taskCount = Math.max(0, Number(stats?.total) || 0);
-      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      const overviewFactor = box.w > 650 ? 1 : box.w > 460 ? 1.08 : 1.18;
-      return (0.52 + Math.min(taskCount, 20) * 0.006) * overviewFactor;
+      let islandScale = 1;
+      if (project && project.id) {
+        const layout = layoutForSlot(projectMapIndex(project.id));
+        islandScale = (layout && layout.visualScale) || 1;
+      }
+      const base = 0.8 + Math.min(taskCount, 20) * 0.004;
+      return base * clampNumber(islandScale, 0.82, 1.85);
     }
 
     function renderGoalSequencePaths(projects) {
@@ -11695,8 +11758,8 @@
           const dx = next.pos.x - item.pos.x;
           const dy = next.pos.y - item.pos.y;
           const length = Math.hypot(dx, dy) || 1;
-          const startTrim = 34 * cityScaleForGoal(item.stats);
-          const endTrim = 34 * cityScaleForGoal(next.stats);
+          const startTrim = 34 * cityScaleForGoal(item.stats, project);
+          const endTrim = 34 * cityScaleForGoal(next.stats, project);
           const start = {
             x: item.pos.x + dx / length * startTrim,
             y: item.pos.y + dy / length * startTrim
@@ -11737,7 +11800,7 @@
     function renderProjectWorkers(project, goal, index) {
       const tasks = sortedTasks(project.id, goal.id);
       const pos = goalPosition(goal, project, index);
-      const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id));
+      const cityScale = cityScaleForGoal(statsForGoal(project.id, goal.id), project);
       const layout = taskPlotLayoutForGoal(project, goal, index, tasks.length, cityScale);
       const placements = tasks
         .map((task, taskIndex) => ({ task, taskIndex, plot: layout[taskIndex] }))
@@ -13123,7 +13186,8 @@
       const label = document.querySelector(`.castle-label[data-goal-key="${key}"]`);
       if (node) {
         const stats = statsForGoal(dragCastle.projectId, dragCastle.sectionId);
-        node.setAttribute("transform", `translate(${target.posicion.x} ${target.posicion.y}) scale(${cityScaleForGoal(stats)})`);
+        const dragProject = state.projects.find((p) => p.id === dragCastle.projectId);
+        node.setAttribute("transform", `translate(${target.posicion.x} ${target.posicion.y}) scale(${cityScaleForGoal(stats, dragProject)})`);
       }
       if (label) label.style.display = "none";
     }

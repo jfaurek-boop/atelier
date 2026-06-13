@@ -756,13 +756,31 @@
     }
 
     .continent-title-text {
-      fill: rgba(54, 39, 24, 0.7);
-      font-size: 19px;
+      fill: rgba(46, 33, 18, 0.92);
+      font-size: 22px;
       font-weight: 900;
+      letter-spacing: 0.3px;
       paint-order: stroke;
-      stroke: rgba(249, 230, 184, 0.5);
-      stroke-width: 1.25px;
+      stroke: rgba(247, 232, 196, 0.95);
+      stroke-width: 3.4px;
       stroke-linejoin: round;
+    }
+
+    .continent-banner {
+      fill: #efdcab;
+      stroke: rgba(108, 82, 44, 0.7);
+      stroke-width: 1.4px;
+      stroke-linejoin: round;
+    }
+
+    .continent-banner-shadow {
+      fill: rgba(34, 24, 12, 0.32);
+      stroke: none;
+    }
+
+    .continent-banner-accent {
+      opacity: 0.9;
+      pointer-events: none;
     }
 
     .castle-node,
@@ -790,14 +808,21 @@
     }
 
     .city-title-text {
-      fill: rgba(58, 42, 24, 0.82);
-      font-size: 10.8px;
+      fill: rgba(46, 33, 18, 0.95);
+      font-size: 13px;
       font-weight: 850;
       letter-spacing: 0;
       paint-order: stroke;
-      stroke: rgba(249, 230, 184, 0.58);
-      stroke-width: 0.95px;
+      stroke: rgba(247, 232, 196, 0.92);
+      stroke-width: 2.6px;
       stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .city-title-plate-bg {
+      fill: rgba(245, 233, 201, 0.82);
+      stroke: rgba(120, 92, 50, 0.32);
+      stroke-width: 1px;
       pointer-events: none;
     }
 
@@ -5453,7 +5478,30 @@
       }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
     }
 
+    function fewProjectFrames(count) {
+      if (count === 1) return [{ x: 168, y: 150, w: 564, h: 500 }];
+      if (count === 2) return [
+        { x: 78, y: 208, w: 360, h: 384 },
+        { x: 462, y: 208, w: 360, h: 384 }
+      ];
+      if (count === 3) return [
+        { x: 70, y: 96, w: 372, h: 320 },
+        { x: 466, y: 96, w: 372, h: 320 },
+        { x: 254, y: 430, w: 392, h: 300 }
+      ];
+      if (count === 4) return [
+        { x: 82, y: 92, w: 356, h: 300 },
+        { x: 466, y: 92, w: 356, h: 300 },
+        { x: 82, y: 418, w: 356, h: 300 },
+        { x: 466, y: 418, w: 356, h: 300 }
+      ];
+      return null;
+    }
+
     function atlasFrameForSlot(slot) {
+      const count = Array.isArray(state?.projects) ? state.projects.length : 0;
+      const few = fewProjectFrames(count);
+      if (few && slot < few.length) return few[slot];
       if (slot < atlasSlotFrames.length) return atlasSlotFrames[slot];
       const base = atlasSlotFrames[slot % atlasSlotFrames.length];
       const cycle = Math.floor(slot / atlasSlotFrames.length);
@@ -6400,6 +6448,28 @@
 
     function repairAllDistantGoalPositions() {
       state.projects.forEach((project) => repairDistantGoalPositions(project.id));
+    }
+
+    function respreadClusteredGoals() {
+      let changed = false;
+      state.projects.forEach((project) => {
+        const slot = projectMapIndex(project.id);
+        const goals = sortedSections(project.id);
+        if (goals.length < 4) return;
+        const positioned = goals.filter((goal) => goal.posicion && Number.isFinite(Number(goal.posicion.x)));
+        if (positioned.length < goals.length) return;
+        const xs = positioned.map((goal) => Number(goal.posicion.x));
+        const ys = positioned.map((goal) => Number(goal.posicion.y));
+        const spread = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+        const islandRadius = baseRadiusForSlot(slot) || 1;
+        if (spread < islandRadius * 1.25) {
+          goals.forEach((goal, index) => {
+            goal.posicion = goalPositionForSlot(slot, index);
+          });
+          changed = true;
+        }
+      });
+      if (changed) saveState();
     }
 
     function goalKey(projectId, sectionId) {
@@ -11077,9 +11147,10 @@
               <stop offset="70%" stop-color="#9aa9b4"/>
               <stop offset="100%" stop-color="#53616d"/>
             </radialGradient>
-            <radialGradient id="continentShade" cx="42%" cy="35%" r="68%">
-              <stop offset="0%" stop-color="#f4e7bf"/>
-              <stop offset="100%" stop-color="#d8bd82"/>
+            <radialGradient id="continentShade" cx="40%" cy="32%" r="74%">
+              <stop offset="0%" stop-color="#f2e2b4"/>
+              <stop offset="60%" stop-color="#d9bd7c"/>
+              <stop offset="100%" stop-color="#b8975a"/>
             </radialGradient>
             <radialGradient id="mapVignette" cx="50%" cy="48%" r="72%">
               <stop offset="0%" stop-color="rgba(255,255,255,0)"/>
@@ -11180,32 +11251,57 @@
     function renderCityLabels(goals) {
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
       const hidden = box.w > CITY_LABEL_MAX_VIEWBOX_WIDTH ? ` style="display:none"` : "";
+      const screenScale = clampNumber(box.w / 900, 0.5, 0.78);
+
+      // 1) Precalcular cada rótulo con su caja real
+      const placed = goals.map(({ project, goal, index }) => {
+        const pos = goalPosition(goal, project, index);
+        const nameLength = String(goal.nombre || "").length;
+        const stats = statsForGoal(project.id, goal.id);
+        const cityScale = cityScaleForGoal(stats);
+        const mapIndex = projectMapIndex(project.id);
+        const bounds = pathBounds(continentPathForProject(project, mapIndex));
+        const centerY = (bounds.minY + bounds.maxY) / 2;
+        const scale = (nameLength > 54 ? 0.5 : nameLength > 34 ? 0.58 : 0.66) * screenScale;
+        const lines = wrapSvgLines(goal.nombre, nameLength > 40 ? 16 : 20).slice(0, 2);
+        const labelAbove = pos.y > centerY;
+        let y = pos.y + (labelAbove ? -Math.max(30, 46 * cityScale) : Math.max(34, 52 * cityScale));
+        if (y < bounds.minY + 22) y = pos.y + Math.max(34, 52 * cityScale);
+        if (y > bounds.maxY - 16) y = pos.y - Math.max(30, 46 * cityScale);
+        const x = clampNumber(pos.x, bounds.minX + 22, bounds.maxX - 22);
+        const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
+        const maxChars = Math.max(...lines.map((l) => l.length), 1);
+        const halfW = (maxChars * 6.6 * scale) / 2 + 8;
+        const halfH = (lines.length * 13 * scale) / 2 + 6;
+        return { pos, x, y, scale, lines, accent, halfW, halfH, bounds };
+      }).sort((a, b) => a.y - b.y);
+
+      // 2) Resolver solapes verticales (empuje hacia abajo de etiquetas cercanas en X)
+      for (let i = 0; i < placed.length; i++) {
+        for (let j = 0; j < i; j++) {
+          const a = placed[j];
+          const b = placed[i];
+          const dx = Math.abs(a.x - b.x);
+          const minGapY = a.halfH + b.halfH + 4;
+          if (dx < a.halfW + b.halfW && Math.abs(a.y - b.y) < minGapY) {
+            b.y = a.y + minGapY;
+            if (b.y > b.bounds.maxY - 14) b.y = b.bounds.maxY - 14;
+          }
+        }
+      }
+
+      // 3) Emitir guía + plaquita + texto
       return `<g class="city-title-layer" pointer-events="none"${hidden}>
-        ${goals.map(({ project, goal, index }) => {
-          const pos = goalPosition(goal, project, index);
-          const nameLength = String(goal.nombre || "").length;
-          const stats = statsForGoal(project.id, goal.id);
-          const cityScale = cityScaleForGoal(stats);
-          const mapIndex = projectMapIndex(project.id);
-          const coast = continentPathForProject(project, mapIndex);
-          const bounds = pathBounds(coast);
-          const centerY = (bounds.minY + bounds.maxY) / 2;
-          const screenScale = clampNumber(box.w / 900, 0.5, 0.78);
-          const scale = (nameLength > 54 ? 0.42 : nameLength > 34 ? 0.48 : 0.54) * screenScale;
-          const lines = wrapSvgLines(goal.nombre, nameLength > 54 ? 14 : 17).slice(0, 2);
-          const labelAbove = pos.y > centerY;
-          let y = pos.y + (labelAbove ? -Math.max(18, 34 * cityScale) : Math.max(21, 38 * cityScale));
-          if (y < bounds.minY + 18) y = pos.y + Math.max(21, 38 * cityScale);
-          if (y > bounds.maxY - 12) y = pos.y - Math.max(18, 34 * cityScale);
-          const x = clampNumber(pos.x, bounds.minX + 18, bounds.maxX - 18);
-          const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
-          const textStartY = lines.length > 1 ? -5 : 1;
-          const leaderEndY = y + (y < pos.y ? 6 : -7);
-          const leaderStartY = pos.y + (y < pos.y ? -11 * cityScale : 13 * cityScale);
+        ${placed.map(({ pos, x, y, scale, lines, accent, halfW, halfH }) => {
+          const textStartY = lines.length > 1 ? -4.5 : 4;
+          const leaderEndY = y - halfH;
+          const leaderStartY = pos.y + (y < pos.y ? -10 : 13);
           return `
             <path class="city-label-leader" d="M${roundViewBox(pos.x)} ${roundViewBox(leaderStartY)} L${roundViewBox(x)} ${roundViewBox(leaderEndY)}"/>
+            <rect class="city-title-plate-bg" x="${roundViewBox(x - halfW)}" y="${roundViewBox(y - halfH)}" width="${roundViewBox(halfW * 2)}" height="${roundViewBox(halfH * 2)}" rx="${roundViewBox(halfH)}"/>
+            <rect x="${roundViewBox(x - halfW)}" y="${roundViewBox(y - halfH)}" width="3" height="${roundViewBox(halfH * 2)}" rx="1.5" fill="${accent}" opacity="0.85"/>
             <g class="city-title-label" style="--map-goal-accent:${accent}" transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${roundViewBox(scale)})">
-              ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${textStartY + lineIndex * 11}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
+              ${lines.map((line, lineIndex) => `<text class="city-title-text" x="0" y="${roundViewBox(textStartY / scale + lineIndex * 13)}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
             </g>
           `;
         }).join("")}
@@ -11246,11 +11342,11 @@
             <clipPath id="${clipId}">
               <path data-coast-project-id="${project.id}" d="${coast}"/>
             </clipPath>
-            <path data-coast-project-id="${project.id}" d="${coast}" fill="none" stroke="rgba(218,206,166,0.22)" stroke-width="10" stroke-linejoin="round"/>
-            <path data-coast-project-id="${project.id}" d="${coast}" fill="none" stroke="rgba(15,39,41,0.18)" stroke-width="3.4" stroke-linejoin="round"/>
-            <path data-coast-project-id="${project.id}" d="${coast}" fill="url(#continentShade)" stroke="#56645a" stroke-width="${selected ? 1.9 : 1.1}" stroke-linejoin="round"/>
-            <path data-coast-project-id="${project.id}" d="${coast}" fill="${project.color}" opacity="${selected ? 0.24 : 0.16}"/>
-            <path data-coast-project-id="${project.id}" d="${coast}" fill="url(#landGrain)" opacity="0.62"/>
+            <path data-coast-project-id="${project.id}" d="${coast}" fill="none" stroke="rgba(218,206,166,0.28)" stroke-width="11" stroke-linejoin="round"/>
+            <path data-coast-project-id="${project.id}" d="${coast}" fill="none" stroke="rgba(15,39,41,0.28)" stroke-width="4" stroke-linejoin="round"/>
+            <path data-coast-project-id="${project.id}" d="${coast}" fill="url(#continentShade)" stroke="#4c5a50" stroke-width="${selected ? 2.4 : 1.6}" stroke-linejoin="round"/>
+            <path data-coast-project-id="${project.id}" d="${coast}" fill="${project.color}" opacity="${selected ? 0.3 : 0.2}"/>
+            <path data-coast-project-id="${project.id}" d="${coast}" fill="url(#landGrain)" opacity="0.7"/>
             ${renderLandTexture(project, layout, mapIndex, clipId, coast)}
             <path data-coast-project-id="${project.id}" d="${coast}" fill="none" stroke="${selected ? project.color : "#56645a"}" stroke-width="${selected ? 1.45 : 0.75}" opacity="${selected ? 0.78 : 0.34}" stroke-linejoin="round"/>
             ${renderContinentMarks(layout, mapIndex)}
@@ -11265,19 +11361,32 @@
         const coast = continentPathForProject(project, mapIndex);
         const bounds = pathBounds(coast);
         const x = (bounds.minX + bounds.maxX) / 2;
-        const y = bounds.minY + Math.min(72, Math.max(44, (bounds.maxY - bounds.minY) * 0.18));
+        // Anclar la cinta cerca del borde superior de la isla, por encima de la banda de castillos
+        const y = bounds.minY + Math.min(40, Math.max(24, (bounds.maxY - bounds.minY) * 0.08));
         const title = String(project.nombre || "");
         const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-        const screenScale = clampNumber(box.w / 900, 0.42, 1.06);
-        const labelScale = (title.length > 48 ? 0.72 : title.length > 32 ? 0.84 : 0.96) * screenScale;
+        const screenScale = clampNumber(box.w / 900, 0.46, 1.06);
+        const labelScale = (title.length > 48 ? 0.74 : title.length > 32 ? 0.86 : 1) * screenScale;
         const labelLines = wrapSvgLines(title, title.length > 48 ? 19 : 23).slice(0, 2);
-        const hitWidth = Math.min(286, Math.max(126, Math.max(...labelLines.map((line) => line.length)) * 10.4 + 40));
-        const plateHeight = 34 + (labelLines.length - 1) * 18;
+        const maxChars = Math.max(...labelLines.map((line) => line.length), 1);
+        const halfW = (maxChars * 11.6 * labelScale) / 2 + 16;
+        const topY = y - 15 * labelScale;
+        const bannerH = (labelLines.length * 24 + 12) * labelScale;
+        const notch = 11 * labelScale;
+        const left = x - halfW;
+        const right = x + halfW;
+        const bottomY = topY + bannerH;
+        // Cinta con extremos en muesca (estilo mapa de fantasía)
+        const ribbon = `M${roundViewBox(left)} ${roundViewBox(topY)} L${roundViewBox(right)} ${roundViewBox(topY)} L${roundViewBox(right - notch)} ${roundViewBox((topY + bottomY) / 2)} L${roundViewBox(right)} ${roundViewBox(bottomY)} L${roundViewBox(left)} ${roundViewBox(bottomY)} L${roundViewBox(left + notch)} ${roundViewBox((topY + bottomY) / 2)} Z`;
+        const textTop = topY + 17 * labelScale;
         return `
           <g class="continent-title-group" data-project-id="${project.id}">
-            <rect x="${roundViewBox(x - hitWidth / 2 - 18)}" y="${roundViewBox(y - 28)}" width="${hitWidth + 36}" height="${plateHeight + 22}" rx="16" fill="transparent"/>
-            <g transform="translate(${roundViewBox(x)} ${roundViewBox(y)}) scale(${roundViewBox(labelScale)})">
-              ${labelLines.map((line, lineIndex) => `<text class="continent-title-text" x="0" y="${lineIndex * 18}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
+            <rect x="${roundViewBox(left - 6)}" y="${roundViewBox(topY - 6)}" width="${roundViewBox(halfW * 2 + 12)}" height="${roundViewBox(bannerH + 12)}" fill="transparent"/>
+            <path class="continent-banner-shadow" d="${ribbon}" transform="translate(0 ${roundViewBox(2.4 * labelScale)})"/>
+            <path class="continent-banner" d="${ribbon}"/>
+            <rect class="continent-banner-accent" x="${roundViewBox(left + notch)}" y="${roundViewBox(topY)}" width="${roundViewBox((halfW - notch) * 2)}" height="${roundViewBox(3 * labelScale)}" fill="${project.color}"/>
+            <g transform="translate(${roundViewBox(x)} ${roundViewBox(textTop)}) scale(${roundViewBox(labelScale)})">
+              ${labelLines.map((line, lineIndex) => `<text class="continent-title-text" x="0" y="${lineIndex * 24}" text-anchor="middle">${escapeHtml(line)}</text>`).join("")}
             </g>
           </g>
         `;
@@ -11428,7 +11537,7 @@
     }
 
     function renderContinentMarks(layout, index) {
-      const visualScale = Math.max(0.32, (layout.visualScale || 1) * 0.52);
+      const visualScale = Math.max(0.5, (layout.visualScale || 1) * 0.78);
       const marks = [
         [
           ["forest", -56, 40], ["mountain", 54, 14], ["ruin", -18, 82], ["tree", 24, 72]
@@ -11460,7 +11569,7 @@
 
     function renderMapMark(type, x, y) {
       if (type === "mountain") {
-        return `<g transform="translate(${x} ${y})" opacity="0.68">
+        return `<g transform="translate(${x} ${y})" opacity="0.92">
           <path d="M-26 17 C-20 4 -15 -9 -7 -19 C0 -7 5 6 12 17 Z" fill="#9d8b66" stroke="#6b5635" stroke-width="1"/>
           <path d="M-4 17 C2 2 8 -13 18 -25 C25 -9 32 5 38 17 Z" fill="#8c7d5b" stroke="#6b5635" stroke-width="1"/>
           <path d="M18 -25 C25 -9 32 5 38 17 H18 C22 5 20 -9 18 -25 Z" fill="#62583f" opacity="0.28"/>
@@ -11470,7 +11579,7 @@
         </g>`;
       }
       if (type === "forest") {
-        return `<g transform="translate(${x} ${y})" opacity="0.48">
+        return `<g transform="translate(${x} ${y})" opacity="0.78">
           <ellipse cx="-8" cy="1" rx="5.5" ry="9" fill="#6b7d4e"/>
           <ellipse cx="1" cy="-3" rx="7" ry="11" fill="#526a43"/>
           <ellipse cx="10" cy="2" rx="5.5" ry="8.5" fill="#738553"/>
@@ -11479,9 +11588,9 @@
         </g>`;
       }
       if (type === "tower") {
-        return `<g transform="translate(${x} ${y})" opacity="0.56"><rect x="-5" y="-13" width="10" height="20" fill="#a88e61" stroke="#6b5635" stroke-width="0.9"/><path d="M-8 -13 H8 L5 -21 H-5 Z" fill="#7f704f"/><path d="M-2 -1 V7 H2 V-1 Z" fill="#5b4630"/></g>`;
+        return `<g transform="translate(${x} ${y})" opacity="0.82"><rect x="-5" y="-13" width="10" height="20" fill="#a88e61" stroke="#6b5635" stroke-width="0.9"/><path d="M-8 -13 H8 L5 -21 H-5 Z" fill="#7f704f"/><path d="M-2 -1 V7 H2 V-1 Z" fill="#5b4630"/></g>`;
       }
-      return `<g transform="translate(${x} ${y})" opacity="0.5"><path d="M0 -12 C-9 -7 -11 2 -5 6 C-2 9 6 8 8 3 C12 -3 8 -10 0 -12 Z" fill="#71804f"/><path d="M-5 -2 C0 -5 5 -4 8 1" fill="none" stroke="#8c9a63" stroke-width="0.8" opacity="0.55"/><rect x="-1.4" y="4" width="2.8" height="9" fill="#6b5635"/></g>`;
+      return `<g transform="translate(${x} ${y})" opacity="0.74"><path d="M0 -12 C-9 -7 -11 2 -5 6 C-2 9 6 8 8 3 C12 -3 8 -10 0 -12 Z" fill="#71804f"/><path d="M-5 -2 C0 -5 5 -4 8 1" fill="none" stroke="#8c9a63" stroke-width="0.8" opacity="0.55"/><rect x="-1.4" y="4" width="2.8" height="9" fill="#6b5635"/></g>`;
     }
 
     function renderCastle(project, goal, index) {
@@ -11489,7 +11598,7 @@
       const pos = goalPosition(goal, project, index);
       const progress = stats.progress;
       const cityScale = cityScaleForGoal(stats);
-      const castleScale = 0.4 + progress * 0.2;
+      const castleScale = 0.6 + progress * 0.18;
       const pct = progress * 100;
       const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
       return `
@@ -11550,8 +11659,8 @@
     function cityScaleForGoal(stats) {
       const taskCount = Math.max(0, Number(stats?.total) || 0);
       const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-      const overviewFactor = box.w > 650 ? 0.68 : box.w > 460 ? 0.86 : 1;
-      return (0.27 + Math.min(taskCount, 20) * 0.0038) * overviewFactor;
+      const overviewFactor = box.w > 650 ? 1 : box.w > 460 ? 1.08 : 1.18;
+      return (0.52 + Math.min(taskCount, 20) * 0.006) * overviewFactor;
     }
 
     function renderGoalSequencePaths(projects) {
@@ -13065,6 +13174,7 @@
     ensureRecurringInstances();
     syncCompletionState();
     repairAllDistantGoalPositions();
+    respreadClusteredGoals();
     if (state.view === "overview") {
       state = normalizeState({ ...state, ...overviewOpenAllPatch() });
     }

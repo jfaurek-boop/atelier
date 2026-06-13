@@ -836,6 +836,24 @@
       pointer-events: none;
     }
 
+    .land-road-base {
+      fill: none;
+      stroke: rgba(122, 94, 54, 0.42);
+      stroke-width: 2.6px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .land-road-line {
+      fill: none;
+      stroke: rgba(243, 230, 196, 0.5);
+      stroke-width: 0.9px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
     .task-construction {
       filter: drop-shadow(0 2px 3px rgba(48, 34, 18, 0.3));
     }
@@ -11133,6 +11151,7 @@
         .map(({ project, goal, index }) => renderCastle(project, goal, index))
         .join("");
       const goalRoutes = renderGoalSequencePaths(projects);
+      const landRoads = projects.map((project) => renderLandRoads(project)).join("");
       const workers = goals.map(({ project, goal, index }) => renderProjectWorkers(project, goal, index)).join("");
       const cityLabels = renderCityLabels(goals);
       const continentLabels = renderContinentLabels(projects);
@@ -11203,6 +11222,7 @@
           </defs>
           ${renderLandscape()}
           ${renderContinents(projects)}
+          ${landRoads}
           ${goalRoutes}
           ${castles}
           ${workers}
@@ -11290,8 +11310,25 @@
         const halfH = (lines.length * 12 * scale) / 2 + 5 * scale;
         const x = clampNumber(pos.x, bounds.minX + halfW + 6, bounds.maxX - halfW - 6);
         const accent = goalPriorityColor(goal) !== "transparent" ? goalPriorityColor(goal) : project.color;
-        return { pos, x, y, scale, lines, accent, halfW, halfH, bounds };
+        return { pos, x, y, scale, lines, accent, halfW, halfH, bounds, projectId: project.id };
       }).sort((a, b) => a.y - b.y);
+
+      // Apartar las cintas que rozan el banner del continente
+      const bannerBoxes = new Map();
+      placed.forEach((label) => {
+        if (!bannerBoxes.has(label.projectId)) {
+          const project = state.projects.find((p) => p.id === label.projectId);
+          if (project) bannerBoxes.set(label.projectId, continentBannerBox(project));
+        }
+        const banner = bannerBoxes.get(label.projectId);
+        if (!banner) return;
+        const overlapX = Math.abs(label.x - banner.x) < label.halfW + banner.halfW + 4;
+        const overlapY = label.y - label.halfH < banner.bottom + 4 && label.y + label.halfH > banner.topY - 4;
+        if (overlapX && overlapY) {
+          label.y = banner.bottom + label.halfH + 7;
+          if (label.y > label.bounds.maxY - 12) label.y = label.bounds.maxY - 12;
+        }
+      });
 
       for (let i = 0; i < placed.length; i += 1) {
         for (let j = 0; j < i; j += 1) {
@@ -11347,6 +11384,48 @@
       `;
     }
 
+    function cssIdSafe(value) {
+      return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "");
+    }
+
+    function renderLandRoads(project) {
+      const mapIndex = projectMapIndex(project.id);
+      const goals = goalsForProject(project.id);
+      if (goals.length < 2) return "";
+      const pts = goals.map((goal, index) => goalPosition(goal, project, index));
+      const remaining = pts.slice().sort((a, b) => a.y - b.y);
+      const ordered = [remaining.shift()];
+      while (remaining.length) {
+        const last = ordered[ordered.length - 1];
+        let best = 0;
+        let bestDist = Infinity;
+        remaining.forEach((p, i) => {
+          const d = Math.hypot(p.x - last.x, p.y - last.y);
+          if (d < bestDist) { bestDist = d; best = i; }
+        });
+        ordered.push(remaining.splice(best, 1)[0]);
+      }
+      let d = `M${ordered[0].x.toFixed(1)} ${(ordered[0].y + 16).toFixed(1)}`;
+      for (let i = 1; i < ordered.length; i += 1) {
+        const a = ordered[i - 1];
+        const b = ordered[i];
+        const mx = (a.x + b.x) / 2 + (i % 2 ? 14 : -12);
+        const my = (a.y + b.y) / 2 + 12;
+        d += ` Q${mx.toFixed(1)} ${my.toFixed(1)} ${b.x.toFixed(1)} ${(b.y + 16).toFixed(1)}`;
+      }
+      const coast = continentPathForProject(project, mapIndex);
+      const clipId = `roadClip-${cssIdSafe(project.id)}`;
+      return `
+        <g class="land-roads" pointer-events="none">
+          <clipPath id="${clipId}"><path d="${coast}"/></clipPath>
+          <g clip-path="url(#${clipId})">
+            <path class="land-road-base" d="${d}"/>
+            <path class="land-road-line" d="${d}"/>
+          </g>
+        </g>
+      `;
+    }
+
     function renderContinents(projects) {
       return projects.map((project, index) => {
         const mapIndex = projectMapIndex(project.id);
@@ -11372,27 +11451,38 @@
       }).join("");
     }
 
+    function continentBannerBox(project) {
+      const mapIndex = projectMapIndex(project.id);
+      const bounds = pathBounds(continentPathForProject(project, mapIndex));
+      const x = (bounds.minX + bounds.maxX) / 2;
+      const y = bounds.minY + Math.min(40, Math.max(24, (bounds.maxY - bounds.minY) * 0.08));
+      const title = String(project.nombre || "");
+      const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
+      const screenScale = clampNumber(box.w / 900, 0.46, 1.06);
+      const labelScale = (title.length > 48 ? 0.78 : title.length > 32 ? 0.88 : 1) * screenScale;
+      const labelLines = wrapSvgLines(title, title.length > 48 ? 19 : 23).slice(0, 2);
+      const maxChars = Math.max(...labelLines.map((line) => line.length), 1);
+      const halfW = (maxChars * 12.6 * labelScale) / 2 + 22 * labelScale;
+      const topY = y - 15 * labelScale;
+      const bannerH = (labelLines.length * 24 + 12) * labelScale;
+      const notch = 11 * labelScale;
+      return { x, y, labelScale, labelLines, halfW, topY, bannerH, notch, left: x - halfW, right: x + halfW, bottom: topY + bannerH };
+    }
+
     function renderContinentLabels(projects) {
-      return projects.map((project, index) => {
-        const mapIndex = projectMapIndex(project.id);
-        const coast = continentPathForProject(project, mapIndex);
-        const bounds = pathBounds(coast);
-        const x = (bounds.minX + bounds.maxX) / 2;
-        // Anclar la cinta cerca del borde superior de la isla, por encima de la banda de castillos
-        const y = bounds.minY + Math.min(40, Math.max(24, (bounds.maxY - bounds.minY) * 0.08));
+      return projects.map((project) => {
+        const banner = continentBannerBox(project);
+        const x = banner.x;
         const title = String(project.nombre || "");
-        const box = clampMapBox(state.mapViewBox || { x: 0, y: 0, w: 900, h: 800 });
-        const screenScale = clampNumber(box.w / 900, 0.46, 1.06);
-        const labelScale = (title.length > 48 ? 0.78 : title.length > 32 ? 0.88 : 1) * screenScale;
-        const labelLines = wrapSvgLines(title, title.length > 48 ? 19 : 23).slice(0, 2);
-        const maxChars = Math.max(...labelLines.map((line) => line.length), 1);
-        const halfW = (maxChars * 12.6 * labelScale) / 2 + 22 * labelScale;
-        const topY = y - 15 * labelScale;
-        const bannerH = (labelLines.length * 24 + 12) * labelScale;
-        const notch = 11 * labelScale;
-        const left = x - halfW;
-        const right = x + halfW;
-        const bottomY = topY + bannerH;
+        const labelScale = banner.labelScale;
+        const labelLines = banner.labelLines;
+        const halfW = banner.halfW;
+        const topY = banner.topY;
+        const bannerH = banner.bannerH;
+        const notch = banner.notch;
+        const left = banner.left;
+        const right = banner.right;
+        const bottomY = banner.bottom;
         // Cinta con extremos en muesca (estilo mapa de fantasía)
         const ribbon = `M${roundViewBox(left)} ${roundViewBox(topY)} L${roundViewBox(right)} ${roundViewBox(topY)} L${roundViewBox(right - notch)} ${roundViewBox((topY + bottomY) / 2)} L${roundViewBox(right)} ${roundViewBox(bottomY)} L${roundViewBox(left)} ${roundViewBox(bottomY)} L${roundViewBox(left + notch)} ${roundViewBox((topY + bottomY) / 2)} Z`;
         const textTop = topY + 17 * labelScale;
@@ -11510,11 +11600,41 @@
       return raw - Math.floor(raw);
     }
 
+    function renderFieldPatch(cx, cy, s, ang, tone) {
+      const a = ang * Math.PI / 180;
+      const w = 26 * s;
+      const h = 16 * s;
+      const cos = Math.cos(a);
+      const sin = Math.sin(a);
+      const R = (px, py) => `${(cx + px * cos - py * sin).toFixed(1)} ${(cy + px * sin + py * cos).toFixed(1)}`;
+      const poly = `M${R(-w, -h)} L${R(w, -h)} L${R(w, h)} L${R(-w, h)} Z`;
+      let furrows = "";
+      for (let t = -3; t <= 3; t += 1) {
+        const y = t * h / 3.5;
+        furrows += `<path d="M${R(-w, y)} L${R(w, y)}" stroke="#5a4326" stroke-width="0.5" opacity="0.26"/>`;
+      }
+      return `<path d="${poly}" fill="${tone}" stroke="#5a4326" stroke-width="0.7" opacity="0.4"/>${furrows}`;
+    }
+
     function renderCartographicTexture(coast, index, visualScale = 1) {
       const bounds = pathBounds(coast);
       const width = bounds.maxX - bounds.minX;
       const height = bounds.maxY - bounds.minY;
       const seed = (index + 1) * 113;
+      const pines = Array.from({ length: 9 }, (_, i) => {
+        const x = bounds.minX + width * (0.1 + seededValue(seed + i * 41) * 0.8);
+        const y = bounds.minY + height * (0.12 + seededValue(seed + i * 47) * 0.74);
+        const s = (0.5 + seededValue(seed + i * 53) * 0.3) * Math.max(0.74, visualScale);
+        return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s.toFixed(2)})">${renderMapMark("pine", 0, 0)}</g>`;
+      }).join("");
+      const fieldTones = ["#c9b169", "#b7a05f", "#a9bd84", "#c3b07a"];
+      const fields = Array.from({ length: 4 }, (_, i) => {
+        const x = bounds.minX + width * (0.24 + seededValue(seed + i * 59) * 0.5);
+        const y = bounds.minY + height * (0.4 + seededValue(seed + i * 63) * 0.4);
+        const s = (0.7 + seededValue(seed + i * 67) * 0.5) * Math.max(0.74, visualScale);
+        const ang = (seededValue(seed + i * 71) - 0.5) * 60;
+        return renderFieldPatch(x, y, s, ang, fieldTones[i % fieldTones.length]);
+      }).join("");
       const ridges = Array.from({ length: 11 }, (_, i) => {
         const x = bounds.minX + width * (0.16 + seededValue(seed + i * 19) * 0.68);
         const y = bounds.minY + height * (0.16 + seededValue(seed + i * 23) * 0.66);
@@ -11547,8 +11667,10 @@
         <g>
           ${river}
           ${lake}
+          ${fields}
           ${ridges}
           ${woods}
+          ${pines}
         </g>
       `;
     }
@@ -11606,6 +11728,9 @@
       }
       if (type === "tower") {
         return `<g transform="translate(${x} ${y})" opacity="0.82"><rect x="-5" y="-13" width="10" height="20" fill="#a88e61" stroke="#6b5635" stroke-width="0.9"/><path d="M-8 -13 H8 L5 -21 H-5 Z" fill="#7f704f"/><path d="M-2 -1 V7 H2 V-1 Z" fill="#5b4630"/></g>`;
+      }
+      if (type === "pine") {
+        return `<g transform="translate(${x} ${y})" opacity="0.8"><path d="M0 -20 L7 -6 L3.5 -6 L9 6 L-9 6 L-3.5 -6 L-7 -6 Z" fill="#4f6a43" stroke="#5a4326" stroke-width="0.9" stroke-linejoin="round"/><path d="M0 -20 L7 -6 L0 -6 Z" fill="#3d5636" opacity="0.5"/><rect x="-1.4" y="6" width="2.8" height="6" fill="#6b5635"/></g>`;
       }
       return `<g transform="translate(${x} ${y})" opacity="0.74"><path d="M0 -12 C-9 -7 -11 2 -5 6 C-2 9 6 8 8 3 C12 -3 8 -10 0 -12 Z" fill="#71804f"/><path d="M-5 -2 C0 -5 5 -4 8 1" fill="none" stroke="#8c9a63" stroke-width="0.8" opacity="0.55"/><rect x="-1.4" y="4" width="2.8" height="9" fill="#6b5635"/></g>`;
     }
